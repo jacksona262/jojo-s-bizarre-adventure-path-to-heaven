@@ -128,7 +128,7 @@ export class Character {
     const now = this.game.clock;
     this.recentHits = (this.recentHits || []).filter((t) => now - t < 1.2);
     this.recentHits.push(now);
-    if (this.recentHits.length > 6 && hit.kind !== 'heavy' && dmg < 6) hit = { ...hit, stun: 0, knock: Math.min(hit.knock || 0, 0.5) };
+    if (this.recentHits.length > 6 && hit.kind !== 'heavy' && hit.kind !== 'rush' && dmg < 6) hit = { ...hit, stun: 0, knock: Math.min(hit.knock || 0, 0.5) };
     if (hit.stun > 0) {
       this.cancelAction();
       this.stun = Math.max(this.stun, hit.stun);
