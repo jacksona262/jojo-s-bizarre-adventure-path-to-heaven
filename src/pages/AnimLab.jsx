@@ -107,18 +107,24 @@ export default function AnimLab() {
 
     const VIEWS = { side: [1, 0.12, 0], front: [0, 0.1, 1], back: [0, 0.15, -1], '3/4': [0.75, 0.25, 0.75] };
     const stripCam = new THREE.PerspectiveCamera(30, 1, 0.05, 100);
-    const placeCam = (camera, at, h, viewKey) => {
+    const _look = new THREE.Vector3();
+    const placeCam = (camera, at, h, viewKey, ahead = 0, zoom = 1) => {
       const v = VIEWS[viewKey] || VIEWS.side;
-      const dist = h * 2.9;
-      camera.position.set(at.x + v[0] * dist, at.y + h * 0.55 + v[1] * dist, at.z + v[2] * dist);
-      camera.lookAt(at.x, at.y + h * 0.5, at.z);
+      const dist = h * 2.9 * zoom;
+      _look.set(at.x + Math.sin(c?.yaw || 0) * ahead, at.y + h * 0.5, at.z + Math.cos(c?.yaw || 0) * ahead);
+      camera.position.set(_look.x + v[0] * dist, _look.y + h * 0.05 + v[1] * dist, _look.z + v[2] * dist);
+      camera.lookAt(_look);
     };
     // Filmstrip: N phases of the current cycle/clip side by side in one frame.
     const renderStrip = () => {
-      const N = 6;
       const W = el.clientWidth; const H = el.clientHeight;
       const name = S.current.anim;
-      const fw = Math.floor(W / N);
+      const clipMode = !!c.action?.def;
+      const N = clipMode ? 4 : 6;
+      const rows = clipMode ? 2 : 1;
+      const cols = clipMode ? 2 : N;
+      const fw = Math.floor(W / cols);
+      const fh = Math.floor(H / rows);
       renderer.setScissorTest(true);
       renderer.setClearColor(0x24272e);
       const def = c.action?.def;
@@ -134,11 +140,21 @@ export default function AnimLab() {
         }
         c.anim.update(1e-6);
         c.group.updateMatrixWorld(true);
-        stripCam.aspect = fw / H;
+        const def2 = c.action?.def;
+        const clip2 = def2?.clip;
+        if (clip2?.limb) {
+          const p = c.jointWorld(clip2.limb, new THREE.Vector3());
+          hitSphere.position.copy(p);
+          hitSphere.scale.setScalar((c.floating ? 0.26 : 0.2) * c.height / 1.9);
+          const t01 = c.action.t / def2.dur;
+          hitSphere.material.color.set(Math.abs(t01 - clip2.contact) < 0.035 ? 0xff3030 : (t01 >= clip2.active[0] && t01 <= clip2.active[1]) ? 0x44ff66 : 0x777777);
+        }
+        stripCam.aspect = fw / fh;
         stripCam.updateProjectionMatrix();
-        placeCam(stripCam, c.pos, c.height, S.current.view);
-        renderer.setViewport(i * fw, 0, fw, H);
-        renderer.setScissor(i * fw, 0, fw, H);
+        placeCam(stripCam, c.pos, c.height, S.current.view, clipMode ? 0.75 : 0, clipMode ? 0.95 : 1);
+        const col = i % cols; const row = rows - 1 - Math.floor(i / cols);
+        renderer.setViewport(col * fw, row * fh, fw, fh);
+        renderer.setScissor(col * fw, row * fh, fw, fh);
         renderer.render(scene, stripCam);
       }
       renderer.setScissorTest(false);
