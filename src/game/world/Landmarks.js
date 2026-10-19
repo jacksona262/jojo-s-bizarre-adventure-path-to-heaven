@@ -50,6 +50,12 @@ function cathedral(b, f, scale = 1, detail = true) {
 export function buildSanctuary(world) {
   const b = new Batch();
   const y = SANCTUARY.y || heightAt(SANCTUARY.x, SANCTUARY.z);
+  // no grass or trees on the stone forecourt
+  const zone = { x: SANCTUARY.x, z: SANCTUARY.z - 20, r: 75 };
+  world.noScatter = world.noScatter || [];
+  world.noScatter.push(zone);
+  world.grassCells?.clear();
+  world.grassKey = '';
   const f = new Frame(SANCTUARY.x, y, SANCTUARY.z - 60, 0);
   cathedral(b, f, 1, true);
   // forecourt arena (60 x 60) in front of the facade with the Arrow altar on the steps
@@ -82,6 +88,7 @@ export function buildSanctuary(world) {
     group,
     dispose() {
       world.root.remove(group);
+      world.noScatter = world.noScatter.filter((z) => z !== zone);
       group.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
       for (const c of cols) world.removeCollider(c);
       for (const l of lights) { const i = world.lights.indexOf(l); if (i >= 0) world.lights.splice(i, 1); }
