@@ -226,24 +226,31 @@ export class World {
   }
 
   // Camera occlusion: march from a to b, return the safe fraction.
-  occlusion(a, b, ignoreTerrain = false) {
+  // Fraction of the way from a to b before solid geometry. leaveStart: `a` may rest on or inside a
+  // prop (a look point on a desk); samples are ignored until the segment has left it.
+  occlusion(a, b, ignoreTerrain = false, leaveStart = false) {
     const steps = 14;
-    const p = new THREE.Vector3();
+    const p = _occP;
+    let leaving = leaveStart;
     for (let i = 1; i <= steps; i += 1) {
       const t = i / steps;
       p.lerpVectors(a, b, t);
-      if (!ignoreTerrain && p.y < heightAt(p.x, p.z) + 0.35) return Math.max(0, (i - 1) / steps);
-      const key = `${Math.floor(p.x / CELL)},${Math.floor(p.z / CELL)}`;
-      const list = this.colliderGrid.get(key);
-      if (!list) continue;
-      for (const c of list) {
-        if (c.r !== undefined || c.noCam || c.disabled) continue;
-        if (c.top !== undefined && (p.y > c.top || p.y < c.bottom)) continue;
-        const cs = Math.cos(c.rot); const sn = Math.sin(c.rot);
-        const dx = p.x - c.x; const dz = p.z - c.z;
-        const lx = dx * cs - dz * sn; const lz = dx * sn + dz * cs;
-        if (Math.abs(lx) < c.hw + 0.2 && Math.abs(lz) < c.hd + 0.2) return Math.max(0, (i - 1) / steps);
+      let blocked = !ignoreTerrain && p.y < heightAt(p.x, p.z) + 0.35;
+      if (!blocked) {
+        const list = this.colliderGrid.get(`${Math.floor(p.x / CELL)},${Math.floor(p.z / CELL)}`);
+        if (list) {
+          for (const c of list) {
+            if (c.r !== undefined || c.noCam || c.disabled) continue;
+            if (c.top !== undefined && (p.y > c.top || p.y < c.bottom)) continue;
+            const cs = Math.cos(c.rot); const sn = Math.sin(c.rot);
+            const dx = p.x - c.x; const dz = p.z - c.z;
+            const lx = dx * cs - dz * sn; const lz = dx * sn + dz * cs;
+            if (Math.abs(lx) < c.hw + 0.2 && Math.abs(lz) < c.hd + 0.2) { blocked = true; break; }
+          }
+        }
       }
+      if (blocked) { if (leaving) continue; return Math.max(0, (i - 1) / steps); }
+      leaving = false;
     }
     return 1;
   }
