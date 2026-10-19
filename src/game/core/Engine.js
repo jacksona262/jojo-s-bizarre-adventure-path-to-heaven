@@ -173,6 +173,7 @@ export class Engine {
     this.resize();
     r.info.autoReset = false;
     prof.init(r);
+    this.prof = prof;
     if (new URLSearchParams(window.location.search).has('prof')) prof.enabled = true;
   }
 
