@@ -269,7 +269,9 @@ export class Kit {
 
   _comboCallout(name, hex) {
     const f = this.f;
-    this.vfx.text(f.chestWorld(new THREE.Vector3()).add(v3(0, 1.0, 0)), name, hex || `#${this.color.getHexString()}`, 1.1, 0.85);
+    // beside and above the user, small enough not to swallow the screen when the camera is close
+    const side = v3(Math.cos(f.yaw), 0, -Math.sin(f.yaw)).multiplyScalar(-0.7);
+    this.vfx.text(f.chestWorld(new THREE.Vector3()).add(v3(0, 1.1, 0)).add(side), name, hex || `#${this.color.getHexString()}`, 1, 0.45);
     audio.play('counter');
     this.game.combat.emit({ type: 'combo', attacker: f, name });
   }
@@ -285,8 +287,8 @@ export class Kit {
     const onContact = (tg, res, p) => {
       audio.play('punch', { power: 1.5 });
       const cam = this.game.engine.camera.position;
-      this.vfx.ring(p, this.color, 0.2, 2.4, 0.35, { vertical: true, face: cam });
-      this.vfx.ring(p, 0xffffff, 0.1, 1.4, 0.22, { vertical: true, face: cam, alpha: 0.8 });
+      this.vfx.ring(p, this.color, 0.2, 1.7, 0.3, { vertical: true, face: cam, alpha: 0.6 });
+      this.vfx.ring(p, 0xffffff, 0.1, 1.0, 0.2, { vertical: true, face: cam, alpha: 0.5 });
       this.vfx.sparkBurst(p, this.color, 26, 13, tg.pos.clone().sub(f.pos).setY(0).normalize());
       this.game.camera.shake(0.5);
     };
