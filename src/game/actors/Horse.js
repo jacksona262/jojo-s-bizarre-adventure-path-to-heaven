@@ -159,7 +159,7 @@ export class Horse {
       steer = Math.max(-1, Math.min(1, -da * 2));
       want = d > 12 ? GAIT_SPEEDS.gallop * 0.8 : d > 4 ? GAIT_SPEEDS.trot : 0;
       if (Math.abs(da) > 1.4 && d > 6) want = Math.min(want, GAIT_SPEEDS.trot);   // turn before galloping off
-      if (d < 3.2) { this.state = 'idle'; want = 0; }
+      if (d < 2.9) { this.state = 'idle'; want = 0; }
       // a whistle never leaves the player waiting: lost, blocked or stuck, she reappears closer
       this.summonT = (this.summonT || 0) + dt;
       if (d < (this.summonBest ?? Infinity) - 1.5) { this.summonBest = d; this.summonBestT = this.summonT; }
