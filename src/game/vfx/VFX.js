@@ -1,6 +1,9 @@
 import * as THREE from 'three';
+import { Afterimages } from './Afterimage';
 
 // Particle + mesh effects. Every effect can be frozen by time stop (unless marked free).
+// Frequently spawned meshes (rings, rush fists, hit sparks) come from fixed pools with their
+// materials built once, so a long rush or a boss fight allocates no GPU resources mid-combat.
 
 const GLOW_VERT = `
   attribute float aSize; attribute vec4 aColor; attribute float aShape;
@@ -166,6 +169,83 @@ const RING_FRAG = `
     float a = smoothstep(1.0, 1.0 - uSoft, d) * smoothstep(0.55, 0.95, d);
     gl_FragColor = vec4(uColor, a * uAlpha);
   }`;
+const UV_VERT = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }';
+
+// Anime hit spark: a white-hot core with uneven tapering rays, tinted by the Stand's colour.
+const SPARK_FRAG = `
+  uniform vec3 uColor; uniform float uK; uniform float uSeed; varying vec2 vUv;
+  float h(float n){ return fract(sin(n * 91.345 + uSeed * 13.71) * 47453.31); }
+  void main(){
+    vec2 p = vUv * 2.0 - 1.0; float r = length(p);
+    float a = atan(p.y, p.x) / 6.28318 + 0.5;
+    float N = 11.0;
+    float sec = floor(a * N); float fa = fract(a * N) - 0.5;
+    float len = (0.42 + 0.58 * h(sec)) * (0.75 + 0.25 * uK);
+    float w = max(0.0, 1.0 - r / len) * 0.5;
+    float ray = smoothstep(w, w * 0.45, abs(fa)) * step(r, len);
+    float core = smoothstep(0.3, 0.05, r) * (1.0 - uK * 0.6);
+    float m = max(ray, core);
+    if (m < 0.02) discard;
+    vec3 c = mix(uColor, vec3(1.0), smoothstep(0.55, 0.0, r));
+    gl_FragColor = vec4(c, m * (1.0 - smoothstep(0.45, 1.0, uK)));
+  }`;
+
+// Time-stop signature: a clock face whose hands spin and then freeze.
+const DIAL_FRAG = `
+  uniform vec3 uColor; uniform float uA; uniform float uH1; uniform float uH2; varying vec2 vUv;
+  float hand(vec2 p, float ang, float len, float w){ vec2 d = vec2(sin(ang), cos(ang)); float t = clamp(dot(p, d), -0.06, len); return smoothstep(w, w * 0.3, length(p - d * t)); }
+  void main(){
+    vec2 p = vUv * 2.0 - 1.0; float r = length(p);
+    float ring = smoothstep(0.025, 0.0, abs(r - 0.93)) + 0.55 * smoothstep(0.012, 0.0, abs(r - 0.84));
+    float s = fract(atan(p.x, p.y) / 6.28318 * 12.0); float dd = min(s, 1.0 - s);
+    float tick = smoothstep(0.09, 0.03, dd) * step(0.7, r) * step(r, 0.84);
+    float hands = hand(p, uH1, 0.46, 0.04) + hand(p, uH2, 0.7, 0.026) + smoothstep(0.06, 0.03, r);
+    float m = clamp(ring + tick + hands, 0.0, 1.0);
+    if (m < 0.02) discard;
+    gl_FragColor = vec4(uColor, m * uA);
+  }`;
+
+class MeshPool {
+  constructor(scene, make, cap) { this.scene = scene; this.make = make; this.cap = cap; this.free = []; this.n = 0; }
+  get() {
+    let m = this.free.pop();
+    if (!m) {
+      if (this.n >= this.cap) return null;
+      m = this.make(); this.n += 1; this.scene.add(m);
+    }
+    m.visible = true;
+    return m;
+  }
+  put(m) { m.visible = false; this.free.push(m); }
+  // build `n` up front (hidden) so prewarm compiles the material
+  fill(n) { const t = []; for (let i = 0; i < n; i += 1) { const m = this.get(); if (m) t.push(m); } for (const m of t) this.put(m); }
+  get used() { return this.n - this.free.length; }
+}
+
+const _col = new THREE.Color();
+const _col2 = new THREE.Color();
+const _ax = new THREE.Vector3();
+const _q = new THREE.Vector3();
+
+function ringUpdate(e, k) {
+  const d = e.data;
+  const r = d.r0 + (d.r1 - d.r0) * (1 - (1 - k) ** 2);
+  e.mesh.scale.set(r * 2, r * 2, 1);
+  e.mesh.material.uniforms.uAlpha.value = (1 - k) * d.alpha;
+}
+function fistUpdate(e, k) {
+  const d = e.data;
+  e.mesh.position.copy(d.start).addScaledVector(d.dir, k * d.travel);
+  e.mesh.material.opacity = 0.85 * (1 - k);
+  const s = d.scale * (1 + 0.25 * k);
+  e.mesh.scale.set(s, s, s * (1 + 0.6 * k));
+}
+function sparkUpdate(e, k) {
+  const d = e.data;
+  const s = d.size * (0.55 + 0.45 * Math.min(1, k * 4)) * (1 + 0.25 * k);
+  e.mesh.scale.set(s, s, 1);
+  e.mesh.material.uniforms.uK.value = k;
+}
 
 function textCanvas(text, color, stroke = '#120818') {
   const c = document.createElement('canvas');
@@ -194,6 +274,54 @@ export class VFX {
     this.fistGeo = new THREE.SphereGeometry(0.16, 10, 8);
     this.fistGeo.scale(1, 1, 2.4);
     this.textCache = new Map();
+    this.ringPool = new MeshPool(scene, () => {
+      const m = new THREE.Mesh(this.ringGeo, new THREE.ShaderMaterial({
+        vertexShader: UV_VERT, fragmentShader: RING_FRAG, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+        uniforms: { uColor: { value: new THREE.Color() }, uAlpha: { value: 1 }, uSoft: { value: 0.25 } },
+      }));
+      m.renderOrder = 7; m.frustumCulled = false;
+      return m;
+    }, 64);
+    this.fistPool = new MeshPool(scene, () => {
+      const m = new THREE.Mesh(this.fistGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false }));
+      m.renderOrder = 6; m.frustumCulled = false;
+      m.userData.start = new THREE.Vector3(); m.userData.dir = new THREE.Vector3();
+      return m;
+    }, 96);
+    this.sparkPool = new MeshPool(scene, () => {
+      const m = new THREE.Mesh(this.ringGeo, new THREE.ShaderMaterial({
+        vertexShader: UV_VERT, fragmentShader: SPARK_FRAG, transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+        uniforms: { uColor: { value: new THREE.Color() }, uK: { value: 0 }, uSeed: { value: 0 } },
+      }));
+      m.renderOrder = 8; m.frustumCulled = false;
+      return m;
+    }, 32);
+    this.ringPool.fill(16); this.fistPool.fill(24); this.sparkPool.fill(8);
+    // one clock dial, reused by every time stop
+    this.dial = new THREE.Mesh(this.ringGeo, new THREE.ShaderMaterial({
+      vertexShader: UV_VERT, fragmentShader: DIAL_FRAG, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+      uniforms: { uColor: { value: new THREE.Color() }, uA: { value: 0 }, uH1: { value: 0 }, uH2: { value: 0 } },
+    }));
+    this.dial.visible = false; this.dial.renderOrder = 4; this.dial.frustumCulled = false;
+    scene.add(this.dial);
+    this.dialState = null;
+    this.afterimages = new Afterimages(scene);
+  }
+
+  // Reuse a pooled mesh; when the pool is exhausted the oldest live effect of that kind is recycled.
+  _acquire(pool) {
+    const m = pool.get();
+    if (m) return m;
+    const i = this.meshes.findIndex((e) => e.pool === pool);
+    if (i < 0) return null;
+    const e = this.meshes[i];
+    this.meshes.splice(i, 1);
+    e.mesh.visible = true;
+    return e.mesh;
+  }
+
+  _pooled(pool, mesh, life, free, update, data) {
+    this.meshes.push({ mesh, t: 0, life, free, update, pool, data });
   }
 
   rnd(s = 1) { return (Math.random() - 0.5) * 2 * s; }
@@ -227,18 +355,76 @@ export class VFX {
   }
 
   ring(p, color, r0, r1, life = 0.5, opts = {}) {
-    const m = new THREE.ShaderMaterial({
-      vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-      fragmentShader: RING_FRAG, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
-      uniforms: { uColor: { value: new THREE.Color(color) }, uAlpha: { value: 1 }, uSoft: { value: opts.soft ?? 0.25 } },
-    });
-    const mesh = new THREE.Mesh(this.ringGeo, m);
+    const mesh = this._acquire(this.ringPool);
+    if (!mesh) return null;
+    const u = mesh.material.uniforms;
+    u.uColor.value.set(color);
+    u.uSoft.value = opts.soft ?? 0.25;
+    u.uAlpha.value = opts.alpha ?? 1;
     mesh.position.copy(p);
+    mesh.rotation.set(0, 0, 0);
     if (opts.vertical) { if (opts.face) mesh.lookAt(opts.face); } else mesh.rotation.x = -Math.PI / 2;
-    mesh.renderOrder = 7;
-    this.scene.add(mesh);
-    this.meshes.push({ mesh, t: 0, life, free: opts.free, update: (e, k) => { const r = r0 + (r1 - r0) * (1 - (1 - k) ** 2); mesh.scale.set(r * 2, r * 2, 1); m.uniforms.uAlpha.value = (1 - k) * (opts.alpha ?? 1); } });
+    mesh.scale.set(r0 * 2, r0 * 2, 1);
+    this._pooled(this.ringPool, mesh, life, opts.free, ringUpdate, { r0, r1, alpha: opts.alpha ?? 1 });
     return mesh;
+  }
+
+  // Camera-facing star-shaped hit spark (the anime "impact flash").
+  hitSpark(p, color, size = 1.2, life = 0.13) {
+    const mesh = this._acquire(this.sparkPool);
+    if (!mesh) return;
+    const u = mesh.material.uniforms;
+    u.uColor.value.set(color);
+    u.uK.value = 0;
+    u.uSeed.value = Math.random() * 100;
+    mesh.position.copy(p);
+    if (this.cameraPos) mesh.lookAt(this.cameraPos);
+    mesh.rotateZ(Math.random() * Math.PI * 2);
+    mesh.scale.set(size * 0.55, size * 0.55, 1);
+    this._pooled(this.sparkPool, mesh, life, true, sparkUpdate, { size });
+  }
+
+  // A short bright cut through the impact point (Silver Chariot's rapier).
+  slash(p, dir, color = 0xffffff, len = 1.1) {
+    const c = _col2.set(color);
+    _ax.set(this.rnd(), this.rnd() * 0.7, this.rnd());
+    if (dir) _ax.addScaledVector(_q.set(-dir.z, 0, dir.x), 1.2);
+    _ax.normalize();
+    for (let i = 0; i < 9; i += 1) {
+      const s = (i / 8 - 0.5) * len;
+      this._p.copy(p).addScaledVector(_ax, s);
+      this._v.copy(_ax).multiplyScalar(10 + Math.random() * 4);
+      this.sparks.emit(this._p, this._v, c, 0.09 + Math.random() * 0.05, 0.016, true);
+    }
+  }
+
+  // Time-stop signature: a clock face behind the user whose hands whirl, then freeze.
+  clockDial(center, color, life = 1.8, size = 3.4) {
+    this.dialState = { center: center.clone(), t: 0, life, size, spin: 9 + Math.random() * 4, base: Math.random() * 6.28 };
+    this.dial.material.uniforms.uColor.value.set(color);
+    this.dial.visible = true;
+  }
+
+  _updateDial(realDt) {
+    const s = this.dialState;
+    if (!s) return;
+    s.t += realDt;
+    const k = s.t / s.life;
+    if (k >= 1) { this.dialState = null; this.dial.visible = false; return; }
+    const u = this.dial.material.uniforms;
+    const spinK = Math.min(1, s.t / 0.7);
+    const a = s.base + s.spin * (1 - (1 - spinK) ** 3);
+    u.uH2.value = a; u.uH1.value = a / 12 + 1.2;
+    u.uA.value = Math.min(1, s.t / 0.12) * (k < 0.55 ? 0.85 : 0.85 * (1 - (k - 0.55) / 0.45));
+    const m = this.dial;
+    m.position.copy(s.center);
+    if (this.cameraPos) {
+      _ax.copy(s.center).sub(this.cameraPos).normalize();
+      m.position.addScaledVector(_ax, 0.9);
+      m.lookAt(this.cameraPos);
+    }
+    const sc = s.size * (0.85 + 0.15 * Math.min(1, s.t / 0.2));
+    m.scale.set(sc, sc, 1);
   }
 
   // Ground telegraph: a disc that fills up until the attack lands. Returns the mesh.
@@ -275,16 +461,33 @@ export class VFX {
   }
 
   // Afterimage fists for Stand rushes.
-  fist(from, dir, color, life = 0.16, scale = 1) {
-    const m = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false });
-    const mesh = new THREE.Mesh(this.fistGeo, m);
+  fist(from, dir, color, life = 0.16, scale = 1, travel = 0.9) {
+    const mesh = this._acquire(this.fistPool);
+    if (!mesh) return;
+    mesh.material.color.set(color);
+    mesh.material.opacity = 0.85;
+    const d = mesh.userData;
+    d.start.copy(from); d.dir.copy(dir).normalize();
+    d.scale = scale; d.travel = travel;
     mesh.position.copy(from);
-    mesh.lookAt(from.clone().add(dir));
+    _q.copy(from).add(d.dir);
+    mesh.lookAt(_q);
     mesh.scale.setScalar(scale);
-    this.scene.add(mesh);
-    const start = from.clone();
-    this.meshes.push({ mesh, t: 0, life, free: true, update: (e, k) => { mesh.position.copy(start).addScaledVector(dir, k * 0.9); m.opacity = 0.85 * (1 - k); } });
+    this._pooled(this.fistPool, mesh, life, true, fistUpdate, d);
   }
+
+  // The "hundred fists" of a Stand rush: several staggered afterimage fists around the striking arm.
+  rushFists(from, to, color, n = 2) {
+    _ax.copy(to).sub(from);
+    const len = _ax.length() || 1;
+    _ax.divideScalar(len);
+    for (let i = 0; i < n; i += 1) {
+      this._p.copy(from).add(_q.set(this.rnd(0.28), this.rnd(0.22), this.rnd(0.28))).addScaledVector(_ax, -0.25 - Math.random() * 0.3);
+      this.fist(this._p, _ax, color, 0.09 + Math.random() * 0.06, 0.8 + Math.random() * 0.4, Math.min(1.1, len + 0.3));
+    }
+  }
+
+  afterimage(actor, color, opts) { this.afterimages.spawn(actor, color, opts); }
 
   // JoJo-style onomatopoeia / menacing text floating in the world.
   text(p, str, color = '#c04cff', life = 1.6, size = 1.4, free = true) {
@@ -316,11 +519,43 @@ export class VFX {
   }
 
   // ------------------------------------------------------------- composites
-  impact(p, color = 0xffe0a0, power = 1, dir = null) {
-    this.burst(p, color, Math.floor(10 * power), 5 * power, 0.35 * power, 0.35);
-    this.sparkBurst(p, color, Math.floor(10 + 8 * power), 8 + 4 * power, dir);
-    this.burst(p, 0xffffff, 1, 0, 1.6 * power, 0.12, { shape: 3 });
-    if (power > 1.2) this.ring(p, color, 0.2, 1.6 * power, 0.35, { vertical: true, face: this.cameraPos });
+  impact(p, color = 0xffe0a0, power = 1, dir = null, style = null) {
+    const c = _col.set(color);
+    this.burst(p, c, Math.floor(8 * power), 5 * power, 0.32 * power, 0.32);
+    this.sparkBurst(p, c, Math.floor(8 + 8 * power), 8 + 4 * power, dir);
+    this.hitSpark(p, c, 0.8 + 0.7 * power, power > 1.3 ? 0.17 : 0.12);
+    if (power > 1.2) this.ring(p, c, 0.2, 1.6 * power, 0.35, { vertical: true, face: this.cameraPos });
+    if (style) this.impactStyle(style, p, power, dir);
+  }
+
+  // Each Stand's blows carry their own signature on top of the shared impact.
+  impactStyle(style, p, power = 1, dir = null) {
+    const n = Math.max(2, Math.round(4 * power));
+    switch (style) {
+      case 'fire': this.flame(p, n, 0.4 + 0.2 * power, true); if (power > 1.2) this.smokePuff(p, 0x2a1a10, 2, 0.9, 1, 1); break;
+      case 'emerald': this.burst(p, 0x3cff8a, n + 2, 6, 0.24, 0.45, { shape: 2, gravity: 6 }); break;
+      case 'slash': this.slash(p, dir, 0xffffff, 0.8 + 0.4 * power); break;
+      case 'diamond': this.burst(p, 0xffb0e8, n, 2.5, 0.24, 0.6, { shape: 2, up: 0.8, drag: 3 }); break;
+      case 'bomb': this.burst(p, 0xffa050, 3, 2, 0.45 * power, 0.28, { grow: 1.6 }); if (power > 1.2) this.smokePuff(p, 0x3a2a24, 2, 0.8, 0.8, 0.8); break;
+      case 'crimson': this.burst(p, 0xff2030, n, 4, 0.3, 0.4, { drag: 4, shape: 1 }); break;
+      case 'life': this.burst(p, 0x9aff60, n, 2, 0.2, 0.8, { shape: 2, up: 1.2, drag: 2.5 }); break;
+      case 'dimension': this.sparkBurst(p, 0xffffff, n + 2, 12, dir); break;
+      case 'gravity':
+        for (let i = 0; i < n + 2; i += 1) {
+          _ax.set(this.rnd(), this.rnd(), this.rnd()).normalize();
+          this._p.copy(p).addScaledVector(_ax, 0.9);
+          this._v.copy(_ax).multiplyScalar(-3.2);
+          this.glow.emit(this._p, this._v, _col2.set(0x6aff7a), 0.9, 0.22, 0.05, 0.28, { drag: 0.5 });
+        }
+        break;
+      case 'star': this.burst(p, 0xe8f0ff, n, 7, 0.2, 0.3, { shape: 2 }); break;
+      case 'time': if (power >= 1) this.ring(p, 0x9effd0, 0.1, 0.8 * power, 0.22, { vertical: true, face: this.cameraPos, soft: 0.15, alpha: 0.7 }); break;
+      case 'heaven': this.burst(p, 0xfff6e0, n, 4, 0.28, 0.5, { shape: 2, up: 0.5 }); break;
+      case 'void': this.smokePuff(p, 0x1a0a2a, 2, 0.9, 0.7, 0.3); break;
+      case 'water': this.burst(p, 0x9ad8ff, n + 3, 5, 0.16, 0.6, { gravity: 9, up: 0.6 }); break;
+      case 'magnet': case 'bullet': this.sparkBurst(p, 0xfff6d8, n, 10, dir); break;
+      default: break;
+    }
   }
 
   aura(p, color, power = 1, free = false) {
@@ -464,16 +699,31 @@ export class VFX {
       const k = Math.min(1, e.t / e.life);
       e.update(e, k, step);
       if (k >= 1) {
-        this.scene.remove(e.mesh);
-        e.mesh.traverse?.((o) => { if (o.material && !o.material.map) o.material.dispose(); if (o.geometry && o.geometry !== this.ringGeo && o.geometry !== this.fistGeo) o.geometry.dispose(); });
+        if (e.pool) e.pool.put(e.mesh);
+        else {
+          this.scene.remove(e.mesh);
+          e.mesh.traverse?.((o) => { if (o.material && !o.material.map) o.material.dispose(); if (o.geometry && o.geometry !== this.ringGeo && o.geometry !== this.fistGeo) o.geometry.dispose(); });
+        }
         this.meshes.splice(i, 1);
       }
     }
+    this._updateDial(realDt);
+    this.afterimages.update(realDt);
+  }
+
+  stats() {
+    let glow = 0; let smoke = 0; let sparks = 0;
+    for (let i = 0; i < this.glow.n; i += 1) if (this.glow.life[i] > 0) glow += 1;
+    for (let i = 0; i < this.smoke.n; i += 1) if (this.smoke.life[i] > 0) smoke += 1;
+    for (let i = 0; i < this.sparks.n; i += 1) if (this.sparks.life[i] > 0) sparks += 1;
+    return { glow, smoke, sparks, meshes: this.meshes.length, rings: this.ringPool.used, fists: this.fistPool.used, hitSparks: this.sparkPool.used, ghosts: this.afterimages.active };
   }
 
   clear() {
-    for (const e of this.meshes) this.scene.remove(e.mesh);
+    for (const e of this.meshes) { if (e.pool) e.pool.put(e.mesh); else this.scene.remove(e.mesh); }
     this.meshes.length = 0;
     this.glow.life.fill(0); this.smoke.life.fill(0); this.sparks.life.fill(0);
+    this.dialState = null; this.dial.visible = false;
+    this.afterimages.clear();
   }
 }
