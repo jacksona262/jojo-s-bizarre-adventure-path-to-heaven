@@ -49,7 +49,7 @@ export function twoShot(a, b, side = 1) {
   const ca = a.chestWorld(new THREE.Vector3()); const cb = b.chestWorld(new THREE.Vector3());
   const mid = ca.clone().lerp(cb, 0.5);
   const dir = cb.clone().sub(ca).setY(0);
-  const sep = Math.max(1.5, dir.length());
+  const sep = Math.max(1.5, Math.min(8, dir.length()));
   dir.normalize();
   const perp = V(-dir.z, 0, dir.x).multiplyScalar(side);
   return { pos: mid.clone().addScaledVector(perp, 2.6 + sep * 0.9).add(V(0, 0.25, 0)), look: mid.clone().add(V(0, 0.05, 0)) };
@@ -276,9 +276,21 @@ export async function bossIntro(game, seq, { player, boss, center, data, rk }) {
     seq.shot({ from: sp.clone().addScaledVector(boss.forward(), 3.2).add(V(-1, -1.2, 0)), to: sp.clone().addScaledVector(boss.forward(), 2.6).add(V(-0.6, -0.6, 0)), look: sp.clone().add(V(0, 0.5, 0)), dur: 2.2, fov: 34 });
     game.vfx.menacing(sp, 'ゴ', 4, rk.color);
   }
+  // DIO is brought to 9 m while the camera is on the Stand, then walks in on camera
+  const toB = boss.pos.clone().sub(player.pos).setY(0);
+  const far = toB.length();
+  toB.normalize();
+  if (far > 9) seq.place(player, boss.pos.clone().addScaledVector(toB, -9), Math.atan2(toB.x, toB.z));
   await seq.wait(2.0);
   ui.set({ bossCard: null });
-  stopPerform(boss); stopPerform(player);
+  stopPerform(boss);
+  const mark = boss.pos.clone().addScaledVector(toB, -5.2);
+  const sideV = V(toB.z, 0, -toB.x);
+  const bossChest = boss.chestWorld(new THREE.Vector3());
+  seq.shot({ from: player.pos.clone().addScaledVector(toB, -3.2).addScaledVector(sideV, 1.3).add(V(0, 1.9, 0)), to: mark.clone().addScaledVector(toB, -3.0).addScaledVector(sideV, 1.2).add(V(0, 1.85, 0)), look: bossChest, dur: 2.4, fov: 40 });
+  await seq.moveTo(player, mark, 2.4);
+  player.faceTowards(boss.pos, true);
+  stopPerform(player);
   await conversation(seq, player, boss, data.intro);
   // swing behind DIO into gameplay
   const behind = player.pos.clone().addScaledVector(player.forward(), -4).add(V(0.6, 2, 0));
