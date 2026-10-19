@@ -186,7 +186,16 @@ export class Combat {
     const res = target.takeHit(hit, attacker);
     const p = hit.at ? hit.at.clone() : target.chestWorld(new THREE.Vector3());
     const dir = tmp.copy(target.pos).sub(attacker.pos).setY(0).normalize();
-    game.vfx?.impact(p, hit.color ?? 0xffe0a0, hit.fxPower ?? (hit.kind === 'heavy' ? 1.6 : 1), dir);
+    const power = hit.fxPower ?? (hit.kind === 'heavy' ? 1.6 : 1);
+    game.vfx?.impact(p, hit.color ?? 0xffe0a0, power, dir, hit.style ?? attacker.kit?.fx?.style);
+    // manga screen language for the blows the player gives or takes (and every Versus blow):
+    // a shockwave on heavy hits, an inverted impact frame on KOs, staggers and knockdown finishers
+    const pl = game.player;
+    if (game.screen && (attacker === pl || target === pl || game.mode?.name === 'versus')) {
+      if (power >= 1.6) game.screen.shockwave(p, power * 0.5, 0.45);
+      const staggered = target.poiseBreakT === game.clock;
+      if (res === 'kill' || staggered || hit.impactFrame || (power >= 1.8 && target.knockdown > 1.7)) game.screen.impactFrame(res === 'kill' ? 1 : 0.85);
+    }
     audio.play(hit.kind === 'heavy' || hit.knock > 7 ? 'heavyHit' : hit.sfx || 'hit', { power: hit.kind === 'rush' ? 0.55 : 1 });
     if (hit.kind !== 'rush' || Math.random() < 0.2) game.engine.hitstop = Math.max(game.engine.hitstop, hit.kind === 'heavy' ? 0.09 : 0.035);
     game.camera?.shake(hit.kind === 'heavy' ? 0.5 : hit.kind === 'rush' ? 0.12 : 0.2);
@@ -214,7 +223,13 @@ export class Combat {
       this.game.vfx?.ring(p, 0xfff0c0, 0.3, 4, 0.45, { vertical: true, face: this.game.engine.camera.position });
       this.emit({ type: 'hit', target, attacker: att, hit: { damage: total * bonus, kind: 'heavy' }, result: r, released: list.length });
     }
-    if (q.length) { audio.play('heavyHit'); this.game.camera?.shake(0.8); this.game.engine.hitstop = 0.12; }
+    if (q.length) {
+      audio.play('heavyHit'); this.game.camera?.shake(0.8); this.game.engine.hitstop = 0.12;
+      // every stored blow lands at once: the signature impact frame of a time stop
+      const first = byTarget.keys().next().value;
+      if (first) this.game.screen?.shockwave(first.chestWorld(new THREE.Vector3()), 1.2, 0.6);
+      this.game.screen?.impactFrame(1, 0.07);
+    }
   }
 
   // ---------------------------------------------------------------- projectiles
