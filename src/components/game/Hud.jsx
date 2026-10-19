@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+import * as THREE from 'three';
 import { useUI, ui } from '@/game/core/Store';
 
 const KEYS = {
@@ -9,6 +10,93 @@ const KEYS = {
 function Bar({ cls, value, max }) {
   const pct = Math.max(0, Math.min(100, (value / Math.max(1, max)) * 100));
   return <div className={`pth-bar ${cls}`}><b style={{ width: `${pct}%` }} /><i style={{ width: `${pct}%` }} /></div>;
+}
+
+// Fighting-game health bar: angled gold frame, segment ticks, a white damage trail that drains
+// after a beat, and a low-health pulse. `mirror` fills from the right (opponent side).
+function FgBar({ cls, value, max, mirror = false, ticks = 10 }) {
+  const pct = Math.max(0, Math.min(100, (value / Math.max(1, max)) * 100));
+  return (
+    <div className={`pth-fgbar ${cls} ${mirror ? 'mirror' : ''} ${pct < 25 ? 'low' : ''}`}>
+      <b style={{ width: `${pct}%` }} />
+      <i style={{ width: `${pct}%` }} />
+      <s>{[...Array(ticks - 1)].map((_, k) => <u key={k} style={{ left: `${((k + 1) / ticks) * 100}%` }} />)}</s>
+    </div>
+  );
+}
+
+function PlayerPanel({ hud }) {
+  const heaven = hud.heaven;
+  return (
+    <div className="pth-fg pth-fg-p1">
+      <div className="pth-fg-head">
+        <div className={`pth-fg-emblem ${heaven ? 'heaven' : ''}`}><span>{heaven ? '天' : 'D'}</span></div>
+        <div className="pth-fg-names">
+          <div className="pth-fg-name" style={{ color: heaven ? '#fff2c8' : '#ffd34d' }}>{heaven ? 'DIO · HEAVEN' : 'DIO'}</div>
+          <div className="pth-fg-stand">{heaven ? 'THE WORLD OVER HEAVEN' : 'THE WORLD'}<span className={`pth-fg-standon ${hud.stand ? 'on' : ''}`}>{hud.stand ? 'STAND ✦' : 'STAND ·'}</span></div>
+        </div>
+        <TsRing ts={hud.ts} dur={hud.tsDur} heaven={heaven} />
+      </div>
+      <FgBar cls="hp" value={hud.hp} max={hud.hpMax} />
+      <FgBar cls="en" value={hud.energy} max={hud.energyMax} ticks={4} />
+      <FgBar cls="st" value={hud.stamina} max={100} ticks={1} />
+      {hud.mounted && (
+        <div className="pth-fg-horse">SLOW DANCER · {String(hud.gait || 'idle').toUpperCase()} · {hud.horseSpeed} KM/H<FgBar cls="st" value={hud.horseStamina} max={100} ticks={1} /></div>
+      )}
+    </div>
+  );
+}
+
+function BossPanel({ boss }) {
+  return (
+    <div className="pth-fg pth-fg-p2">
+      <div className="pth-fg-head mirror">
+        <div className="pth-fg-emblem boss" style={{ borderColor: boss.color }}><span style={{ color: boss.color }}>{(boss.name || '?').trim()[0]}</span></div>
+        <div className="pth-fg-names">
+          <div className="pth-fg-name" style={{ color: boss.color }}>{boss.name}</div>
+          <div className="pth-fg-stand">{boss.stand}{boss.overwritten ? ' · OVERWRITTEN' : ''}</div>
+        </div>
+      </div>
+      <FgBar cls="boss" value={boss.hp} max={boss.hpMax} mirror />
+      <div className="pth-pips mirror">{[...Array(boss.phases || 1)].map((_, i) => <div key={i} className={`pth-pip ${i < boss.phase ? 'on' : ''}`} />)}</div>
+    </div>
+  );
+}
+
+function ComboCounter({ combo }) {
+  if (!combo) return null;
+  return (
+    <div className="pth-combo" key={combo.id}>
+      <div className="pth-combo-n">{combo.n}</div>
+      <div className="pth-combo-label">HITS</div>
+      <div className="pth-combo-dmg">{combo.dmg} DMG</div>
+    </div>
+  );
+}
+
+// Lock-on reticle: positioned every animation frame (not through React) so it never lags.
+function LockReticle() {
+  const ref = useRef(null);
+  useEffect(() => {
+    let raf;
+    const v = new THREE.Vector3();
+    const tick = () => {
+      raf = requestAnimationFrame(tick);
+      const el = ref.current;
+      const g = window.__game;
+      const lock = g?.camera?.lock;
+      if (!el) return;
+      if (!lock || lock.dead || g.inCinematic || !g.player) { el.style.opacity = '0'; return; }
+      v.set(lock.pos.x, lock.pos.y + (lock.height || 1.9) + 0.35, lock.pos.z).project(g.engine.camera);
+      if (v.z > 1) { el.style.opacity = '0'; return; }
+      const w = g.engine.renderer.domElement.clientWidth; const h = g.engine.renderer.domElement.clientHeight;
+      el.style.opacity = '1';
+      el.style.transform = `translate(${((v.x + 1) / 2) * w}px, ${((1 - v.y) / 2) * h}px) translate(-50%, -100%)`;
+    };
+    tick();
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  return <div ref={ref} className="pth-lock"><span>◆</span></div>;
 }
 
 function TsRing({ ts, dur, heaven }) {
@@ -46,22 +134,16 @@ export default function Hud() {
   const versus = useUI((s) => s.versus);
   const overlay = useUI((s) => s.overlay);
   const debug = useUI((s) => s.debug);
+  const combo = useUI((s) => s.combo);
   const keys = KEYS[device] || KEYS.kbm;
   const game = window.__game;
   const showHud = hud && !letterbox && !overlay;
 
   return (
     <div className={`pth-ui ${letterbox ? 'pth-letterbox' : ''}`}>
-      {showHud && !versus && (
-        <div className="pth-hud-tl">
-          <div><span className="pth-name" style={{ color: hud.heaven ? '#fff2c8' : '#ffd34d' }}>{hud.heaven ? 'DIO · HEAVEN' : 'DIO'}</span><span className="pth-stand-name">{hud.heaven ? 'THE WORLD OVER HEAVEN' : 'THE WORLD'}{hud.stand ? ' ✦' : ''}</span></div>
-          <Bar cls="hp" value={hud.hp} max={hud.hpMax} />
-          <Bar cls="en" value={hud.energy} max={hud.energyMax} />
-          <Bar cls="st" value={hud.stamina} max={100} />
-          {hud.mounted && <div style={{ marginTop: 8, fontFamily: 'Cinzel', fontSize: 12, letterSpacing: '0.2em', color: '#e8d6a8' }}>SLOW DANCER · {String(hud.gait || 'idle').toUpperCase()} · {hud.horseSpeed} km/h <Bar cls="st" value={hud.horseStamina} max={100} /></div>}
-          <TsRing ts={hud.ts} dur={hud.tsDur} heaven={hud.heaven} />
-        </div>
-      )}
+      {showHud && !versus && <PlayerPanel hud={hud} />}
+      {showHud && <LockReticle />}
+      {showHud && <ComboCounter combo={combo} />}
       {showHud && versus && (
         <>
           {[versus.p1, versus.p2].map((p, i) => (
@@ -76,13 +158,8 @@ export default function Hud() {
           {hud && hud.ts != null && <div className="pth-hud-tl" style={{ width: 0 }}><TsRing ts={hud.ts} dur={0} /></div>}
         </>
       )}
-      {showHud && boss && !versus && (
-        <div className="pth-boss">
-          <div className="pth-boss-name" style={{ color: boss.color }}>{boss.name} <span className="pth-stand-name">{boss.stand}{boss.overwritten ? ' · OVERWRITTEN' : ''}</span></div>
-          <Bar cls="hp" value={boss.hp} max={boss.hpMax} />
-          <div className="pth-pips">{[...Array(boss.phases || 1)].map((_, i) => <div key={i} className={`pth-pip ${i < boss.phase ? 'on' : ''}`} />)}</div>
-        </div>
-      )}
+      {showHud && boss && !versus && <BossPanel boss={boss} />}
+      {showHud && boss && !versus && <div className="pth-fg-vs">VS</div>}
       {showHud && objective && !boss && (
         <>
           <div className="pth-objective">
