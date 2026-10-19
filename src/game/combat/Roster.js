@@ -39,10 +39,13 @@ export async function createFighter(game, key, { team = 1, versus = false, hp = 
   // signature body language (DIO keeps his own 'dio' idle style)
   if (SIGNATURE[key]) f.idlePose = SIGNATURE[key];
   await f.load();
+  // afterimage pools are built with the fighter so their shaders are compiled by prewarm
+  game.vfx?.afterimages.prepare(f, 2);
   if (r.stand) {
     const s = new Stand(game, f, { partKey: r.stand, name: r.standName, aura: r.aura, tint: r.standTint || null });
     await s.load();
     f.stand = s;
+    game.vfx?.afterimages.prepare(s, 4);
   }
   f.kit = new r.kit(f, game);
   return f;
