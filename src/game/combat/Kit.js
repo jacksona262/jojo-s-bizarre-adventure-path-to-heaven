@@ -3,6 +3,7 @@ import * as Poses from '../anim/Poses';
 import * as Clips from '../anim/Clips';
 import { segmentDistance } from '../anim/IK';
 import { audio } from '../core/Audio';
+import { standFx } from '../vfx/StandFX';
 
 const _fist = new THREE.Vector3();
 const _fore = new THREE.Vector3();
@@ -30,6 +31,13 @@ export class Kit {
     this.phase = 1;
     this.energyRegen = opts.energyRegen ?? 14;
     this.lastAttackT = -10;
+    this.fx = standFx(fighter.rosterKey);
+  }
+
+  // Screen effects only for fights the player is in (or watches in Versus).
+  get onScreen() {
+    const g = this.game;
+    return this.f === g.player || this.f.lockTarget === g.player || this.target() === g.player || g.mode?.name === 'versus';
   }
 
   get stand() { return this.f.stand; }
@@ -68,7 +76,7 @@ export class Kit {
     const hitSet = new Set();
     const dur = opts.dur || clip.dur;
     return {
-      name: opts.name || clip.name, dur, clip, lunge: opts.lunge ?? true, standoff: opts.standoff, side: opts.side,
+      name: opts.name || clip.name, dur, clip, lunge: opts.lunge ?? true, standoff: opts.standoff, side: opts.side, dashFx: opts.dashFx,
       turn: 18, upper: opts.upper, comboWindow: opts.comboWindow, move: opts.move, events: opts.events,
       data: { target: opts.target || null },
       tick: (self, t01, dt, a) => {
@@ -217,7 +225,7 @@ export class Kit {
       this.vfx.ring(p, this.color, 0.2, 1.6, 0.3, { vertical: true, face: this.game.engine.camera.position });
     };
     f.play({ name: 'heavyCmd', dur: 0.6, upper: true, clip: Clips.sweep, move: (k) => (k > 0.4 && k < 0.6 ? 3 : 0) });
-    if (withStand) this.stand.strike(this.melee(Clips.heavyR, spec, { target: t, onContact, standoff: 0.5 }), 'front');
+    if (withStand) this.stand.strike(this.melee(Clips.heavyR, spec, { target: t, onContact, standoff: 0.5, dashFx: true }), 'front');
     this.game.combat.emit({ type: 'attack', attacker: f, move: 'heavy' });
     return true;
   }
@@ -245,6 +253,8 @@ export class Kit {
           for (const s of ['L', 'R']) {
             const ext = rr[s] > 0.72;
             if (!ext && a.data[`ext${s}`]) { a.data[`ext${s}`] = false; hits[s].clear(); a.data[`jit${s}`] = null; }
+            // each new punch throws a spray of afterimage fists along its line (the "hundred fists")
+            if (ext && !a.data[`ext${s}`]) kit.vfx.rushFists(kit.limbPoint(self, `hand${s}`, _fore.clone()), a.data[`aim${s}`], kit.color, 2);
             if (tg && !tg.dead) {
               if (!a.data[`jit${s}`]) a.data[`jit${s}`] = v3((Math.random() - 0.5) * 0.34, (Math.random() - 0.35) * 0.4, (Math.random() - 0.5) * 0.2);
               tg.chestWorld(a.data[`aim${s}`]).add(a.data[`jit${s}`]);
@@ -255,11 +265,22 @@ export class Kit {
               a.data.prevLimb = a.data[`prev${s}`] || null;
               kit._contact(self, `hand${s}`, { damage: 1.5, stun: 0.3, knock: 0.22, kind: 'rush', sfx: 'punch', fxPower: 0.7 }, hits[s], a, { radius: 0.36 });
               a.data[`prev${s}`] = a.data.prevLimb;
-              if (hits[s].size === before && Math.random() < 0.35) kit.vfx.fist(kit.limbPoint(self, `hand${s}`, new THREE.Vector3()), self.forward(), kit.color, 0.1, 0.9);
+              void before;
             } else a.data[`prev${s}`] = null;
           }
           if (Math.random() < dtt * 3) audio.play('whoosh', { power: 0.45 });
-          if (kit.rushShout && Math.random() < dtt * 0.9) kit.vfx.text(self.chestWorld(new THREE.Vector3()).add(v3(0, 0.8, 0)), kit.rushShout, kit.rushShoutColor || '#ffd34d', 0.9, 0.8);
+          // speed lines converge on the target while a rush the player is part of is running
+          if (tg && kit.onScreen) kit.game.screen?.speedLines(0.6, tg.chestWorld(_capA), 0.12);
+          // the cry, at a steady beat, never two on top of each other
+          const cry = kit.rushShout || kit.fx.cry;
+          a.data.cryT = (a.data.cryT ?? 0.15) - dtt;
+          if (cry && a.data.cryT <= 0) {
+            a.data.cryT = 0.42 + Math.random() * 0.12;
+            const side = (a.data.crySide = -(a.data.crySide || 1));
+            const q = self.chestWorld(new THREE.Vector3()).add(v3(0, 0.6 + Math.random() * 0.5, 0));
+            q.x += Math.cos(self.yaw) * side * 0.7; q.z -= Math.sin(self.yaw) * side * 0.7;
+            kit.vfx.text(q, cry, kit.rushShoutColor || `#${new THREE.Color(kit.fx.hit).getHexString()}`, 0.7, 0.75 + Math.random() * 0.2);
+          }
         },
       };
       if (this.stand) this.stand.strike({ ...def, target: t }, 'front');
@@ -281,7 +302,7 @@ export class Kit {
       if (fin || this.rushing === 0) {
         f.play({ name: 'rushEnd', dur: 0.45, upper: true, clip: Clips.sweep });
         const spec = { damage: 9, stun: 0.6, knock: 10, launch: 3, kind: 'heavy', fxPower: 1.8 };
-        if (this.stand) this.stand.strike(this.melee(Clips.rushFinish, spec, { target: mt, standoff: 0.45, onContact: () => this.game.camera.shake(0.6) }), 'front');
+        if (this.stand) this.stand.strike(this.melee(Clips.rushFinish, spec, { target: mt, standoff: 0.45, dashFx: true, onContact: () => this.game.camera.shake(0.6) }), 'front');
       }
       this.onRushEnd?.();
     }
@@ -301,7 +322,7 @@ export class Kit {
       this.game.camera.shake(0.5);
     };
     f.play({ name: 'kbCmd', dur: 0.8, upper: true, pose: (k) => Poses.cast('R', k, 0.1) });
-    if (this.stand) this.stand.strike(this.melee(Clips.knockback, spec, { target: t, onContact, standoff: 0.5, radius: 0.36 }), 'front');
+    if (this.stand) this.stand.strike(this.melee(Clips.knockback, spec, { target: t, onContact, standoff: 0.5, radius: 0.36, dashFx: true }), 'front');
     else f.play(this.melee(Clips.knockback, spec, { target: t, lunge: false, onContact }));
     return true;
   }
@@ -323,6 +344,9 @@ export class Kit {
     f.play({ name: 'dodge', dur: 0.42, blendIn: 30, pose: (t) => Poses.dodge(t, side, ahead), tick: (self, t) => { const s = t < 0.6 ? 12 : 3; self.vel.x = d.x * s; self.vel.z = d.z * s; }, turn: 0 });
     audio.play('dodge');
     this.vfx.smokePuff(f.pos.clone().add(v3(0, 0.2, 0)), 0x3a342c, 4, 1, 0.8, 0.3);
+    // a dodge leaves two fading afterimages along its path
+    this.vfx.afterimage(f, this.fx.ghost, { life: 0.3, alpha: 0.32 });
+    setTimeout(() => { if (!f.dead && f.action?.def.name === 'dodge') this.vfx.afterimage(f, this.fx.ghost, { life: 0.26, alpha: 0.24 }); }, 110);
     return true;
   }
 
