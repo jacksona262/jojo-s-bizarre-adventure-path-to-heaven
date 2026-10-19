@@ -114,14 +114,6 @@ export default function Hud() {
           <span style={subtitle.speaker ? undefined : { fontStyle: 'italic', color: '#d8ccb0' }}>{subtitle.text}</span>
         </div>
       )}
-      {choice && (
-        <div className="pth-choice pth-panel">
-          <div className="pth-h2">{choice.prompt}</div>
-          {choice.options.map((o, i) => (
-            <button key={o.id} type="button" className="pth-choice-opt" onClick={() => game?.seq.pick(o.id)}>{i + 1}. {o.label}</button>
-          ))}
-        </div>
-      )}
       {letterbox && !choice && <div className="pth-skip">{keys.skip} · SKIP</div>}
       {card && (
         <div className="pth-card">
