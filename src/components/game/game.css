@@ -7,12 +7,11 @@
 .pth-interactive { pointer-events: auto; }
 
 /* ---------- title ---------- */
-.pth-title-wrap { position: absolute; left: 6vw; top: 0; bottom: 0; width: min(520px, 42vw); display: flex; flex-direction: column; justify-content: center; pointer-events: auto; transition: opacity 1.2s ease, transform 1.2s ease; }
-.pth-title-wrap.leaving { opacity: 0; transform: translateX(-30px); }
+.pth-title-wrap { position: absolute; right: 6vw; top: 0; bottom: 0; width: min(500px, 38vw); display: flex; flex-direction: column; justify-content: center; pointer-events: auto; transition: opacity 1.2s ease, transform 1.2s ease; }
+.pth-title-wrap.leaving { opacity: 0; transform: translateX(30px); }
 .pth-logo-top { font-family: 'Cinzel', serif; font-weight: 900; letter-spacing: 0.32em; font-size: clamp(14px, 1.45vw, 22px); color: #d8b45a; text-shadow: 0 0 18px rgba(216,180,90,0.45); }
 .pth-logo-main { font-family: 'Cinzel Decorative', 'Cinzel', serif; font-weight: 900; font-size: clamp(40px, 5.6vw, 92px); line-height: 0.95; margin: 10px 0 6px; background: linear-gradient(180deg, #fff5d6 0%, #f1c862 40%, #9c6a1e 70%, #e9c56d 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 4px 14px rgba(0,0,0,0.85)) drop-shadow(0 0 22px rgba(170,110,30,0.35)); }
 .pth-logo-rule { height: 2px; width: 82%; background: linear-gradient(90deg, rgba(216,180,90,0), #d8b45a 20%, #f4dc98 50%, #d8b45a 80%, rgba(216,180,90,0)); margin: 10px 0 34px; position: relative; }
-.pth-logo-rule::after { content: '✦'; position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); color: #f4dc98; font-size: 14px; background: transparent; text-shadow: 0 0 10px #d8b45a; }
 .pth-menu { display: flex; flex-direction: column; gap: 6px; }
 .pth-menu-item { font-family: 'Cinzel', serif; font-weight: 700; font-size: clamp(16px, 1.55vw, 24px); letter-spacing: 0.24em; color: rgba(239,228,204,0.62); background: none; border: none; text-align: left; padding: 8px 0 8px 26px; cursor: pointer; position: relative; transition: color .25s ease, letter-spacing .35s ease, padding .35s ease; }
 .pth-menu-item::before { content: ''; position: absolute; left: 0; top: 50%; width: 12px; height: 1px; background: rgba(216,180,90,0.4); transition: width .35s ease, background .35s ease; }
@@ -21,7 +20,7 @@
 .pth-menu-item.disabled { opacity: 0.32; cursor: default; }
 .pth-menu-hint { margin-top: 30px; font-size: 14px; color: rgba(239,228,204,0.45); letter-spacing: 0.08em; }
 .pth-title-foot { position: absolute; bottom: 24px; left: 0; font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 0.16em; color: rgba(216,180,90,0.38); }
-.pth-vignette-left { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(2,3,6,0.78) 0%, rgba(2,3,6,0.35) 34%, rgba(2,3,6,0) 55%); pointer-events: none; }
+.pth-vignette-left { position: absolute; inset: 0; background: linear-gradient(270deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 30%, rgba(0,0,0,0) 50%); pointer-events: none; }
 
 /* ---------- panels ---------- */
 .pth-panel { background: linear-gradient(180deg, rgba(14,11,8,0.94), rgba(6,6,9,0.96)); border: 1px solid rgba(216,180,90,0.45); box-shadow: 0 0 0 1px rgba(0,0,0,0.8) inset, 0 20px 60px rgba(0,0,0,0.6); position: relative; }
@@ -179,5 +178,5 @@
   .pth-ts { left: 226px; }
   .pth-objective { width: 200px; right: 14px; }
   .pth-sub { font-size: 18px; }
-  .pth-title-wrap { width: 86vw; left: 7vw; }
+  .pth-title-wrap { width: 86vw; right: 7vw; }
 }
