@@ -261,11 +261,9 @@ export class Kit {
               // each new punch throws a spray of afterimage fists along its line (the "hundred fists")
               if (!a.data[`ext${s}`]) kit.vfx.rushFists(kit.limbPoint(self, `hand${s}`, new THREE.Vector3()), a.data[`aim${s}`], kit.color, 2);
               a.data[`ext${s}`] = true;
-              const before = hits[s].size;
               a.data.prevLimb = a.data[`prev${s}`] || null;
               kit._contact(self, `hand${s}`, { damage: 1.5, stun: 0.3, knock: 0.22, kind: 'rush', sfx: 'punch', fxPower: 0.7 }, hits[s], a, { radius: 0.36 });
               a.data[`prev${s}`] = a.data.prevLimb;
-              void before;
             } else a.data[`prev${s}`] = null;
           }
           if (Math.random() < dtt * 3) audio.play('whoosh', { power: 0.45 });
