@@ -142,11 +142,14 @@ const FinalShader = {
       if (uSpeed > 0.001) {
         vec2 sp = (vUv - uSpeedCenter) * asp;
         float sr = length(sp);
-        float ang = atan(sp.y, sp.x);
-        float lane = floor(ang * 54.0);
-        float h1 = hash(vec2(lane, floor(uTime * 18.0)));
-        float streak = step(0.72, h1) * smoothstep(0.18 + h1 * 0.25, 0.75, sr);
-        col = mix(col, vec3(1.0), streak * uSpeed * 0.55);
+        float ang = atan(sp.y, sp.x) * 0.159155 + 0.5;
+        float lane = floor(ang * 180.0);
+        float h1 = hash(vec2(lane, floor(uTime * 16.0)));
+        float h2 = hash(vec2(lane * 1.7, 3.1));
+        float thin = smoothstep(0.06 + 0.2 * h2, 0.0, abs(fract(ang * 180.0) - 0.5));
+        float inner = 0.24 + h1 * 0.3;
+        float streak = step(0.62, h1) * thin * smoothstep(inner, inner + 0.3, sr);
+        col = mix(col, vec3(1.0), streak * uSpeed * 0.7);
       }
       // impact frame: a flash of inverted colour on the heaviest blows
       if (uInvert > 0.001) col = mix(col, vec3(1.0) - col, uInvert);
