@@ -104,7 +104,7 @@ export async function conversation(seq, a, b, lines) {
 // the storm. Leaves the screen black, the player hidden at the road and no extra actors behind.
 async function coldOpen(game, seq, { player }) {
   const fx = game.engine.fx;
-  const ground = (x, z, h = 0) => V(x, (game.world.groundAt(x, z, 9999) ?? heightAt(x, z)) + h, z);
+  const ground = (x, z, h = 0) => V(x, game.world.groundAt(x, z, heightAt(x, z) + 3) + h, z);
   const say = (line, dur = null) => { const sp = SPEAKERS[line[0]]; return seq.say(sp.name, line[1], dur, sp.color); };
   // stream the Sanctum in around a hidden DIO while the screen is black
   player.group.visible = false;
