@@ -87,10 +87,10 @@ export class Stand extends Character {
       const dx = tgt.pos.x - u.pos.x; const dz = tgt.pos.z - u.pos.z;
       const d = Math.hypot(dx, dz) || 1e-3;
       const nx = dx / d; const nz = dz / d;
-      const standoff = (a.def.standoff ?? 0.95) + (tgt.radius || 0.42);
+      const standoff = (a.def.standoff ?? 0.45) + (tgt.radius || 0.42);
       const along = Math.min(Math.max(d - standoff, 0.45), this.leash);
       const side = a.def.side ?? 0.22;
-      out.set(u.pos.x + nx * along - nz * side, Math.max(u.pos.y, tgt.pos.y) + 0.05, u.pos.z + nz * along + nx * side);
+      out.set(u.pos.x + nx * along - nz * side, this.strikeHover(tgt, u.pos.y), u.pos.z + nz * along + nx * side);
       this.mode = 'strike';
       return tgt;
     }
@@ -103,6 +103,14 @@ export class Stand extends Character {
       this.mode = 'guard';
     } else this.mode = a ? 'action' : this.slot;
     return a?.def.faceTarget ? tgt : null;
+  }
+
+  // Float height that puts the Stand's shoulders just above the target's chest, so its arms
+  // (which are only ~0.7 m long) can actually reach. Stands are taller than their victims.
+  strikeHover(tgt, userY) {
+    const sh = (this.rig?.U?.shoulderR?.y ?? this.height * 0.82) * (this.group.scale.y || 1);
+    const want = tgt.pos.y + tgt.height * 0.68 + 0.25 - sh;
+    return Math.min(Math.max(want, Math.max(userY, tgt.pos.y) - 0.32), Math.max(userY, tgt.pos.y) + 0.35);
   }
 
   update(dt) {
