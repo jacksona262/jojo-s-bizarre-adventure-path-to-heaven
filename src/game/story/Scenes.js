@@ -59,7 +59,17 @@ export function twoShot(a, b, side = 1) {
 // alternating with front close-ups. The speaker gestures in character, talks (jaw where the rig
 // has one) and looks at the listener; the listener watches and nods. Stands step aside so they
 // never block a shot, and every actor returns to the pose the scene had given them.
+// Choose the first unobstructed framing among candidates (walls between lens and subject rule a
+// shot out); if every option is blocked, the camera rig pulls the lens in front of the wall.
+function clearShot(game, cands) {
+  const w = game.world;
+  if (!w) return cands[0];
+  for (const s of cands) if (w.occlusion(s.look, s.pos, true) >= 0.999) return s;
+  return cands[0];
+}
+
 export async function conversation(seq, a, b, lines) {
+  const g = seq.game;
   const hidden = [];
   for (const c of [a, b]) if (c.stand?.summoned) { c.stand.summon(false, true); hidden.push(c.stand); }
   let n = 0;
@@ -69,8 +79,13 @@ export async function conversation(seq, a, b, lines) {
     const S = speakerIsA ? a : b; const L = speakerIsA ? b : a;
     const dur = Math.min(7, 2 + text.length * 0.045);
     let s; let fov = 34;
-    if (n === 0) { s = twoShot(a, b, 1); fov = 40; } else if (n % 2 === 1) s = ots(L, S, n % 4 === 1 ? 1 : -1, 1.9);
-    else s = closeUp(S, L, n % 4 === 2 ? 1 : -1, 2.4);
+    if (n === 0) { s = clearShot(g, [twoShot(a, b, 1), twoShot(a, b, -1), ots(L, S, 1, 2.2)]); fov = 40; } else if (n % 2 === 1) {
+      const sd = n % 4 === 1 ? 1 : -1;
+      s = clearShot(g, [ots(L, S, sd, 1.9), ots(L, S, -sd, 1.9), closeUp(S, L, sd, 2.2)]);
+    } else {
+      const sd = n % 4 === 2 ? 1 : -1;
+      s = clearShot(g, [closeUp(S, L, sd, 2.4), closeUp(S, L, -sd, 2.4), closeUp(S, L, sd, 1.6)]);
+    }
     seq.shot({ from: s.pos, to: s.pos.clone().lerp(s.look, 0.05), look: s.look, dur, fov, ease: 'linear' });
     perform(S, { gesture: n < 2 || text.length > 28 ? nextGesture(S) : null, talking: true, lookAt: L });
     perform(L, { lookAt: S, nod: true });
