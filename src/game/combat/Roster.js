@@ -78,6 +78,21 @@ export class BossBrain {
     // poise: how much punishment the boss absorbs before staggering (close-range fighters are sturdier)
     f.poiseMax = ({ close: 36, medium: 30, skirmish: 26, far: 22 }[this.style] ?? 28) * (0.8 + 0.2 * difficulty) * poiseScale;
     f.poise = f.poiseMax;
+    this.poiseBase = f.poiseMax;
+  }
+
+  // back to the opening of the fight (used by a rematch after the player dies)
+  reset() {
+    this.phase = 1;
+    this.kit.phase = 1;
+    this.f.poiseMax = this.poiseBase;
+    this.f.poise = this.poiseBase;
+    this.used = {};
+    this.think = 1.2;
+    this.reactCool = 0;
+    this.punishCool = 0;
+    this.guardT = 0;
+    this.lastHp = this.f.hp;
   }
 
   get clock() { return this.game.clock; }
