@@ -136,7 +136,7 @@ export class AnimController {
     // ------------------------------------------------ action layer
     const a = c.action;
     const def = a?.def;
-    const has = !!(def && (def.pose || def.clip));
+    const has = !!(def && (def.pose || def.clip || def.rush));
     this.actionW += ((has ? 1 : 0) - this.actionW) * min(1, dt * (has ? (def.blendIn || 24) : 10));
     let t01 = 0;
     if (has) {
