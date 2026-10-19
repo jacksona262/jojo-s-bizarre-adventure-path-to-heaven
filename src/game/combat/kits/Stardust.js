@@ -6,6 +6,22 @@ import { areaDamage } from '../Combat';
 import { FireZone, FireWall, Eruption, Timer, distToSegment } from '../Hazards';
 
 const UP = v3(0, 1, 0);
+const EMERALD = new THREE.Color(0x30ff80);
+const EMERALD_HI = new THREE.Color(0xb8ffd4);
+const SILVER = new THREE.Color(0xdfe8ff);
+
+// A glowing Hierophant thread strung between two points (a thin additive tube).
+function threadMesh(a, b, width = 0.025, color = 0x50ff9a) {
+  const len = a.distanceTo(b);
+  const geo = new THREE.CylinderGeometry(width, width, len, 5, 1, true);
+  geo.rotateX(Math.PI / 2);
+  const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.1, blending: THREE.AdditiveBlending, depthWrite: false });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.copy(a).add(b).multiplyScalar(0.5);
+  mesh.lookAt(b);
+  mesh.userData.ends = [a.clone(), b.clone()];
+  return mesh;
+}
 
 // ============================================================================ Avdol
 export class MagiciansRedKit extends Kit {
