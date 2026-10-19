@@ -118,6 +118,17 @@ export class World {
     return p.y;
   }
 
+  // inside a roofed interior (rain and wind are suppressed there)
+  isIndoor(p) {
+    for (const z of this.indoor || []) {
+      const dx = p.x - z.x; const dz = p.z - z.z;
+      const c = Math.cos(z.rot); const s = Math.sin(z.rot);
+      const lx = dx * c - dz * s; const lz = dx * s + dz * c;
+      if (Math.abs(lx) < z.hw && Math.abs(lz) < z.hd && p.y < z.top && p.y > z.bottom) return true;
+    }
+    return false;
+  }
+
   waterAt(x, z) {
     const wl = waterLevelAt(z);
     return wl;
