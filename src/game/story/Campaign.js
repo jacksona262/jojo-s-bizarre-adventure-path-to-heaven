@@ -349,9 +349,10 @@ export class Campaign {
             for (const b of barricade) b.update(dt, false);
             const pl = this.player;
             if (pl.action && /jab|punch|heavy|kb|rush/.test(pl.action.def.name) || pl.stand?.action) {
-              for (const b of barricade) if (b.state === 'intact' && b.group.position.distanceTo(pl.pos) < 2.8) b.shatter(pl.pos, 7);
+              for (const b of barricade) if (b.state === 'intact' && b.group.position.distanceTo(pl.pos) < 3.3) b.shatter(pl.pos, 7);
             }
-            if (sub.stage === 'stand' && barricade.every((b) => b.state !== 'intact')) {
+            if (sub.stage === 'stand' && barricade.filter((b) => b.state !== 'intact').length >= barricade.length * 0.75) {
+              for (const b of barricade) if (b.state === 'intact') b.shatter(pl.pos, 5);
               sub.stage = 'north';
               this.hint('strike');
               setup();
