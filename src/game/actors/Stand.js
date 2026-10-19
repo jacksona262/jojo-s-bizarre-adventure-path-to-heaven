@@ -148,7 +148,17 @@ export class Stand extends Character {
     if (face) this.targetYaw = Math.atan2(face.pos.x - this.pos.x, face.pos.z - this.pos.z);
     else if (!this.action || !this.action.def.ownFacing) this.targetYaw = this.user.yaw;
     if (this.user.dead) this.summon(false, true);
+    // Dash, then strike: hold the wind-up while the Stand is still travelling to its strike point
+    // (at most 0.4 s), so the active frames happen where the target actually is.
+    const a = this.action;
+    let held = null;
+    if (a?.def.lunge && this.mode === 'strike' && a.def.clip) {
+      a.data.dashT = (a.data.dashT || 0) + dt;
+      const holdT = a.def.dur * a.def.clip.active[0] * 0.7;
+      if (a.t >= holdT && a.data.dashT < 0.4 && this.pos.distanceTo(_want) > 0.45) held = a.t;
+    }
     super.update(dt);
+    if (held !== null && this.action === a) a.t = held;
   }
 
   // Stand attacks. def.lunge sends the Stand to the target; otherwise it holds `slot`.
