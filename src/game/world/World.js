@@ -429,7 +429,7 @@ export class World {
     const tries = Math.floor(150 * q.trees);
     const zc = z0 + CHUNK / 2;
     const { a, b, t } = regionBlend(zc);
-    const dens = (k) => a[k] + (b[k] - a[k]) * t;
+    const dens = (k) => (a[k] || 0) + ((b[k] || 0) - (a[k] || 0)) * t;
     const wl = waterLevelAt(zc);
     for (let i = 0; i < tries; i += 1) {
       const r1 = hash2(cx * 1000 + i, cz * 7 + 3);
@@ -471,7 +471,20 @@ export class World {
       } else if (sel < (acc += pBush)) {
         const s = 0.6 + r1 * 0.9;
         push(`bush${i % 2}`, x, h, z, s, r2 * 6.28);
+      } else if (sel < (acc += dens('cactus') * 0.06)) {
+        const s = 0.8 + r1 * 0.6;
+        push(`cactus${i % 2}`, x, h - 0.1, z, s, r2 * 6.28);
+        out.colliders.push(this.addCollider({ x, z, r: 0.3 * s, top: h + 4, bottom: h - 1, noCam: true }));
+      } else if (sel < (acc += dens('crystals') * 0.05)) {
+        const s = 0.7 + r1 * 1.2;
+        push(`crystal${i % 2}`, x, h - 0.15, z, s, r2 * 6.28);
+        if (s > 1.2) out.colliders.push(this.addCollider({ x, z, r: 0.5 * s, top: h + 2.5 * s, bottom: h - 1, noCam: true }));
+      } else if (sel < (acc += dens('graves') * 0.025)) {
+        // frontier graves come in small rows
+        for (let gI = 0; gI < 3; gI += 1) push(`cross${(i + gI) % 2}`, x + gI * 1.6, heightAt(x + gI * 1.6, z) - 0.05, z, 0.9 + r1 * 0.25, r2 * 0.3 - 0.15);
       }
+      // reeds crowd the water line
+      if (wl > -1e6 && dens('reeds') > 0 && Math.abs(h - wl) < 0.6 && r2 < dens('reeds') * 0.5) push(`reed${i % 2}`, x, h - 0.05, z, 0.8 + r1 * 0.7, r3 * 6.28);
     }
     return out;
   }
@@ -501,6 +514,11 @@ export class World {
     k.broad.forEach((g, i) => make(`broad${i}`, g, k.mats.broad, 2500));
     k.rock.forEach((g, i) => make(`rock${i}`, g, k.mats.rock, 3000));
     k.bush.forEach((g, i) => make(`bush${i}`, g, k.mats.bush, 4000, false));
+    // region props
+    k.cactus.forEach((g, i) => make(`cactus${i}`, g, k.mats.cactus, 1500));
+    k.reed.forEach((g, i) => make(`reed${i}`, g, k.mats.reed, 3000, false));
+    k.cross.forEach((g, i) => make(`cross${i}`, g, k.mats.cross, 800));
+    k.crystal.forEach((g, i) => make(`crystal${i}`, g, k.mats.crystal, 1500));
     // grass follows the camera
     this.grass = new THREE.InstancedMesh(k.grass, k.mats.grass, 9000);
     this.grass.count = 0;
