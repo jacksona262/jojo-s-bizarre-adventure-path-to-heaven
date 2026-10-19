@@ -720,7 +720,7 @@ export class Campaign {
     const e = this.encounter;
     if (!e || e.done) return false;
     e.brain.enabled = false;
-    g.time.stop(this.player, 6, { variant: 'heaven' });
+    g.time.stop(this.player, 6, { variant: 'heaven', cinematic: true });
     await g.seq.run(async (seq) => {
       const pl = this.player;
       pl.kit.ensureStand();
