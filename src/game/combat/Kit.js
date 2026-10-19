@@ -204,7 +204,7 @@ export class Kit {
       this.vfx.ring(p, this.color, 0.2, 1.6, 0.3, { vertical: true, face: this.game.engine.camera.position });
     };
     f.play({ name: 'heavyCmd', dur: 0.6, upper: true, clip: Clips.sweep, move: (k) => (k > 0.4 && k < 0.6 ? 3 : 0) });
-    if (withStand) this.stand.strike(this.melee(Clips.heavyR, spec, { target: t, onContact, standoff: 1.05 }), 'front');
+    if (withStand) this.stand.strike(this.melee(Clips.heavyR, spec, { target: t, onContact, standoff: 0.5 }), 'front');
     this.game.combat.emit({ type: 'attack', attacker: f, move: 'heavy' });
     return true;
   }
@@ -223,7 +223,7 @@ export class Kit {
       const hits = { L: new Set(), R: new Set() };
       const rate = this.rushRate || 15;
       const def = {
-        name: 'rush', dur: 99, rush: true, rate, lunge: true, standoff: 0.7, dash: 24,
+        name: 'rush', dur: 99, rush: true, rate, lunge: true, standoff: 0.4, dash: 24,
         tick: (self, t01, dtt, a) => {
           const tg = a.data.target;
           a.data.aimL = a.data.aimL || new THREE.Vector3();
@@ -268,7 +268,7 @@ export class Kit {
       if (fin || this.rushing === 0) {
         f.play({ name: 'rushEnd', dur: 0.45, upper: true, clip: Clips.sweep });
         const spec = { damage: 9, stun: 0.6, knock: 10, launch: 3, kind: 'heavy', fxPower: 1.8 };
-        if (this.stand) this.stand.strike(this.melee(Clips.rushFinish, spec, { target: mt, standoff: 0.8, onContact: () => this.game.camera.shake(0.6) }), 'front');
+        if (this.stand) this.stand.strike(this.melee(Clips.rushFinish, spec, { target: mt, standoff: 0.45, onContact: () => this.game.camera.shake(0.6) }), 'front');
       }
       this.onRushEnd?.();
     }
@@ -288,7 +288,7 @@ export class Kit {
       this.game.camera.shake(0.5);
     };
     f.play({ name: 'kbCmd', dur: 0.8, upper: true, pose: (k) => Poses.cast('R', k, 0.1) });
-    if (this.stand) this.stand.strike(this.melee(Clips.knockback, spec, { target: t, onContact, standoff: 0.95, radius: 0.36 }), 'front');
+    if (this.stand) this.stand.strike(this.melee(Clips.knockback, spec, { target: t, onContact, standoff: 0.5, radius: 0.36 }), 'front');
     else f.play(this.melee(Clips.knockback, spec, { target: t, lunge: false, onContact }));
     return true;
   }
