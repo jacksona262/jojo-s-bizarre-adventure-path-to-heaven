@@ -93,9 +93,9 @@ export class Weather {
     scene.add(this.sky);
 
     // lights
-    this.hemi = new THREE.HemisphereLight(0x5a6c98, 0x1a140f, 0.55);
+    this.hemi = new THREE.HemisphereLight(0x6a7cae, 0x2a2018, 1.05);
     scene.add(this.hemi);
-    this.moon = new THREE.DirectionalLight(0x9fb4e8, 1.05);
+    this.moon = new THREE.DirectionalLight(0xa9bdf0, 1.6);
     this.moon.castShadow = true;
     this.moon.shadow.mapSize.set(2048, 2048);
     const sc = this.moon.shadow.camera;
@@ -104,9 +104,9 @@ export class Weather {
     this.moon.shadow.normalBias = 0.04;
     scene.add(this.moon);
     scene.add(this.moon.target);
-    this.rim = new THREE.DirectionalLight(0x6d7fb8, 0.35);
+    this.rim = new THREE.DirectionalLight(0x7d8fc8, 0.55);
     scene.add(this.rim);
-    this.baseHemi = 0.55; this.baseMoon = 1.05;
+    this.baseHemi = 1.05; this.baseMoon = 1.6;
 
     scene.fog = new THREE.FogExp2(0x0b0f17, 0.0045);
     this.fogBase = 0.0045;
