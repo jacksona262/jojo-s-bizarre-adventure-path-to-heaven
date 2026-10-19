@@ -30,7 +30,7 @@ export class Stand extends Character {
     this.style = 'stand';
     this.scaleBase = 1;
     this.reach = opts.reach || 1.6;
-    this.leash = opts.leash || 3.4;
+    this.leash = opts.leash || 3.8;
     this.tint = opts.tint || null;
     this.svel = new THREE.Vector3();
     this.mode = 'guard';
