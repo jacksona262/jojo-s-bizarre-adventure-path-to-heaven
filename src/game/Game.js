@@ -17,6 +17,7 @@ import { Campaign } from './story/Campaign';
 import { VersusMode } from './modes/Versus';
 import { Character } from './actors/Character';
 import { prof } from './dev/Profiler';
+import { DebugDraw } from './dev/DebugDraw';
 
 // Top-level orchestrator. One instance lives for the lifetime of the page.
 
@@ -43,6 +44,13 @@ export class Game {
     this.applySettings(this.settings);
     this.engine.add(this);
     window.__game = this;
+    // developer tools are opt-in (?dev, ?arena, or localStorage pth.dev = 1); players never see them
+    const qsDev = new URLSearchParams(window.location.search);
+    let devFlag = false;
+    try { devFlag = localStorage.getItem('pth.dev') === '1'; } catch { /* storage blocked */ }
+    this.dev = qsDev.has('dev') || qsDev.has('arena') || devFlag;
+    this.debugDraw = new DebugDraw(this.engine.scene);
+    this.devHitboxes = false;
     // combo counter for the HUD: consecutive blows the player lands without being hit back
     this.combo = { n: 0, dmg: 0, t: 0, id: 0 };
     this.combat.on((ev) => {
@@ -83,7 +91,14 @@ export class Game {
     // QA: ?step=<story step id> starts the campaign at that beat with a fresh profile
     const qs = new URLSearchParams(window.location.search);
     const stepId = qs.get('step');
-    if (stepId || qs.has('qa')) import('./dev/QA').then((m) => m.attachQA());
+    if (stepId || qs.has('qa') || this.dev) import('./dev/QA').then((m) => m.attachQA());
+    if (this.dev) ui.set({ dev: true });
+    // dev combat arena: ?arena=<fighter>[&p1=dio][&map=street]
+    const arenaKey = qs.get('arena');
+    if (arenaKey) {
+      await this.startVersus({ p1: qs.get('p1') || 'dio', cpu: arenaKey, difficulty: qs.get('diff') || 'normal', arena: qs.get('map') || 'street', dev: true });
+      return;
+    }
     if (stepId) {
       const { STEPS } = await import('./story/Campaign');
       const i = STEPS.findIndex((s) => s.id === stepId);
@@ -316,6 +331,7 @@ export class Game {
     prof.begin('camera');
     this.camera.update(dt, realDt, (this.inCinematic || this.overlayOpen) ? null : input);
     prof.end('camera');
+    this.debugDraw.update(realDt);
     this.seq.update(realDt);
     audio.tickMusic();
     audio.tickAmbience(this.engine.time);
