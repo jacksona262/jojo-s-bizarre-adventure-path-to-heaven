@@ -582,7 +582,8 @@ export class Campaign {
     }, 1600);
   }
 
-  // Retry from the start of the current boss phase (or reload the checkpoint outside fights).
+  // Retry: a boss fight restarts as a fair rematch (both fighters at full health, the boss back in
+  // phase 1 with its phase powers undone); outside fights, reload the checkpoint.
   retry() {
     const g = this.game;
     ui.set({ overlay: null });
@@ -593,20 +594,34 @@ export class Campaign {
     g.time.end(true);
     for (const h of [...g.combat.hazards]) { if (!h.persistent) g.combat.removeHazard(h); }
     for (const p of [...g.combat.projectiles]) p.life = 0;
-    this.player.revive(this.player.hpMax);
-    this.player.energy = this.player.energyMax;
-    this.player.tsCharge = 1;
+    const pl = this.player;
+    this.applyUpgrades();
+    pl.revive(pl.hpMax);
+    pl.energy = pl.energyMax;
+    pl.stamina = pl.staminaMax;
+    pl.tsCharge = 1;
+    pl.vel.set(0, 0, 0);
+    if (pl.kit) pl.kit.cool = {};
     if (e && e.boss && !e.done) {
-      const ph = e.brain.phase;
-      const hp = e.phaseHp[ph - 1] ?? e.boss.hpMax;
-      e.boss.revive(Math.max(hp, 1));
-      e.boss.hp = hp;
-      e.boss.cancelAction();
+      const b = e.boss;
+      b.cancelAction();
+      b.kit.resetFight?.();
+      b.kit.cool = {};
+      b.revive(b.hpMax);
+      b.vel.set(0, 0, 0);
+      b.invuln = 0;
+      b.rootedUntil = 0;
+      b.energy = b.energyMax;
+      if (!e.step.final) e.brain.reset();
+      else { b.hp = b.hpMax; }
+      e.phaseHp = [b.hpMax];
+      ui.set({ boss: { ...(ui.get().boss || {}), hp: b.hp, hpMax: b.hpMax, phase: e.brain.phase } });
+      audio.setMusic('boss', 0.4);
       const pp = e.center.clone().add(new THREE.Vector3(0, 0, 8));
       this.player.pos.copy(pp); this.player.pos.y = g.world.groundAt(pp.x, pp.z, pp.y + 3);
       const bp = e.center.clone().add(new THREE.Vector3(0, 0, -7));
       e.boss.pos.copy(bp); e.boss.pos.y = g.world.groundAt(bp.x, bp.z, bp.y + 3);
-      toast(`Phase ${ph} restarted.`);
+      toast('Rematch: both fighters are back at full health.');
       return;
     }
     // outside an encounter: back to the last checkpoint
