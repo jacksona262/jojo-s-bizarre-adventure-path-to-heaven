@@ -33,7 +33,11 @@ function terrainMaterial(far = false) {
         diffuseColor.rgb *= 1.0 - puddle * 0.45 - vWet * 0.18;`)
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
         roughnessFactor = mix(roughnessFactor, 0.5, vWet * 0.7);
-        roughnessFactor = mix(roughnessFactor, 0.04, puddle);`);
+        roughnessFactor = mix(roughnessFactor, 0.04, puddle);`)
+      .replace('#include <lights_physical_fragment>', `#include <lights_physical_fragment>
+        float specK = mix(0.12, 1.0, max(puddle, vWet * 0.3));
+        material.specularColor *= specK;
+        material.specularF90 = mix(0.12, 1.0, puddle);`);
   };
   m.customProgramCacheKey = () => (far ? 'terrainFar' : 'terrain');
   return m;
