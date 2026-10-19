@@ -27,6 +27,9 @@ export const ARENAS = [
 ];
 
 export const DIFFICULTIES = { easy: 0.6, normal: 1, hard: 1.4 };
+// Versus CPU opponents are tuned 25% above the story bosses at every difficulty: more health,
+// harder hits, sharper reactions, faster meter and their ultimate (signature) far more often.
+const CPU_BOOST = 1.25;
 
 function arenaCenter(a) {
   if (a.gulch) { const g = GULCHES.find((q) => q.id === a.gulch); return new THREE.Vector3(g.x, g.deckY, g.z); }
@@ -85,6 +88,13 @@ export class VersusMode {
     } else {
       // a duelist, not a boss: lighter poise so combos still reward the player
       this.brain = new BossBrain(g, this.p2, { difficulty: DIFFICULTIES[sel.difficulty] || 1, phases: [0.5], poiseScale: 0.55 });
+      const cpu = this.p2;
+      cpu.hpMax = Math.round(cpu.hpMax * CPU_BOOST);
+      cpu.hp = cpu.hpMax;
+      cpu.damageBonus = (cpu.damageBonus || 1) * CPU_BOOST;
+      cpu.kit.energyRegen *= CPU_BOOST;
+      this.brain.difficulty *= CPU_BOOST;
+      this.ultT = 5;
     }
     for (const f of [this.p1, this.p2]) if (f.kit.setupArena) f.kit.setupArena(this.center);
     if (this.p1.kit.onFinisher === undefined && this.p1.rosterKey === 'dioHeaven') this.p1.kit.onFinisher = null;
@@ -174,6 +184,7 @@ export class VersusMode {
     if (this.brain) this.brain.enabled = true;
     this.state = 'fight';
     this.timer = 99;
+    this.ultT = 5;
     setTimeout(() => { if (ui.get().announce?.text === 'FIGHT') ui.set({ announce: null }); }, 800);
   }
 
@@ -356,6 +367,15 @@ export class VersusMode {
       this.ctrl.update(dt, realDt);
       if (this.remoteCtrl) { this.remoteCtrl.update(dt, realDt); this._syncRemote(dt); }
       this.brain?.update(dt);
+      // the CPU reaches for its ultimate every ~9-13 s whenever it is close enough to use it
+      if (this.brain?.enabled && this.state === 'fight') {
+        this.ultT -= dt;
+        const cpu = this.p2;
+        if (this.ultT <= 0) {
+          const ready = !cpu.dead && cpu.canAct() && !g.time.state && cpu.distanceTo(this.p1) < 14;
+          this.ultT = ready && cpu.kit.signature() ? 9 + Math.random() * 4 : 1;
+        }
+      }
       const authority = !o || o.role === 'host';
       // ring out guard
       for (const f of [this.p1, this.p2]) {
