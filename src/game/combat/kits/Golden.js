@@ -79,7 +79,9 @@ export class KingCrimsonKit extends Kit {
       : t.pos.clone().add(v3(Math.cos(ang) * 2.2, 0, Math.sin(ang) * 2.2));
     dest.y = this.game.world.groundAt(dest.x, dest.z, dest.y + 2);
     this.vfx.text(f.chestWorld(new THREE.Vector3()).add(v3(0, 1.2, 0)), 'キング・クリムゾン', '#ff2a3a', 1.6, 0.8);
+    // (a player using King Crimson still sees their own fighter; the vanishing is for opponents)
     const vanish = (on) => {
+      if (f.isPlayer) return;
       f.group.visible = !on;
       if (this.stand?.group) this.stand.group.visible = !on && this.stand.summoned;
       f.untargetable = on;
