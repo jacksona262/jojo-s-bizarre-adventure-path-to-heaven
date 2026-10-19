@@ -66,4 +66,14 @@ export async function bossQA(secs = 14, { attack = true, timestop = true } = {})
 
 export function attachQA() {
   window.__qa = { bossQA, tap, click, sleep };
+  // Background/embedded pages may receive no requestAnimationFrame callbacks; keep the
+  // simulation stepping from a timer in that case so automated checks still run.
+  const eng = window.__game?.engine;
+  if (eng && !eng.__qaDriven) {
+    eng.__qaDriven = true;
+    let last = performance.now();
+    const step = eng.step.bind(eng);
+    eng.step = () => { last = performance.now(); step(); };
+    setInterval(() => { if (performance.now() - last > 80) eng.step(); }, 16);
+  }
 }
