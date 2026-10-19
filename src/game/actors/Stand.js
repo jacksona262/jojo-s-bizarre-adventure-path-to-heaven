@@ -60,10 +60,21 @@ export class Stand extends Character {
       this._placeAtAnchor(true);
       if (!quiet) {
         audio.play('summon');
-        this.game.vfx?.aura(this.pos.clone().add(new THREE.Vector3(0, 1.2, 0)), this.auraColor, 1.2);
+        const fx = this.user.kit?.fx;
+        const col = fx?.hit ?? this.auraColor;
+        const css = `#${new THREE.Color(col).getHexString()}`;
+        this.game.vfx?.standSummon(this.user.chestWorld(new THREE.Vector3()), this.pos.clone().add(new THREE.Vector3(0, 1.2, 0)), col, fx?.kana || 'ゴ', css);
+        this.popT = 0.45;   // materialises with an overshooting pop
+        if (this.user === this.game.player) {
+          this.game.screen?.shockwave(this.user.chestWorld(new THREE.Vector3()), 0.7, 0.5);
+          this.game.camera?.shake(0.25);
+        }
+        // a trailing afterimage once it has a pose to copy
+        setTimeout(() => { if (this.summoned) this.game.vfx?.afterimage(this, fx?.ghost ?? col, { life: 0.4, alpha: 0.6, scale: 1 }); }, 90);
       }
     } else if (!quiet) {
       audio.play('whoosh', { power: 0.6 });
+      this.game.vfx?.standDismiss(this.pos.clone().add(new THREE.Vector3(0, 1.2, 0)), this.user.kit?.fx?.hit ?? this.auraColor);
     }
   }
 
@@ -130,7 +141,10 @@ export class Stand extends Character {
     if (this.isFrozen()) return;
     this.summonT += dt;
     const k = Math.min(1, this.summonT / 0.35);
-    this.group.scale.setScalar(this.scaleBase * (0.65 + 0.35 * k));
+    // summon pop: grows past full size and settles back
+    let pop = 0;
+    if (this.popT > 0) { this.popT -= dt; const pk = 1 - Math.max(0, this.popT) / 0.45; pop = Math.sin(pk * Math.PI) * 0.12; }
+    this.group.scale.setScalar(this.scaleBase * (0.65 + 0.35 * k + pop));
     if (k < 1) this.setOpacity(k); else if (this._opa !== 1) { this.setOpacity(1); this._opa = 1; }
     if (k < 1) this._opa = k;
 
