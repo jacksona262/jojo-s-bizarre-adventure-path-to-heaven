@@ -5,7 +5,7 @@ import { instantiate } from '../assets/AssetLibrary';
 import { roadX, heightAt } from '../world/Terrain';
 import { SANCTUARY } from '../world/Layout';
 import * as Poses from '../anim/Poses';
-import { OPENING, SPEAKERS, HEAVEN_SCENE, ENDING, ENDING_VARIANTS } from './Script';
+import { OPENING, COLD_OPEN, SPEAKERS, HEAVEN_SCENE, ENDING, ENDING_VARIANTS } from './Script';
 import { perform, stopPerform, nextGesture } from './Acting';
 
 // Directed cinematics. Every scene leaves actors in a defined end state, so skipping is safe.
@@ -98,11 +98,163 @@ export async function conversation(seq, a, b, lines) {
 }
 
 // ------------------------------------------------------------------------------- opening
+// ------------------------------------------------------------------------------- cold open
+// Heaven's Reach, the same night: Jotaro on the last Seal with Speedwagon at his back, looking
+// south down the valley. Then a smash cut to DIO alone on the south road, his aura climbing into
+// the storm. Leaves the screen black, the player hidden at the road and no extra actors behind.
+async function coldOpen(game, seq, { player }) {
+  const fx = game.engine.fx;
+  const ground = (x, z, h = 0) => V(x, (game.world.groundAt(x, z, 9999) ?? heightAt(x, z)) + h, z);
+  const say = (line, dur = null) => { const sp = SPEAKERS[line[0]]; return seq.say(sp.name, line[1], dur, sp.color); };
+  // stream the Sanctum in around a hidden DIO while the screen is black
+  player.group.visible = false;
+  player.pinned = true;
+  const S = V(SANCTUARY.x, 0, SANCTUARY.z + 4);
+  player.pos.copy(ground(S.x, S.z + 6));
+  game.world.warm(player.pos);
+  await seq.wait(0.4);
+  const J = ground(S.x, S.z);
+  const jotaro = await game.spawnNPC('jotaro', J, 0, { name: 'Jotaro Kujo' });
+  jotaro.idlePose = Poses.SIGNATURE.jotaro;
+  jotaro.rosterKey = 'jotaro';
+  const W = ground(S.x + 2.1, S.z - 3.0);
+  const sw = await game.spawnNPC('speedwagon', W, 0, { name: 'Speedwagon' });
+  sw.idlePose = (t) => Poses.talk(t, 0.35);
+  sw.faceTowards(J, true);
+  const extras = [jotaro, sw];
+  let star = null;
+  game.weather.enabled = true;
+  audio.setMusic('tension', 0.5);
+  try {
+    // 1 · the mountain in the storm
+    seq.shot({ from: J.clone().add(V(34, 16, 62)), to: J.clone().add(V(24, 9, 44)), look: J.clone().add(V(0, 6, -30)), lookTo: J.clone().add(V(0, 3, -10)), dur: 5.5, fov: 44, fovTo: 40 });
+    await seq.fade(0, 1.6);
+    seq.lightning(J.clone().add(V(-160, 0, -220)), true);
+    await say(['NAR', COLD_OPEN.place], 3.4);
+    // 2 · Jotaro from behind, looking out over the valley; Speedwagon hurries up
+    const head = () => jotaro.jointWorld('head', new THREE.Vector3());
+    seq.shot({ from: J.clone().add(V(-1.4, 1.9, -3.6)), to: J.clone().add(V(-1.1, 1.85, -2.9)), look: J.clone().add(V(0, 1.2, 30)), dur: 6, fov: 46, ease: 'linear' });
+    perform(sw, { gesture: 'spread', talking: true, lookAt: jotaro });
+    await say(COLD_OPEN.talk[0]);
+    // 3 · Jotaro doesn't turn round
+    const cu = closeUp(jotaro, sw, -1, 2.0);
+    seq.shot({ from: cu.pos, to: cu.pos.clone().lerp(cu.look, 0.08), look: cu.look, dur: 3, fov: 32 });
+    perform(jotaro, { lookAt: null });
+    await say(COLD_OPEN.talk[1], 2.2);
+    const o = ots(jotaro, sw, 1, 1.8);
+    seq.shot({ from: o.pos, to: o.pos.clone().lerp(o.look, 0.06), look: o.look, dur: 6, fov: 36, ease: 'linear' });
+    perform(sw, { gesture: 'reach', talking: true, lookAt: jotaro });
+    await say(COLD_OPEN.talk[2]);
+    stopPerform(sw);
+    // 4 · low angle: the claim
+    seq.shot({ from: J.clone().add(V(0.9, 0.9, 2.3)), to: J.clone().add(V(0.6, 0.95, 1.9)), look: head().add(V(0, 0.05, 0)), dur: 4.2, fov: 34, ease: 'linear' });
+    perform(jotaro, { talking: true, lookAt: null });
+    await say(COLD_OPEN.talk[3]);
+    // beat: thunder, the cap brim comes down
+    stopPerform(jotaro);
+    seq.lightning(J.clone().add(V(80, 0, 160)), true);
+    seq.flash(0xffffff, 0.5, 0.25);
+    perform(jotaro, { gesture: 'hatTip', lookAt: null });
+    const eyes = head().add(V(0, 0.04, 0));
+    seq.shot({ from: eyes.clone().add(V(0.25, 0.02, 1.05)), to: eyes.clone().add(V(0.15, 0.02, 0.72)), look: eyes, dur: 3.6, fov: 28, ease: 'linear' });
+    await seq.wait(0.9);
+    audio.play('stinger');
+    game.vfx.menacing(J.clone().add(V(0, 1.4, 0)), 'ゴ', 4, '#a99cff');
+    await say(COLD_OPEN.except, 3.2);
+    stopPerform(jotaro);
+    // 5 · Speedwagon reels
+    const cs = closeUp(sw, jotaro, 1, 2.2);
+    seq.shot({ from: cs.pos, to: cs.pos.clone().lerp(cs.look, 0.1), look: cs.look, dur: 3, fov: 34 });
+    perform(sw, { gesture: 'handToFace', talking: true, lookAt: jotaro });
+    await say(COLD_OPEN.after[0], 2.8);
+    stopPerform(sw);
+    seq.shot({ from: o.pos, to: o.pos.clone().lerp(o.look, 0.06), look: head(), dur: 5, fov: 36, ease: 'linear' });
+    perform(jotaro, { talking: true, lookAt: null });
+    await say(COLD_OPEN.after[1]);
+    // 6 · Star Platinum rises behind him
+    const sp = J.clone().add(V(-0.55, 0.35, -0.9));
+    star = await game.spawnNPC('starPlatinum', sp, 0, { name: 'Star Platinum' });
+    star.pinned = true; star.pos.y = sp.y;
+    star.idlePose = (t) => Poses.standFloat(t, false);
+    extras.push(star);
+    game.vfx.standSummon(J.clone().add(V(0, 1.2, 0)), sp.clone().add(V(0, 1.4, 0)), 0x8f7cff, 'ゴ', '#a99cff');
+    audio.play('summon');
+    seq.shot({ from: J.clone().add(V(1.6, 0.6, 5.2)), to: J.clone().add(V(1.1, 0.8, 4.0)), look: J.clone().add(V(0, 1.7, 0)), dur: 5, fov: 40, ease: 'linear' });
+    await say(COLD_OPEN.after[2]);
+    stopPerform(jotaro);
+    await seq.fade(1, 0.35);
+  } finally {
+    for (const a of extras) { stopPerform(a); game.removeActor(a); }
+  }
+
+  // ---------------------------------------------------------- smash cut: DIO on the south road
+  const D = R(232, 0.4, 0);
+  player.group.visible = true;
+  seq.place(player, D, Math.PI);
+  game.world.warm(player.pos);
+  player.override = (t) => Poses.dioPose(t);
+  const glow = new THREE.PointLight(0xffc040, 0, 9, 1.6);
+  game.engine.scene.add(glow);
+  let auraOn = true;
+  const auraLoop = (async () => {
+    // the aura: gold and crimson heat rising off him in pulses, menacing glyphs drifting up
+    let n = 0;
+    while (auraOn && !seq.skipping) {
+      const c = player.chestWorld(new THREE.Vector3());
+      glow.position.copy(c).add(V(0, 0.4, 0));
+      glow.intensity = 9 + Math.sin(n * 0.9) * 3;
+      game.vfx.aura(c, n % 3 === 2 ? 0xff3a20 : 0xffc23a, 0.55, true);
+      if (n % 7 === 0) game.vfx.menacing(c.clone().add(V(0, 0.6, 0)), 'ゴ', 2, '#ffd34d');
+      n += 1;
+      await new Promise((r) => setTimeout(r, 140));
+    }
+  })();
+  try {
+    audio.setMusic('none');
+    audio.play('thunder', { distance: 0.2 });
+    // from behind and below: DIO against the storm and the long road north
+    const back = player.pos.clone();
+    seq.cut(back.clone().add(V(0.5, 0.55, 2.4)), back.clone().add(V(0, 2.4, -14)), 40);
+    fx.uFade.value = 0;
+    seq.flash(0xffffff, 0.9, 0.3);
+    seq.lightning(back.clone().add(V(-40, 0, -260)), true);
+    seq.shot({ from: back.clone().add(V(0.5, 0.55, 2.4)), to: back.clone().add(V(0.35, 0.75, 1.7)), look: back.clone().add(V(0, 2.4, -14)), dur: 4, fov: 40, fovTo: 37, ease: 'linear' });
+    audio.play('heartbeat');
+    await seq.wait(2.2);
+    await say(COLD_OPEN.dio[0], 3.4);
+    // round to his face, low, The World manifesting over his shoulder
+    const face = player.jointWorld('head', new THREE.Vector3());
+    seq.shot({ from: face.clone().add(V(1.6, -0.7, -2.6)), to: face.clone().add(V(0.9, -0.5, -1.7)), look: face.clone().add(V(0, -0.05, 0)), dur: 4.6, fov: 34, ease: 'linear' });
+    await seq.wait(0.5);
+    if (player.stand) {
+      player.stand.summon(true);
+      audio.play('summon');
+    }
+    seq.lightning(face.clone().add(V(120, 0, -200)), true);
+    await say(COLD_OPEN.dio[1], 3.6);
+    audio.play('stinger');
+    seq.flash(0xffd34d, 0.6, 0.3);
+    await seq.fade(1, 0.5);
+  } finally {
+    auraOn = false;
+    await auraLoop;
+    glow.removeFromParent();
+    if (player.stand?.summoned) player.stand.summon(false, true);
+    player.override = null;
+    player.pinned = false;
+    player.group.visible = true;
+    fx.uFade.value = 1;
+    ui.set({ subtitle: null });
+  }
+}
+
 export async function openingCinematic(game, seq, { player, horse, pucci, symbol }) {
   const fx = game.engine.fx;
   fx.uFade.value = 1;
   audio.setMusic('none');
   audio.setWeather(1, 0.8);
+  await coldOpen(game, seq, { player });
+  seq.skipping = false;
   game.weather.enabled = false;
   // Scene A: black, thunder, title card
   await seq.wait(0.6);

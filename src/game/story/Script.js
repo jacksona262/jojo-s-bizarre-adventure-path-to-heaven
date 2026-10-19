@@ -37,6 +37,27 @@ export const SPEAKERS = {
   HEAVEN: { name: 'DIO (Heaven Ascension)', color: '#fff2c8' },
 };
 
+// Cold open: before DIO ever rides in, the final Seal-bearer is already waiting for him.
+export const COLD_OPEN = {
+  place: "Heaven's Reach · the northern end of the valley",
+  talk: [
+    ['SPEEDWAGON', "Mr. Kujo! Every lamp in Ebon Crossing lit itself tonight, all at once. And the clocks... every clock in the valley stopped at a quarter past midnight."],
+    ['JOTARO', 'Yare yare daze.'],
+    ['SPEEDWAGON', 'Nine Seals stand between the south road and this mountain. Avdol, Kakyoin, Polnareff... and still something is coming up that road. Aren\'t you worried? Even a little?'],
+    ['JOTARO', "Speedwagon. There's no one in this world who could pose any threat to me."],
+  ],
+  except: ['JOTARO', '...With the sole exception of DIO, of course.'],
+  after: [
+    ['SPEEDWAGON', "D-DIO?! But that's impossible! That man has been dead for—"],
+    ['JOTARO', "Time doesn't mean much in this valley anymore. He's on the road. I can feel it, same as the clocks."],
+    ['JOTARO', 'Let him come. Star Platinum and I will be waiting at the top of the stairs.'],
+  ],
+  dio: [
+    ['DIO', 'No one in this world poses a threat to you, Jotaro?'],
+    ['DIO', 'How fortunate, then... that I am no longer of this world.'],
+  ],
+};
+
 export const OPENING = {
   card: ['THE AMERICAN FRONTIER', 'The night the second Arrow fell, the sun forgot this land.'],
   ride: [
