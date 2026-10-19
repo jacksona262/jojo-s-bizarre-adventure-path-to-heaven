@@ -568,8 +568,8 @@ export class World {
       pl.position.set(l.x, l.y, l.z);
       pl.color.setHex(l.color);
       const fl = l.flicker ? (0.88 + Math.sin(this.time * 13 + l.x) * 0.06 + Math.sin(this.time * 31 + l.z) * 0.05 * l.flicker) : 1;
-      pl.intensity = (l.intensity ?? 1) * 9 * fl * (this.frozen ? 0.7 : 1);
-      pl.distance = l.range || 18;
+      pl.intensity = (l.intensity ?? 1) * 16 * fl * (this.frozen ? 0.7 : 1);
+      pl.distance = l.range || 24;
     }
   }
 
