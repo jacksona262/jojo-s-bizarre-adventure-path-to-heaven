@@ -15,7 +15,8 @@ const _v2 = new THREE.Vector3();
 // the shot can be adjusted live from the console while developing.
 const CFG = {
   camX: -0.22, camY: 1.66, dist: 1.08, lookY: 1.64, fov: 40,
-  screenX: 0.37,                    // where DIO sits across the screen on wide displays (0 = left edge)
+  screenX: 0.37,                    // where DIO sits across the screen (0 = left edge)
+  refAspect: 1.78,                  // `dist` frames him for 16:9; narrower screens pull back to keep his width
   key: { x: -1.8, y: 3.2, z: 2.1, i: 18 },
   rim: { x: 1.35, y: 2.6, z: -1.8, i: 14 },
   kick: { x: -1.6, y: 1.4, z: -1.2, i: 4 },
@@ -147,8 +148,10 @@ export class TitleScene {
     // DIO sits on the left of wide screens (the menu is on the right); portrait screens centre him.
     const aspect = g.engine.camera.aspect || 1.6;
     const portrait = aspect < 0.85;
-    const sx = portrait ? 0.5 : aspect < 1.3 ? 0.3 : C.screenX;
-    const dist = C.dist * (aspect < 1.3 ? 1.3 : 1) * (portrait ? 1.3 : 1);
+    // on any landscape screen he keeps the same share of the width, so the right ~44% (the menu
+    // column) stays clear; portrait screens centre him behind the overlaid menu
+    const sx = portrait ? 0.5 : C.screenX;
+    const dist = portrait ? C.dist * 1.6 : C.dist * Math.max(1, C.refAspect / aspect);
     const fov = C.fov + (this.hover === 'credits' ? 3 * this.hoverK : 0) - (this.hover === 'new' || this.hover === 'continue' ? 1.5 * this.hoverK : 0);
     const halfW = dist * Math.tan(THREE.MathUtils.degToRad(fov / 2)) * aspect;
     const lookX = (0.5 - sx) * 2 * halfW;
