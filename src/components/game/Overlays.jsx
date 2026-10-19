@@ -226,10 +226,11 @@ export function Saves() {
   const mode = useUI((s) => s.savesMode) || 'save';
   const [, force] = useState(0);
   const slots = Save.list().filter((s) => mode === 'load' || s.slot !== 'auto');
-  const back = () => ui.set({ overlay: 'pause' });
+  const fromTitle = useUI((s) => s.savesFrom) === 'title';
+  const back = () => ui.set({ overlay: fromTitle ? null : 'pause', savesFrom: null });
   const act = async (i) => {
     const s = slots[i];
-    if (mode === 'save') { game.mode.saveTo(s.slot); force((n) => n + 1); } else if (s.data) { game.setPaused(false); await game.continueGame(s.slot); }
+    if (mode === 'save') { game.mode.saveTo(s.slot); force((n) => n + 1); } else if (s.data) { ui.set({ overlay: null, savesFrom: null }); game.setPaused(false); await game.continueGame(s.slot); }
   };
   const [index, setIndex] = useNav(slots.length, act, { onBack: back });
   return (
