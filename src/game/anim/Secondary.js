@@ -135,19 +135,25 @@ export class FaceRig {
       new THREE.Matrix4().multiplyMatrices(inv, b.matrixWorld).decompose(new THREE.Vector3(), q, new THREE.Vector3());
       return new THREE.Vector3(1, 0, 0).applyQuaternion(q.invert()).normalize();
     };
+    // eyelids on these rigs slide rather than rotate: character-space down, in the parent's frame
+    const downFor = (b) => {
+      const inv = b.parent.matrixWorld.clone().invert();
+      const o = new THREE.Vector3().applyMatrix4(rig.root.matrixWorld).applyMatrix4(inv);
+      return new THREE.Vector3(0, -1, 0).applyMatrix4(rig.root.matrixWorld).applyMatrix4(inv).sub(o);
+    };
+    rig.root.updateMatrixWorld(true);
     this.bones = [];
     if (this.jaw) this.bones.push({ b: this.jaw, q: this.jaw.quaternion.clone(), ax: axisFor(this.jaw) });
-    for (const b of this.lidsUpper) this.bones.push({ b, q: b.quaternion.clone(), ax: axisFor(b), lid: 1 });
-    for (const b of this.lidsLower) this.bones.push({ b, q: b.quaternion.clone(), ax: axisFor(b), lid: -1 });
+    for (const b of this.lidsUpper) this.bones.push({ b, q: b.quaternion.clone(), p: b.position.clone(), down: downFor(b), lid: 1 });
+    for (const b of this.lidsLower) this.bones.push({ b, q: b.quaternion.clone(), p: b.position.clone(), down: downFor(b), lid: -0.35 });
     this.enabled = this.bones.length > 0;
     this.blinkT = 2 + Math.random() * 3;
     this.blink = 0;
     this.jawOpen = 0;
     this.talk = 0;
     this.t = 0;
-    this.jawSign = 1;
-    this.lidSign = 1;
-    this.lidAngle = 0;     // enabled per rig once verified
+    this.jawSign = 1;      // verified on the DIO rig family in /animlab (positive opens)
+    this.lidTravel = 0.011; // verified on the DIO rig family: slide distance that closes the eye
   }
 
   update(dt, talking) {
@@ -161,10 +167,11 @@ export class FaceRig {
     const target = this.talk * (0.35 + 0.65 * Math.abs(Math.sin(this.t * 11) * Math.sin(this.t * 4.3)));
     this.jawOpen += (target - this.jawOpen) * Math.min(1, dt * 20);
     for (const e of this.bones) {
-      let a = 0;
-      if (e.lid) a = bl * this.lidAngle * this.lidSign * e.lid;
-      else a = this.jawOpen * 0.32 * this.jawSign;
-      _dq.setFromAxisAngle(e.ax, a);
+      if (e.lid) {
+        e.b.position.copy(e.p).addScaledVector(e.down, bl * this.lidTravel * e.lid);
+        continue;
+      }
+      _dq.setFromAxisAngle(e.ax, this.jawOpen * 0.26 * this.jawSign + (this.shout || 0) * 0.3);
       e.b.quaternion.copy(e.q).multiply(_dq);
     }
   }
