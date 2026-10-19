@@ -102,7 +102,7 @@ export class Character {
   play(def, opts = {}) {
     if (this.dead) return null;
     if (this.action && this.action.def.uninterruptible && !opts.force) return null;
-    this.action = { def, t: 0, fired: new Set(), opts, data: {} };
+    this.action = { def, t: 0, fired: new Set(), opts, data: def.data ? { ...def.data } : {} };
     this.state = def.state || 'action';
     return this.action;
   }
