@@ -84,7 +84,7 @@ export class Gait {
     }
     const moving = sp > 0.25 ? 1 : 0;
     this.moveW += (moving - this.moveW) * min(1, dt * (moving ? 9 : 6));
-    this.combatW += ((ctx.combat ? 1 : 0) - this.combatW) * min(1, dt * 6);
+    this.combatW += ((ctx.combat && ctx.combatArms !== false ? 1 : 0) - this.combatW) * min(1, dt * 6);
     this.airW += ((ctx.grounded ? 0 : 1) - this.airW) * min(1, dt * (ctx.grounded ? 14 : 8));
     this.land = Math.max(0, this.land - dt * 3.2);
 
@@ -103,7 +103,10 @@ export class Gait {
     if (v > 0.03) this.u = (this.u + dt * v * beta / max(0.1, L)) % 1;
 
     // ---------------------------------------------------------------- stance (idle) placement
-    const st = STANCE[ctx.combat ? 'combat' : (ctx.style in STANCE ? ctx.style : 'neutral')];
+    // Stand users keep their own stance in a fight (their Stand does the fighting); fist fighters
+    // drop into a combat stance
+    const fist = ctx.combat && ctx.combatArms !== false;
+    const st = STANCE[fist ? 'combat' : ctx.combat ? 'boss' : (ctx.style in STANCE ? ctx.style : 'neutral')];
     if (this.moveW < 0.35 && ctx.grounded) {
       this.feetYaw = wrap(this.feetYaw - (ctx.dYaw || 0));
       if (!this.turn && abs(this.feetYaw) > 0.6) this.turn = { t: 0, from: this.feetYaw, lead: this.feetYaw > 0 ? 'L' : 'R' };
