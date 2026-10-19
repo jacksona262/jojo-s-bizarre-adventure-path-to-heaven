@@ -224,7 +224,7 @@ export default function Hud() {
       {debug && <div style={{ position: 'absolute', right: 8, bottom: 8, fontFamily: 'monospace', fontSize: 11, color: '#aaa' }}>{debug}</div>}
       {/* click-to-capture hint for pointer lock */}
       {showHud && game && !game.input.pointerLocked && device === 'kbm' && !ui.get().minigame && (
-        <div style={{ position: 'absolute', right: 26, bottom: 26, fontFamily: 'Cinzel', fontSize: 11, letterSpacing: '0.18em', color: 'rgba(239,228,204,0.5)' }}>CLICK TO CONTROL THE CAMERA</div>
+        <div style={{ position: 'absolute', right: 26, bottom: 26, fontFamily: 'Cinzel', fontSize: 11, letterSpacing: '0.18em', color: 'rgba(239,228,204,0.5)' }}>CLICK TO CONTROL THE CAMERA · OR DRAG TO LOOK</div>
       )}
     </div>
   );
