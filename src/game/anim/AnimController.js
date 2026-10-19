@@ -125,7 +125,10 @@ export class AnimController {
       if (c.mounted) this.lastHorse = c.mounted;
       const k = c.mounted ? (c.mountK ?? 1) : (c.mountK || 0);
       const ride = h ? Poses.ride(h.anim.phase * PI * 2, min(1, h.speed / 10), h.turn || 0) : Poses.rest();
-      if (k < 0.999) {
+      if (c.mounted && k < 0.999) {
+        base = Poses.mountClimb(k, Poses.guardStance(), ride, this.tmp);
+        this.state = 'mount';
+      } else if (k < 0.999) {
         const stand = Poses.guardStance();
         base = Poses.lerpPose(stand, ride, k, this.tmp);
         const swing = sin(k * PI);

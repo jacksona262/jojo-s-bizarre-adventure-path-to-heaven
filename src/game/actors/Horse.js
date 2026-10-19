@@ -8,6 +8,10 @@ import { roadX, roadDir, ROAD_HALF } from '../world/Terrain';
 
 export const GAIT_SPEEDS = { walk: 2.2, trot: 4.6, canter: 8.5, gallop: 15 };
 
+// seconds to climb into the saddle
+const MOUNT_DUR = 1.05;
+const _ml = new THREE.Vector3(); const _ms = new THREE.Vector3(); const _mt = new THREE.Vector3(); const _mh = new THREE.Vector3();
+
 export class Horse {
   constructor(game) {
     this.game = game;
@@ -63,8 +67,10 @@ export class Horse {
     this.state = 'ridden';
     if (rider.stand?.summoned) rider.stand.summon(false, true);
     this.leaving = null;
-    this.mountT = instant ? 1 : 0;
+    this.mountT = instant ? MOUNT_DUR : 0;
     this.mountFrom = rider.pos.clone();
+    this.mountYaw = rider.yaw;
+    this.mountSettled = instant;
     rider.mountK = instant ? 1 : 0;
     audio.play('neigh');
   }
@@ -124,7 +130,7 @@ export class Horse {
     if (this.game.time?.isFrozen(this) && !(this.rider && !this.game.time.isFrozen(this.rider))) return;
     const world = this.game.world;
     let want = 0; let steer = 0;
-    if (this.state === 'ridden' && (this.mountT ?? 1) < 0.55) {
+    if (this.state === 'ridden' && (this.mountT ?? MOUNT_DUR) < MOUNT_DUR) {
       want = 0; steer = 0;
     } else if (this.state === 'ridden') {
       const c = this.controls;
@@ -215,16 +221,42 @@ export class Horse {
       const r = this.rider;
       const s = this.saddleWorld(new THREE.Vector3());
       r.pos.set(s.x, s.y - (r.rig ? r.rig.hipHeight * 0.92 : 0.9), s.z);
-      if ((this.mountT ?? 1) < 0.55) {
+      let yaw = this.yaw;
+      if ((this.mountT ?? MOUNT_DUR) < MOUNT_DUR) {
+        // a staged climb from the horse's left: step to the stirrup, push up, swing over, settle
         this.mountT += dt;
-        const k = Math.min(1, this.mountT / 0.55);
-        const e = k * k * (3 - 2 * k);
-        r.pos.lerpVectors(this.mountFrom, r.pos, e);
-        r.pos.y += Math.sin(k * Math.PI) * 0.45;
-        r.mountK = e;
+        const k = Math.min(1, this.mountT / MOUNT_DUR);
+        const sm = (x) => { const t = Math.min(1, Math.max(0, x)); return t * t * (3 - 2 * t); };
+        const left = _ml.set(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
+        const seat = _ms.copy(r.pos);
+        const ground = this.game.world.groundAt(seat.x + left.x * 0.8, seat.z + left.z * 0.8, this.pos.y + 1);
+        const stirrup = _mt.copy(seat).addScaledVector(left, 0.8); stirrup.y = ground;
+        const high = _mh.copy(seat).addScaledVector(left, 0.42); high.y = seat.y + 0.32;
+        if (k < 0.22) {
+          r.pos.lerpVectors(this.mountFrom, stirrup, sm(k / 0.22));
+          let d = this.yaw - this.mountYaw; d = Math.atan2(Math.sin(d), Math.cos(d));
+          yaw = this.mountYaw + d * sm(k / 0.22);
+        } else if (k < 0.5) {
+          const t = sm((k - 0.22) / 0.28);
+          r.pos.lerpVectors(stirrup, high, t);
+          r.pos.y = stirrup.y + (high.y - stirrup.y) * Math.sin(t * Math.PI / 2);
+        } else if (k < 0.8) {
+          r.pos.lerpVectors(high, seat, sm((k - 0.5) / 0.3));
+          r.pos.y = high.y;
+        } else {
+          const t = (k - 0.8) / 0.2;
+          r.pos.copy(seat);
+          r.pos.y = seat.y + 0.32 * (1 - sm(t)) - 0.05 * Math.sin(t * Math.PI);
+          if (!this.mountSettled) {
+            this.mountSettled = true;
+            audio.play('step', { power: 0.8 });
+            this.game.vfx?.smokePuff(this.pos.clone().add(new THREE.Vector3(0, 0.1, 0)), 0x6a5a48, 3, 0.8, 0.8, 0.3);
+          }
+        }
+        r.mountK = k;
       } else r.mountK = 1;
-      r.yaw = r.targetYaw = this.yaw;
-      r.group.rotation.y = this.yaw;
+      r.yaw = r.targetYaw = yaw;
+      r.group.rotation.y = yaw;
       r.vel.set(0, 0, 0);
       r.onGround = true;
       r.moved = 0;

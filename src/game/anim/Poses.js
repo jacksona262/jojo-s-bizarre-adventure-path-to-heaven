@@ -472,6 +472,50 @@ export function ride(gaitPhase, gait, lean = 0) {
   return p;
 }
 
+// Climbing into the saddle from the horse's left (the horse is on the rider's right, -X), k 0..1:
+// step in and reach (left hand to the pommel, right hand to the cantle, left foot up into the
+// stirrup), push up off the stirrup, swing the right leg high over the croup leaning over the
+// neck, then drop into the riding seat.
+const MOUNT_KEYS = (() => {
+  const reach = rest();
+  reach.uaL = [-0.1, 0.25, 0.85]; reach.faL = [-0.35, 0.45, 0.75];
+  reach.uaR = [-0.4, 0.3, 0.45]; reach.faR = [-0.3, 0.6, 0.3];
+  reach.thL = [0.1, -0.35, 0.9]; reach.shL = [0.05, -1, -0.15];
+  reach.thR = [-0.05, -1, -0.05]; reach.shR = [-0.03, -1, -0.12];
+  reach.spine = [0.12, -0.15, -0.12]; reach.head = [-0.15, -0.2, 0];
+  reach.rootY = -0.06;
+  const push = rest();
+  push.uaL = [-0.15, -0.55, 0.6]; push.faL = [-0.3, -0.35, 0.85];
+  push.uaR = [-0.45, -0.6, 0.3]; push.faR = [-0.35, -0.45, 0.5];
+  push.thL = [0.05, -1, 0.12]; push.shL = [0.03, -1, -0.05];
+  push.thR = [-0.08, -1, -0.35]; push.shR = [-0.05, -1, -0.5];
+  push.spine = [0.4, 0, -0.2]; push.head = [-0.2, -0.1, 0];
+  const over = rest();
+  over.uaL = [-0.1, -0.55, 0.65]; over.faL = [-0.2, -0.4, 0.85];
+  over.uaR = [-0.25, -0.6, 0.55]; over.faR = [-0.15, -0.4, 0.85];
+  over.thL = [0.15, -1, 0.15]; over.shL = [0.08, -1, -0.1];
+  over.thR = [-0.85, 0.15, -0.6]; over.shR = [-0.7, -0.35, -0.45];
+  over.spine = [0.55, 0, -0.1]; over.head = [-0.35, 0, 0];
+  return { reach, push, over };
+})();
+const _mA = rest(); const _mB = rest();
+export function mountClimb(k, from, ride, out = rest()) {
+  const K = MOUNT_KEYS;
+  if (k < 0.22) return lerpPose(from, K.reach, smooth(k / 0.22), out);
+  if (k < 0.5) return lerpPose(K.reach, K.push, smooth((k - 0.22) / 0.28), out);
+  if (k < 0.8) {
+    // the leg rises behind first, then sweeps across the horse's back
+    const t = (k - 0.5) / 0.3;
+    lerpPose(K.push, K.over, smooth(Math.min(1, t * 1.6)), _mA);
+    if (t < 0.6) return copyPose(_mA, out);
+    lerpPose(K.over, ride, smooth((t - 0.6) / 0.4) * 0.45, _mB);
+    return copyPose(_mB, out);
+  }
+  lerpPose(K.over, ride, 0.45 + 0.55 * smooth((k - 0.8) / 0.2), out);
+  out.spine[0] += Math.sin(clamp01((k - 0.8) / 0.2) * Math.PI) * 0.12;
+  return out;
+}
+
 // Stand floating posture (legs trail, arms ready).
 export function standFloat(t, aggressive = false) {
   const p = aggressive ? guardStance() : crossArms(t);
