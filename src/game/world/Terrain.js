@@ -97,6 +97,23 @@ export function initFlats() {
   const sy = roadY(SANCTUARY.z);
   SANCTUARY.y = sy;
   addFlat(SANCTUARY.x, SANCTUARY.z, 120, sy, 40, 1);
+  // gulches crossed by trestles: Hol Horse's gulch (Redstone) and Diavolo's canyon (Iron Vale)
+  for (const g of GULCHES) {
+    const zc = REGIONS.find((r) => r.id === g.region).z + g.dz;
+    const xc = roadX(zc);
+    const y = roadY(zc) - g.depth;
+    for (let o = -g.span; o <= g.span; o += 8) addFlat(xc + o, zc + o * 0.08, g.width, y, 10, 1);
+    g.x = xc; g.z = zc; g.deckY = roadY(zc);
+  }
+  // the chasm before the sanctuary (collapsing bridge on The Thousand Steps)
+}
+
+export const GULCHES = [
+  { id: 'holGulch', region: 'redstone', dz: 160, depth: 26, width: 9, span: 60 },
+  { id: 'diavoloCanyon', region: 'iron', dz: -640, depth: 48, width: 22, span: 120 },
+];
+
+function _unused() {
   // homepage mansion terrace (well off the playable road, used only by the title scene)
 }
 
