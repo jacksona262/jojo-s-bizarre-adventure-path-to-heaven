@@ -49,8 +49,8 @@ export class SpringBones {
         restQ: bone.quaternion.clone(),
         axis: tailLocal.clone().normalize(),
         lenLocal: tailLocal.length(),
-        cur: new THREE.Vector3(), prev: new THREE.Vector3(), init: false,
-        stiff: hair ? 0.9 : 0.6, drag: hair ? 0.42 : 0.3, grav: hair ? 0.25 : 0.55,
+        cur: new THREE.Vector3(), vel: new THREE.Vector3(), init: false,
+        stiff: hair ? 95 : 55, drag: hair ? 9 : 6, grav: hair ? 2.6 : 5.5,
       });
     }
     // parents before children
@@ -63,7 +63,7 @@ export class SpringBones {
   reset() { for (const j of this.joints) j.init = false; }
 
   update(dt, scale = 1) {
-    if (!this.enabled || dt <= 0) return;
+    if (!this.enabled || dt < 1e-4) return;
     const h = Math.min(dt, 1 / 30);
     const root = this.rig.root;
     root.updateMatrixWorld(true);
@@ -86,12 +86,14 @@ export class SpringBones {
       _rest.copy(j.axis).applyQuaternion(_wq);
       if (!j.init) {
         j.cur.copy(_head).addScaledVector(_rest, len);
-        j.prev.copy(j.cur);
+        j.vel.set(0, 0, 0);
         j.init = true;
       }
-      _next.copy(j.cur).sub(j.prev).multiplyScalar(1 - j.drag).add(j.cur);
-      _next.addScaledVector(_rest, j.stiff * h * 60 * len * 0.12);
-      _next.addScaledVector(GRAV, j.grav * h * 60 * len * 0.05);
+      // damped spring towards the rest tail position, plus gravity (time-step independent)
+      _tmp.copy(_head).addScaledVector(_rest, len).sub(j.cur).multiplyScalar(j.stiff);
+      _tmp.addScaledVector(GRAV, j.grav);
+      j.vel.multiplyScalar(Math.exp(-j.drag * h)).addScaledVector(_tmp, h);
+      _next.copy(j.cur).addScaledVector(j.vel, h);
       _next.sub(_head).normalize().multiplyScalar(len).add(_head);
       if (headC) {
         _tmp.copy(_next).sub(headC);
@@ -99,7 +101,7 @@ export class SpringBones {
         if (d < headR) _next.copy(headC).addScaledVector(_tmp.normalize(), headR);
         _next.sub(_head).normalize().multiplyScalar(len).add(_head);
       }
-      j.prev.copy(j.cur);
+      j.vel.copy(_next).sub(j.cur).divideScalar(h);
       j.cur.copy(_next);
       // rotate the bone so its axis points at the simulated tail
       _tmp.copy(_next).sub(_head).normalize();
