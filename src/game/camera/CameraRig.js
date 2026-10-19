@@ -158,7 +158,11 @@ export class CameraRig {
     this.pivot.copy(c.pos); this.pivot.y += height;
     const k = Math.min(1, realDt * (mounted ? 10 : 14));
     this.smoothPivot.lerp(this.pivot, k);
-    const targetDist = (mounted ? 6.2 : this.lock ? 4.8 : 4.0) + (c.mounted ? Math.min(2, c.mounted.speed * 0.1) : 0);
+    // locked on: pull back as the fighters separate so both stay framed; in a fight without a
+    // lock, sit a little wider than when exploring
+    const sep = this.lock && !this.lock.dead ? Math.hypot(this.lock.pos.x - c.pos.x, this.lock.pos.z - c.pos.z) : 0;
+    const inFight = !mounted && !this.lock && c.combatStance?.();
+    const targetDist = (mounted ? 6.2 : this.lock ? 4.6 + Math.min(2.2, Math.max(0, sep - 3) * 0.22) : inFight ? 4.5 : 4.0) + (c.mounted ? Math.min(2, c.mounted.speed * 0.1) : 0);
     this.dist += (targetDist - this.dist) * Math.min(1, realDt * 3);
     const cp = Math.cos(this.pitch); const sp = Math.sin(this.pitch);
     const back = new THREE.Vector3(Math.sin(this.yaw) * cp, -sp, Math.cos(this.yaw) * cp);
@@ -177,7 +181,7 @@ export class CameraRig {
       if (pos.y < g) pos.y = g;
     }
     const look = this.smoothPivot.clone().addScaledVector(right, shoulder * 0.55);
-    if (this.lock && !this.lock.dead) look.lerp(this.lock.chestWorld(new THREE.Vector3()), 0.25);
+    if (this.lock && !this.lock.dead) look.lerp(this.lock.chestWorld(new THREE.Vector3()), Math.min(0.42, 0.18 + sep * 0.03));
     look.addScaledVector(back, -2);
     // fov
     let fov = 55;
@@ -197,6 +201,26 @@ export class CameraRig {
     this.look.copy(look);
     cam.fov = this.fov;
     cam.lookAt(look);
+    this._fadeNear(pos);
+  }
+
+  // Characters and Stands that come between the lens and the player (or right up against the
+  // lens) fade out instead of filling the screen.
+  _fadeNear(camPos) {
+    const actors = this.game.actors;
+    if (!actors) return;
+    const check = (a) => {
+      if (!a || !a.group?.visible || a === this.target || !a.setOpacity) return;
+      if (a.summonT !== undefined && a.summonT < 0.4) return;   // Stand summon handles its own fade
+      const d = Math.hypot(a.pos.x - camPos.x, a.pos.y + a.height * 0.6 - camPos.y, a.pos.z - camPos.z);
+      const want = d < 0.6 ? 0.12 : d < 1.6 ? 0.12 + 0.88 * ((d - 0.6) / 1.0) : 1;
+      const cur = a._camFade ?? 1;
+      if (Math.abs(want - cur) > 0.04 || (want === 1 && cur !== 1)) {
+        a._camFade = want;
+        a.setOpacity(want);
+      }
+    };
+    for (const a of actors) { check(a); check(a.stand); }
   }
 
   // camera-relative movement basis for controllers
