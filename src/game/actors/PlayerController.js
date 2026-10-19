@@ -210,6 +210,6 @@ export class PlayerController {
       if (da <= 0) da += Math.PI * 2;
       if (da < bd) { bd = da; best = e; }
     }
-    if (best) { f.lockTarget = best; audio.play('uiMove'); }
+    if (best) { f.lockTarget = best; audio.play('uiHover'); }
   }
 }
