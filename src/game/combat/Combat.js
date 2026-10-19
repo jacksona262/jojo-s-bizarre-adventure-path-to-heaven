@@ -110,6 +110,8 @@ export class Combat {
     const hit = { ...hitIn };
     hit.damage = (hit.damage ?? 5) * (attacker.power || 1) * (this.damageMul[attacker.team] ?? 1) * (attacker.damageBonus || 1);
     if (target.dead) return 'none';
+    // actions taken inside King Crimson's erased interval never connect
+    if (attacker.actionsVoid) { game.vfx?.burst(target.chestWorld(new THREE.Vector3()), 0xff2030, 3, 1, 0.3, 0.2); return 'void'; }
     if (target.invuln > 0 && !hit.unblockable) {
       if (target.invulnStart && game.clock - target.invulnStart < 0.18 && target.onPerfectDodge) target.onPerfectDodge(attacker);
       return 'dodged';
