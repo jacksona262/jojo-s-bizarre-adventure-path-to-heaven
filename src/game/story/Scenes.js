@@ -218,7 +218,8 @@ export async function journalCinematic(game, seq, { player, journalPos }) {
   seq.cut(F(-2.6, 2.3, 1.2), journalPos.clone().add(V(0, 0.4, 0)), 44);
   player.override = (t) => { const p = Poses.idle(t, 'dio'); p.head = [0.45, 0, 0]; p.uaR = [-0.3, -0.5, 0.8]; p.faR = [-0.1, -0.2, 1]; return p; };
   await sayLines(seq, OPENING.journal.slice(0, 1));
-  seq.shot({ from: F(3.4, 1.55, -3.0), to: F(3.1, 1.25, -3.3), look: journalPos, dur: 6, fov: 32 });
+  // over DIO's shoulder onto the open journal (the look point sits on the page, above the desk)
+  seq.shot({ from: F(3.4, 1.55, -3.0), to: F(3.1, 1.25, -3.3), look: journalPos.clone().add(V(0, 0.3, 0)), dur: 6, fov: 32 });
   await sayLines(seq, OPENING.journal.slice(1, 3));
   // time misbehaves: the rain stops mid-air, the lantern flame freezes
   const fx = game.engine.fx;
