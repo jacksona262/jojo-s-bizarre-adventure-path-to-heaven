@@ -9,6 +9,7 @@ import ScrollToTop from './components/ScrollToTop';
 import Home from './pages/Home';
 import AssetLab from './pages/AssetLab';
 import WorldLab from './pages/WorldLab';
+import AnimLab from './pages/AnimLab';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -39,6 +40,7 @@ const AuthenticatedApp = () => {
       <Route path="/" element={<Home />} />
       <Route path="/lab" element={<AssetLab />} />
       <Route path="/worldlab" element={<WorldLab />} />
+      <Route path="/animlab" element={<AnimLab />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
