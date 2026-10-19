@@ -96,8 +96,8 @@ export class Gait {
     const side = this.dir.x;
     const back = max(0, -fwd);
     const lat = abs(side);
-    const beta = lerp(0.62, 0.38, runK) - 0.06 * sprintK;
-    let L = min(leg * (0.36 + 0.16 * vn), leg * lerp(0.8, 1.05, runK));
+    const beta = lerp(0.62, 0.33, runK) - 0.06 * sprintK;
+    let L = min(leg * (0.36 + 0.16 * vn), leg * lerp(0.8, 0.9, runK));
     L *= 1 - 0.28 * back - 0.4 * lat * (1 - back);
     if (ctx.wading) L *= 0.8;
     if (v > 0.03) this.u = (this.u + dt * v * beta / max(0.1, L)) % 1;
@@ -126,12 +126,17 @@ export class Gait {
 
     // ---------------------------------------------------------------- feet
     const widthK = lerp(1.0, 0.6, runK) + 0.8 * lat * this.moveW;
-    const liftH = leg * (0.075 + 0.13 * runK + (ctx.wading ? 0.07 : 0)) * clamp01(L / (0.45 * leg) + 0.25);
+    const liftH = leg * (0.075 + 0.085 * runK + (ctx.wading ? 0.07 : 0)) * clamp01(L / (0.45 * leg) + 0.25);
+    const heel = leg * (0.05 + 0.05 * runK);
     for (const s of ['L', 'R']) {
       const sgn = s === 'L' ? 1 : -1;
       const ul = (this.u + (s === 'L' ? 0 : 0.5)) % 1;
       let along; let lift;
-      if (ul < beta) { along = L / 2 - (ul / beta) * L; lift = 0; } else {
+      if (ul < beta) {
+        along = L / 2 - (ul / beta) * L;
+        // heel peels off the ground late in stance (toe-off), extending the leg's reach
+        lift = heel * clamp01((-along - L * 0.15) / (L * 0.35));
+      } else {
         const k = (ul - beta) / (1 - beta);
         along = -L / 2 + smooth(k) * L;
         lift = liftH * sin(PI * Math.pow(k, 0.85));
