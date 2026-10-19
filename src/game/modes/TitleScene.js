@@ -17,6 +17,7 @@ const CFG = {
   camX: -0.22, camY: 1.66, dist: 1.08, lookY: 1.64, fov: 40,
   screenX: 0.37,                    // where DIO sits across the screen (0 = left edge)
   refAspect: 1.78,                  // `dist` frames him for 16:9; narrower screens pull back to keep his width
+  portrait: { dist: 2.45, camY: 1.4, lookY: 1.2 },   // phones: he fills the top half, the menu sits below
   key: { x: -1.8, y: 3.2, z: 2.1, i: 18 },
   rim: { x: 1.35, y: 2.6, z: -1.8, i: 14 },
   kick: { x: -1.6, y: 1.4, z: -1.2, i: 4 },
@@ -151,13 +152,15 @@ export class TitleScene {
     // on any landscape screen he keeps the same share of the width, so the right ~44% (the menu
     // column) stays clear; portrait screens centre him behind the overlaid menu
     const sx = portrait ? 0.5 : C.screenX;
-    const dist = portrait ? C.dist * 1.6 : C.dist * Math.max(1, C.refAspect / aspect);
+    const dist = portrait ? C.portrait.dist : C.dist * Math.max(1, C.refAspect / aspect);
+    const camY = portrait ? C.portrait.camY : C.camY;
+    const lookY = portrait ? C.portrait.lookY : C.lookY;
     const fov = C.fov + (this.hover === 'credits' ? 3 * this.hoverK : 0) - (this.hover === 'new' || this.hover === 'continue' ? 1.5 * this.hoverK : 0);
     const halfW = dist * Math.tan(THREE.MathUtils.degToRad(fov / 2)) * aspect;
     const lookX = (0.5 - sx) * 2 * halfW;
     const drift = Math.sin(t * 0.17) * 0.03;
-    const px = d.x + C.camX + drift; const py = d.y + C.camY + Math.sin(t * 0.23) * 0.012; const pz = d.z + dist;
+    const px = d.x + C.camX + drift; const py = d.y + camY + Math.sin(t * 0.23) * 0.012; const pz = d.z + dist;
     if (this.debugShot) { g.camera.setCinematic(this.debugShot.pos, this.debugShot.look, this.debugShot.fov); return; }
-    g.camera.setCinematic(_v.set(px, py, pz), _v2.set(d.x + lookX + drift, d.y + C.lookY, d.z), fov);
+    g.camera.setCinematic(_v.set(px, py, pz), _v2.set(d.x + lookX + drift, d.y + lookY, d.z), fov);
   }
 }
