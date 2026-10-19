@@ -6,6 +6,7 @@ import { ui, toast } from './core/Store';
 import { World } from './world/World';
 import { Weather } from './world/Weather';
 import { VFX } from './vfx/VFX';
+import { ScreenFX } from './vfx/ScreenFX';
 import { Combat } from './combat/Combat';
 import { TimeControl } from './combat/TimeControl';
 import { CameraRig } from './camera/CameraRig';
@@ -28,6 +29,7 @@ export class Game {
     this.input = new Input(this.engine.renderer.domElement);
     this.settings = Save.settings();
     this.vfx = new VFX(this.engine.scene);
+    this.screen = new ScreenFX(this.engine);
     this.combat = new Combat(this);
     this.time = new TimeControl(this);
     this.camera = new CameraRig(this);
@@ -135,6 +137,7 @@ export class Game {
     for (const a of [...this.actors]) this.removeActor(a, true);
     this.actors = [];
     this.vfx.clear();
+    this.screen.reset();
     this.player = null;
     this.paused = false;
     this.overlayOpen = false;
@@ -212,6 +215,8 @@ export class Game {
     this.combat.remove(a);
     a.kit?.dispose?.();
     a.remove();
+    this.vfx.afterimages.release(a);
+    if (a.stand) this.vfx.afterimages.release(a.stand);
     void quiet;
   }
 
@@ -250,6 +255,7 @@ export class Game {
     this.settings = { ...this.settings, ...s };
     const st = this.settings;
     this.engine.setQuality(st.quality);
+    if (this.screen) this.screen.level = st.screenFx || 'full';
     audio.applyVolumes({ master: st.master, music: st.music, sfx: st.sfx, ambience: st.ambience });
     this.input.sensitivity = st.sensitivity;
     this.input.invertY = st.invertY;
@@ -299,6 +305,7 @@ export class Game {
     }
 
     if (this.slow) { this.slow.t -= realDt; if (this.slow.t <= 0) { this.slow = null; this.engine.timeScale = 1; } }
+    this.screen.update(realDt);
     if (this.paused) {
       this.camera.update(0, realDt, null);
       return;
