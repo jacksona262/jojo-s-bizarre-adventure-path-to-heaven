@@ -97,7 +97,7 @@ export class Gait {
     const back = max(0, -fwd);
     const lat = abs(side);
     const beta = lerp(0.62, 0.38, runK) - 0.06 * sprintK;
-    let L = min(leg * (0.26 + 0.135 * vn), leg * lerp(0.74, 1.02, runK));
+    let L = min(leg * (0.36 + 0.16 * vn), leg * lerp(0.8, 1.05, runK));
     L *= 1 - 0.28 * back - 0.4 * lat * (1 - back);
     if (ctx.wading) L *= 0.8;
     if (v > 0.03) this.u = (this.u + dt * v * beta / max(0.1, L)) % 1;
@@ -174,7 +174,7 @@ export class Gait {
     const idle = ctx.idlePose ? ctx.idlePose(ctx.t) : Poses.idle(ctx.t, ctx.style);
     const guard = this._guardPose(ctx.t);
     const upper = this.combatW > 0.01 ? Poses.lerpPose(idle, guard, this.combatW, this._idle) : idle;
-    const armAmp = (0.24 + 0.45 * runK + 0.15 * sprintK) * (0.35 + 0.65 * fwdAmt);
+    const armAmp = (0.34 + 0.42 * runK + 0.15 * sprintK) * (0.35 + 0.65 * fwdAmt);
     const bend = 0.25 + 1.1 * runK;
     const angL = -armAmp * cyc; const angR = armAmp * cyc;
     const armW = this.moveW * (1 - this.combatW * 0.75);
