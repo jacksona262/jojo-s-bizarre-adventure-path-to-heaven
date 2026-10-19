@@ -29,8 +29,8 @@ const GHOST_FRAG = `
   uniform vec3 uColor; uniform float uA; varying vec3 vN; varying vec3 vV;
   void main(){
     float f = 1.0 - abs(dot(normalize(vN), normalize(vV)));
-    float a = (0.12 + 0.88 * pow(f, 1.8)) * uA;
-    gl_FragColor = vec4(uColor * (0.55 + 0.9 * f), a);
+    float a = (0.1 + 0.9 * pow(f, 1.8)) * uA;
+    gl_FragColor = vec4(uColor * (0.45 + 0.5 * f), a);
   }`;
 
 function ghostMaterial() {
