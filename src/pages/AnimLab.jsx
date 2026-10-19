@@ -156,8 +156,9 @@ export default function AnimLab() {
           const cyc = animT % 3.2;
           if (name.startsWith('hit') || name.startsWith('heavy hit')) {
             if (cyc < dt * 1.01 || (animT < 0.05 && cyc < 0.05)) {
-              const d = name.endsWith('front') ? [0, -1] : name.endsWith('back') ? [0, 1] : name.endsWith('left') ? [1, 0] : [-1, 0];
-              c.anim.hit(new THREE.Vector3(d[0], 0, d[1]).normalize().negate().multiplyScalar(-1), name.startsWith('heavy') ? 2.6 : 1.2);
+              // direction the blow travels, in the victim's frame (+Z forward, +X left)
+              const d = name.endsWith('front') ? [0, -1] : name.endsWith('back') ? [0, 1] : name.endsWith('left') ? [-1, 0] : [1, 0];
+              c.anim.hit(new THREE.Vector3(d[0], 0, d[1]), name.startsWith('heavy') ? 2.6 : 1.2);
             }
           } else if (name.startsWith('knockdown') || name === 'launch') {
             c.knockTotal = 1.75; c.knockdown = Math.max(0, 1.75 - cyc);
