@@ -33,10 +33,10 @@ export class TimeControl {
     return true;
   }
 
-  isFrozenProjectile(p) {
+  isFrozenProjectile(p, dt = 1 / 60) {
     if (!this.stopped) return false;
     // projectiles launched by the time-stopper travel briefly, then hang in the air
-    if (this.allowed.has(p.owner) && (p.stopAge = (p.stopAge || 0) + 1 / 60) < 0.3) return false;
+    if (this.allowed.has(p.owner) && (p.stopAge = (p.stopAge || 0) + dt) < 0.3) return false;
     return true;
   }
 
