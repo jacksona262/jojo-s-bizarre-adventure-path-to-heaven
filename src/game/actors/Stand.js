@@ -3,8 +3,10 @@ import { Character } from './Character';
 import * as Poses from '../anim/Poses';
 import { audio } from '../core/Audio';
 
-// A Stand: a floating rigged figure bound to its user. Positions itself relative to the user
-// (guard position behind the shoulder, strike position in front), never intersecting the body.
+// A Stand: a floating rigged figure bound to its user. Idles behind the user's shoulder with its
+// own drift, and for melee attacks (def.lunge) dashes out to a strike point beside the target,
+// faces it, attacks with IK-guided limbs, then springs back to guard. Motion is a critically
+// damped spring so the Stand leans into its acceleration and trails its legs.
 
 const OFFSETS = {
   guard: new THREE.Vector3(0.78, 0.18, -0.7),
@@ -12,6 +14,7 @@ const OFFSETS = {
   far: new THREE.Vector3(0, 0.1, 2.2),
   overhead: new THREE.Vector3(0, 1.4, -0.4),
 };
+const _want = new THREE.Vector3();
 
 export class Stand extends Character {
   constructor(game, user, opts) {
@@ -27,7 +30,10 @@ export class Stand extends Character {
     this.style = 'stand';
     this.scaleBase = 1;
     this.reach = opts.reach || 1.6;
+    this.leash = opts.leash || 3.4;
     this.tint = opts.tint || null;
+    this.svel = new THREE.Vector3();
+    this.mode = 'guard';
   }
 
   async load() {
@@ -68,8 +74,35 @@ export class Stand extends Character {
 
   _placeAtAnchor(instant) {
     const a = this.anchor();
-    if (instant) this.pos.copy(a);
+    if (instant) { this.pos.copy(a); this.svel.set(0, 0, 0); this.anim?.springs.reset(); }
     this.yaw = this.targetYaw = this.user.yaw;
+  }
+
+  // Where the Stand wants to be this frame, and what it should face.
+  _desired(out) {
+    const a = this.action;
+    const tgt = a?.data?.target;
+    const u = this.user;
+    if (a && a.def.lunge && tgt && !tgt.dead) {
+      const dx = tgt.pos.x - u.pos.x; const dz = tgt.pos.z - u.pos.z;
+      const d = Math.hypot(dx, dz) || 1e-3;
+      const nx = dx / d; const nz = dz / d;
+      const standoff = (a.def.standoff ?? 0.95) + (tgt.radius || 0.42);
+      const along = Math.min(Math.max(d - standoff, 0.45), this.leash);
+      const side = a.def.side ?? 0.22;
+      out.set(u.pos.x + nx * along - nz * side, Math.max(u.pos.y, tgt.pos.y) + 0.05, u.pos.z + nz * along + nx * side);
+      this.mode = 'strike';
+      return tgt;
+    }
+    this.anchor(out);
+    if (this.slot === 'guard' && !a) {
+      // idle drift so the Stand never looks bolted to its user
+      out.x += Math.sin(this.t * 0.71) * 0.07;
+      out.z += Math.cos(this.t * 0.53) * 0.06;
+      out.y += Math.sin(this.t * 2.2) * 0.06;
+      this.mode = 'guard';
+    } else this.mode = a ? 'action' : this.slot;
+    return a?.def.faceTarget ? tgt : null;
   }
 
   update(dt) {
@@ -89,29 +122,45 @@ export class Stand extends Character {
     this.group.scale.setScalar(this.scaleBase * (0.65 + 0.35 * k));
     if (k < 1) this.setOpacity(k); else if (this._opa !== 1) { this.setOpacity(1); this._opa = 1; }
     if (k < 1) this._opa = k;
-    // follow anchor with a soft spring; snap harder when striking
-    const a = this.anchor();
-    const bob = Math.sin(this.t * 2.2) * 0.06;
-    a.y += bob;
-    const stiff = this.slot === 'guard' ? 8 : 18;
-    this.pos.lerp(a, Math.min(1, dt * stiff));
-    if (!this.action || !this.action.def.ownFacing) this.targetYaw = this.user.yaw;
+
+    const face = this._desired(_want);
+    // critically damped spring (sub-stepped so low frame rates do not overshoot)
+    const omega = this.mode === 'strike' ? (this.action?.def.dash ?? 20) : this.mode === 'guard' ? 8 : 15;
+    let rem = Math.min(dt, 0.1);
+    while (rem > 1e-5) {
+      const h = Math.min(rem, 1 / 120);
+      rem -= h;
+      const ax = (_want.x - this.pos.x) * omega * omega - this.svel.x * 2 * omega;
+      const ay = (_want.y - this.pos.y) * omega * omega - this.svel.y * 2 * omega;
+      const az = (_want.z - this.pos.z) * omega * omega - this.svel.z * 2 * omega;
+      this.svel.x += ax * h; this.svel.y += ay * h; this.svel.z += az * h;
+      this.pos.addScaledVector(this.svel, h);
+    }
+    if (this.pos.distanceToSquared(_want) > 64) { this.pos.copy(_want); this.svel.set(0, 0, 0); }   // teleports
+    if (face) this.targetYaw = Math.atan2(face.pos.x - this.pos.x, face.pos.z - this.pos.z);
+    else if (!this.action || !this.action.def.ownFacing) this.targetYaw = this.user.yaw;
     if (this.user.dead) this.summon(false, true);
     super.update(dt);
   }
 
-  // Stand strikes are positioned in front of the user for their duration.
+  // Stand attacks. def.lunge sends the Stand to the target; otherwise it holds `slot`.
   strike(def, slot = 'front') {
     this.slot = slot;
     const prevEnd = def.onEnd;
-    return this.play({
+    const act = this.play({
       ...def,
+      turn: def.turn ?? (def.lunge ? 18 : 10),
       onEnd: (self, cancelled) => { self.slot = 'guard'; if (prevEnd) prevEnd(self, cancelled); },
     });
+    if (act) {
+      act.data.target = def.target || (def.lunge ? this.user.kit?.meleeTarget?.() : null) || null;
+      if (def.data) Object.assign(act.data, def.data);
+    }
+    return act;
   }
 
   idlePose(t) { return Poses.standFloat(t, false); }
 
-  // Stands are placed by their anchor spring, not by physics.
+  // Stands are placed by their spring, not by physics.
   _integrate() { this.moved = 0; this.onGround = true; }
 }
