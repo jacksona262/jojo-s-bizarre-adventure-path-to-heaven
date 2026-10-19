@@ -140,7 +140,7 @@ export async function openingCinematic(game, seq, { player, horse, pucci, symbol
   seq.place(player, R(66, -1.2, 0), Math.PI);
   // mysterious figure on the hotel balcony
   const balc = pucci.pos.clone();
-  seq.cut(R(56, 2, 1.4), balc.clone().add(V(0, 1.6, 0)), 30);
+  seq.shot({ from: R(-30, 3, 1.3), to: R(-36, 2.5, 1.5), look: balc.clone().add(V(0, 1.5, 0)), dur: 2.6, fov: 34 });
   pucci.override = (t) => Poses.crossArms(t);
   await seq.wait(1.2);
   seq.lightning(balc.clone().add(V(-120, 0, -150)), true);
