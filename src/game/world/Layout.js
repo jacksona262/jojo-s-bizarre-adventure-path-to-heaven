@@ -6,47 +6,47 @@ export const SPACING = 1400;
 export const REGIONS = [
   {
     id: 'ebon', name: 'Ebon Crossing', z: 0, base: 2, corridor: 170, wall: 70, hills: 6,
-    ground: [0.16, 0.13, 0.1], ground2: [0.11, 0.1, 0.08], rock: [0.28, 0.25, 0.22], trees: 0.15, pines: 0.2, dead: 0.6, rocks: 0.4, grass: 0.5,
+    ground: [0.16, 0.13, 0.1], ground2: [0.11, 0.1, 0.08], rock: [0.28, 0.25, 0.22], trees: 0.15, pines: 0.2, dead: 0.6, rocks: 0.4, grass: 0.5, cactus: 0, reeds: 0, graves: 0.25, crystals: 0,
     blurb: 'An abandoned frontier town. Lanterns still burn in empty windows.',
   },
   {
     id: 'ember', name: 'Ember Flats', z: -SPACING, base: 6, corridor: 320, wall: 90, hills: 9,
-    ground: [0.2, 0.15, 0.09], ground2: [0.14, 0.12, 0.07], rock: [0.32, 0.26, 0.2], trees: 0.1, pines: 0.05, dead: 1, rocks: 0.6, grass: 1,
+    ground: [0.2, 0.15, 0.09], ground2: [0.14, 0.12, 0.07], rock: [0.32, 0.26, 0.2], trees: 0.1, pines: 0.05, dead: 1, rocks: 0.6, grass: 1, cactus: 0.9, reeds: 0, graves: 0.1, crystals: 0,
     blurb: 'Open storm plains, burnt camps and a telegraph line running north.',
   },
   {
     id: 'redstone', name: 'Redstone Pass', z: -SPACING * 2, base: 14, corridor: 48, wall: 95, hills: 4,
-    ground: [0.24, 0.12, 0.08], ground2: [0.18, 0.09, 0.06], rock: [0.42, 0.18, 0.11], trees: 0.05, pines: 0.1, dead: 0.3, rocks: 1.2, grass: 0.2,
+    ground: [0.24, 0.12, 0.08], ground2: [0.18, 0.09, 0.06], rock: [0.42, 0.18, 0.11], trees: 0.05, pines: 0.1, dead: 0.3, rocks: 1.2, grass: 0.2, cactus: 0.7, reeds: 0, graves: 0.05, crystals: 0,
     blurb: 'Red canyon walls and trestle bridges over black gulches.',
   },
   {
     id: 'hollow', name: 'Hollow Pines', z: -SPACING * 3, base: 34, corridor: 140, wall: 80, hills: 14,
-    ground: [0.07, 0.1, 0.07], ground2: [0.1, 0.09, 0.06], rock: [0.25, 0.26, 0.24], trees: 1, pines: 1.6, dead: 0.2, rocks: 0.5, grass: 0.8,
+    ground: [0.07, 0.1, 0.07], ground2: [0.1, 0.09, 0.06], rock: [0.25, 0.26, 0.24], trees: 1, pines: 1.6, dead: 0.2, rocks: 0.5, grass: 0.8, cactus: 0, reeds: 0.2, graves: 0.35, crystals: 0,
     blurb: 'Moonlit pine forest wrapped in fog, cabins along a narrow trail.',
   },
   {
     id: 'iron', name: 'Iron Vale', z: -SPACING * 4, base: 52, corridor: 150, wall: 110, hills: 8,
-    ground: [0.12, 0.11, 0.1], ground2: [0.09, 0.08, 0.08], rock: [0.3, 0.29, 0.28], trees: 0.3, pines: 0.5, dead: 0.4, rocks: 1, grass: 0.4,
+    ground: [0.12, 0.11, 0.1], ground2: [0.09, 0.08, 0.08], rock: [0.3, 0.29, 0.28], trees: 0.3, pines: 0.5, dead: 0.4, rocks: 1, grass: 0.4, cactus: 0, reeds: 0, graves: 0.1, crystals: 0,
     blurb: 'A mining settlement of rail spurs, warehouses and tunnel mouths.',
   },
   {
     id: 'gravewater', name: 'Gravewater Marsh', z: -SPACING * 5, base: 30, corridor: 360, wall: 60, hills: 3, water: 31.2,
-    ground: [0.09, 0.1, 0.07], ground2: [0.08, 0.07, 0.05], rock: [0.22, 0.24, 0.2], trees: 0.4, pines: 0.15, dead: 1.4, rocks: 0.3, grass: 1.2,
+    ground: [0.09, 0.1, 0.07], ground2: [0.08, 0.07, 0.05], rock: [0.22, 0.24, 0.2], trees: 0.4, pines: 0.15, dead: 1.4, rocks: 0.3, grass: 1.2, cactus: 0, reeds: 1.4, graves: 0.5, crystals: 0,
     blurb: 'Flooded lowlands crossed by rotting boardwalks.',
   },
   {
     id: 'bleak', name: 'Bleakwater Ridge', z: -SPACING * 6, base: 92, corridor: 90, wall: 150, hills: 18,
-    ground: [0.13, 0.13, 0.13], ground2: [0.2, 0.2, 0.21], rock: [0.34, 0.34, 0.36], trees: 0.15, pines: 0.4, dead: 0.3, rocks: 1.3, grass: 0.3,
+    ground: [0.13, 0.13, 0.13], ground2: [0.2, 0.2, 0.21], rock: [0.34, 0.34, 0.36], trees: 0.15, pines: 0.4, dead: 0.3, rocks: 1.3, grass: 0.3, cactus: 0, reeds: 0, graves: 0.3, crystals: 0.1,
     blurb: 'Mountain switchbacks, ruined waystations and vast overlooks.',
   },
   {
     id: 'rift', name: 'The Rift Expanse', z: -SPACING * 7, base: 128, corridor: 220, wall: 120, hills: 12,
-    ground: [0.12, 0.1, 0.14], ground2: [0.16, 0.13, 0.18], rock: [0.3, 0.26, 0.34], trees: 0.05, pines: 0.1, dead: 0.5, rocks: 1.1, grass: 0.2,
+    ground: [0.12, 0.1, 0.14], ground2: [0.16, 0.13, 0.18], rock: [0.3, 0.26, 0.34], trees: 0.05, pines: 0.1, dead: 0.5, rocks: 1.1, grass: 0.2, cactus: 0, reeds: 0, graves: 0.1, crystals: 1,
     blurb: 'Ancient ruins where different timelines appear to overlap.',
   },
   {
     id: 'heaven', name: "Heaven's Reach", z: -SPACING * 8, base: 170, corridor: 130, wall: 200, hills: 10,
-    ground: [0.2, 0.2, 0.21], ground2: [0.26, 0.26, 0.28], rock: [0.42, 0.42, 0.44], trees: 0.02, pines: 0.15, dead: 0.1, rocks: 0.8, grass: 0.15,
+    ground: [0.2, 0.2, 0.21], ground2: [0.26, 0.26, 0.28], rock: [0.42, 0.42, 0.44], trees: 0.02, pines: 0.15, dead: 0.1, rocks: 0.8, grass: 0.15, cactus: 0, reeds: 0, graves: 0, crystals: 0.8,
     blurb: 'The gothic sanctuary above the storm, where the second Arrow waits.',
   },
 ];
