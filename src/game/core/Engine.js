@@ -142,8 +142,9 @@ const FinalShader = {
 export const QUALITY = {
   low: { pixelRatio: 0.75, shadows: 1024, bloom: false, maxLights: 4, drawDistance: 260, grass: 0.35, trees: 0.5 },
   medium: { pixelRatio: 1.0, shadows: 1536, bloom: true, maxLights: 6, drawDistance: 340, grass: 0.6, trees: 0.75 },
-  high: { pixelRatio: 1.25, shadows: 2048, bloom: true, maxLights: 8, drawDistance: 430, grass: 1.0, trees: 1.0 },
-  ultra: { pixelRatio: 2.0, shadows: 4096, bloom: true, maxLights: 10, drawDistance: 520, grass: 1.3, trees: 1.2 },
+  // maxLights is the fixed size of the street-lamp light pool (always present in every lit shader)
+  high: { pixelRatio: 1.25, shadows: 2048, bloom: true, maxLights: 6, drawDistance: 430, grass: 1.0, trees: 1.0 },
+  ultra: { pixelRatio: 2.0, shadows: 4096, bloom: true, maxLights: 8, drawDistance: 520, grass: 1.3, trees: 1.2 },
 };
 
 export class Engine {
