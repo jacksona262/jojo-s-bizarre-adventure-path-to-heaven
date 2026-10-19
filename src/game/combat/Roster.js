@@ -7,6 +7,7 @@ import { CrazyDiamondKit, KillerQueenKit } from './kits/Diamond';
 import { KingCrimsonKit, GoldExperienceKit } from './kits/Golden';
 import { D4CKit, CMoonKit } from './kits/SBR';
 import { EmperorKit, CreamKit, GebKit, BastetKit } from './kits/Support';
+import { SIGNATURE } from '../anim/Poses';
 
 // Every playable/boss fighter. hp: campaign boss HP; vhp: Versus HP.
 export const ROSTER = {
@@ -35,6 +36,8 @@ export async function createFighter(game, key, { team = 1, versus = false, hp = 
   const f = new Character(game, { id: key + (team === 0 ? '_p' : '_e'), partKey: r.part, name: r.name, team, hp: hp ?? (versus ? r.vhp : r.hp), power: r.power, speed: r.speed, style: r.style || 'neutral', energy: 100 });
   f.rosterKey = key;
   f.roster = r;
+  // signature body language (DIO keeps his own 'dio' idle style)
+  if (SIGNATURE[key]) f.idlePose = SIGNATURE[key];
   await f.load();
   if (r.stand) {
     const s = new Stand(game, f, { partKey: r.stand, name: r.standName, aura: r.aura, tint: r.standTint || null });
