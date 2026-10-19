@@ -281,7 +281,8 @@ export async function heavenCinematic(game, seq, { player, jotaro, altar, arrowM
   // the camera circles as the storm builds
   const c = player.pos.clone().add(V(0, 1.5, 0));
   const path = [];
-  for (let i = 0; i <= 8; i += 1) { const a = i / 8 * Math.PI * 2; path.push(c.clone().add(V(Math.cos(a) * 4.5, 0.6 + Math.sin(a * 2) * 0.4, Math.sin(a) * 4.5))); }
+  // sweep around the open (south) side of the altar so the camera never enters the stonework
+  for (let i = 0; i <= 8; i += 1) { const a = (0.12 + (i / 8) * 0.76) * Math.PI; path.push(c.clone().add(V(Math.cos(a) * 6.5, 0.4 + i * 0.25, Math.sin(a) * 6.5))); }
   seq.shot({ path: new THREE.CatmullRomCurve3(path), look: c, dur: 7, fov: 42, ease: 'linear' });
   for (let i = 0; i < 4; i += 1) { seq.lightning(c.clone().add(V((Math.random() - 0.5) * 120, -2, -60 - Math.random() * 80)), true); await seq.wait(0.6); }
   player.override = (t) => Poses.raiseArms(Math.min(1, t));
@@ -310,9 +311,12 @@ export async function heavenCinematic(game, seq, { player, jotaro, altar, arrowM
   audio.setFrozen(false);
   game.engine.scene.remove(arrowLight);
   const hp = game.player;
+  hp.faceTowards(jotaro.pos, true);
+  hp.group.rotation.y = hp.yaw;
   hp.stand.summon(true);
   game.vfx.aura(hp.chestWorld(new THREE.Vector3()), 0xfff2c8, 2.5, true);
-  seq.shot({ from: hp.pos.clone().add(V(-1.4, 0.6, 3.6)), to: hp.pos.clone().add(V(-0.8, 1.2, 2.6)), look: hp.chestWorld(new THREE.Vector3()).add(V(0, 0.4, 0)), dur: 4, fov: 36 });
+  const cu = closeUp(hp, jotaro, 1, 3.2);
+  seq.shot({ from: cu.pos.clone().add(V(0, -0.5, 0)), to: cu.pos, look: cu.look, dur: 4, fov: 38 });
   hp.override = (t) => Poses.dioPose(t);
   await sayLines(seq, HEAVEN_SCENE.slice(3));
   hp.override = null;
