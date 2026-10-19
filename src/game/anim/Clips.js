@@ -180,19 +180,24 @@ export const death = clip({ name: 'death', dur: 1.4, keys: [[0, P.rest()], [0.35
 // ------------------------------------------------------------------ dialogue gestures (upper body)
 // Played over the speaker's own idle/signature stance. Each rises, holds and settles.
 const R0 = P.rest();
-const gest = (name, peak, dur = 2.2) => clip({ name, dur, upper: true, keys: [[0, R0], [0.22, peak, 'out'], [0.72, peak], [1, R0, 'inout']] });
-const gPoint = pose(P.rest(), { uaR: [-0.3, 0.02, 1], faR: [-0.08, 0.08, 1], handR: [-0.2, 0, 0], chest: [-0.05, 0.15, 0] });
-const gHandFace = pose(P.rest(), { uaR: [-0.5, 0.25, 0.82], faR: [0.62, 0.72, -0.3], handR: [0.2, 0.5, 0.4], chest: [-0.1, 0.1, 0.04], head: [-0.06, -0.1, 0.06] });
-const gSpread = pose(P.rest(), { uaL: [0.85, -0.1, 0.5], faL: [0.7, 0.2, 0.6], uaR: [-0.85, -0.1, 0.5], faR: [-0.7, 0.2, 0.6], handL: [0, 0, -0.5], handR: [0, 0, 0.5], chest: [-0.16, 0, 0], head: [-0.14, 0, 0] });
-const gDismiss = pose(P.rest(), { uaR: [-0.7, -0.4, 0.5], faR: [-0.85, 0.3, 0.35], handR: [0, 0.6, 0.6], chest: [-0.05, -0.2, 0], head: [-0.08, 0.15, 0] });
-const gFinger = pose(P.rest(), { uaR: [-0.4, -0.1, 0.9], faR: [-0.05, 0.95, 0.3], handR: [-0.3, 0, 0], chest: [-0.06, 0.1, 0] });
-const gHat = pose(P.rest(), { uaR: [-0.45, 0.5, 0.75], faR: [0.35, 0.65, -0.65], head: [0.12, 0, 0] });
-const gFist = pose(P.rest(), { uaR: [-0.3, -0.5, 0.8], faR: [-0.05, 0.75, 0.65], handR: [-0.4, 0, 0], chest: [0.06, 0.12, 0], head: [0.04, -0.1, 0] });
-const gShrug = pose(P.rest(), { uaL: [0.55, -0.75, 0.3], faL: [0.6, 0.2, 0.75], uaR: [-0.55, -0.75, 0.3], faR: [-0.6, 0.2, 0.75], clavL: [0, 0, -0.18], clavR: [0, 0, 0.18], head: [0, 0, 0.12] });
-const gHeart = pose(P.rest(), { uaR: [-0.3, -0.65, 0.6], faR: [0.82, 0.4, 0.3], chest: [-0.12, 0, 0], head: [-0.1, 0, 0] });
-const gPray = pose(P.rest(), { uaL: [0.3, -0.75, 0.5], faL: [-0.55, 0.45, 0.65], uaR: [-0.3, -0.75, 0.5], faR: [0.55, 0.47, 0.65], head: [0.2, 0, 0] });
-const gCollar = pose(P.rest(), { uaL: [0.4, -0.55, 0.55], faL: [-0.45, 0.8, 0.3], uaR: [-0.4, -0.55, 0.55], faR: [0.45, 0.8, 0.3], head: [-0.08, 0, 0] });
-const gReach = pose(P.rest(), { uaL: [0.4, -0.25, 0.9], faL: [0.15, 0.05, 1], handL: [0.5, 0, 0], chest: [0.04, -0.18, 0] });
+// keep the joints each gesture defines, so it can be layered over any stance (only those blend)
+let lastOverrides = null;
+const pose2 = (o) => { lastOverrides = Object.keys(o); return pose(P.rest(), o); };
+const gest = (name, peak, dur = 2.2) => clip({ name, dur, upper: true, peak, joints: GJ.get(peak) || [], keys: [[0, R0], [0.22, peak, 'out'], [0.72, peak], [1, R0, 'inout']] });
+const GJ = new Map();
+const gp = (o) => { const p = pose2(o); GJ.set(p, lastOverrides); return p; };
+const gPoint = gp({ uaR: [-0.3, 0.02, 1], faR: [-0.08, 0.08, 1], handR: [-0.2, 0, 0], chest: [-0.05, 0.15, 0] });
+const gHandFace = gp({ uaR: [-0.5, 0.25, 0.82], faR: [0.62, 0.72, -0.3], handR: [0.2, 0.5, 0.4], chest: [-0.1, 0.1, 0.04], head: [-0.06, -0.1, 0.06] });
+const gSpread = gp({ uaL: [0.85, -0.1, 0.5], faL: [0.7, 0.2, 0.6], uaR: [-0.85, -0.1, 0.5], faR: [-0.7, 0.2, 0.6], handL: [0, 0, -0.5], handR: [0, 0, 0.5], chest: [-0.16, 0, 0], head: [-0.14, 0, 0] });
+const gDismiss = gp({ uaR: [-0.7, -0.4, 0.5], faR: [-0.85, 0.3, 0.35], handR: [0, 0.6, 0.6], chest: [-0.05, -0.2, 0], head: [-0.08, 0.15, 0] });
+const gFinger = gp({ uaR: [-0.4, -0.1, 0.9], faR: [-0.05, 0.95, 0.3], handR: [-0.3, 0, 0], chest: [-0.06, 0.1, 0] });
+const gHat = gp({ uaR: [-0.45, 0.5, 0.75], faR: [0.35, 0.65, -0.65], head: [0.12, 0, 0] });
+const gFist = gp({ uaR: [-0.3, -0.5, 0.8], faR: [-0.05, 0.75, 0.65], handR: [-0.4, 0, 0], chest: [0.06, 0.12, 0], head: [0.04, -0.1, 0] });
+const gShrug = gp({ uaL: [0.55, -0.75, 0.3], faL: [0.6, 0.2, 0.75], uaR: [-0.55, -0.75, 0.3], faR: [-0.6, 0.2, 0.75], clavL: [0, 0, -0.18], clavR: [0, 0, 0.18], head: [0, 0, 0.12] });
+const gHeart = gp({ uaR: [-0.3, -0.65, 0.6], faR: [0.82, 0.4, 0.3], chest: [-0.12, 0, 0], head: [-0.1, 0, 0] });
+const gPray = gp({ uaL: [0.3, -0.75, 0.5], faL: [-0.55, 0.45, 0.65], uaR: [-0.3, -0.75, 0.5], faR: [0.55, 0.47, 0.65], head: [0.2, 0, 0] });
+const gCollar = gp({ uaL: [0.4, -0.55, 0.55], faL: [-0.45, 0.8, 0.3], uaR: [-0.4, -0.55, 0.55], faR: [0.45, 0.8, 0.3], head: [-0.08, 0, 0] });
+const gReach = gp({ uaL: [0.4, -0.25, 0.9], faL: [0.15, 0.05, 1], handL: [0.5, 0, 0], chest: [0.04, -0.18, 0] });
 export const GESTURES = {
   point: gest('point', gPoint), handToFace: gest('handToFace', gHandFace, 2.6), spread: gest('spread', gSpread, 2.4), dismiss: gest('dismiss', gDismiss, 1.8),
   finger: gest('finger', gFinger), hatTip: gest('hatTip', gHat, 1.8), fist: gest('fist', gFist), shrug: gest('shrug', gShrug, 1.8), heart: gest('heart', gHeart, 2.6),
@@ -207,4 +212,4 @@ export const GESTURE_SETS = {
   vanillaIce: ['fist'], enya: ['reach', 'point'], default: ['reach', 'point', 'shrug'],
 };
 
-export const ALL = { jabL, jabR, hookL, uppercutR, heavyR, kickR, knockback, rushFinish, timeStop, command, sweep, dioTaunt, staggerBack, guardImpact, guardBreak, knockdownBack, getUpBack, knockdownFront, getUpFront, death };
+export const ALL = { jabL, jabR, hookL, uppercutR, heavyR, kickR, knockback, rushFinish, timeStop, command, sweep, dioTaunt, staggerBack, guardImpact, guardBreak, knockdownBack, getUpBack, knockdownFront, getUpFront, death, ...GESTURES };
