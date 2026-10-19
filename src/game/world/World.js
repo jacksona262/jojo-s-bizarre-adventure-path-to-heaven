@@ -12,6 +12,7 @@ const CHUNK = 96;
 const RES = 40;
 const RADIUS = 3; // chunks each side
 const CELL = 16;
+const _occP = new THREE.Vector3();
 
 function terrainMaterial(far = false) {
   const t = getTextures();
