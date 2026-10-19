@@ -82,6 +82,7 @@ export class TitleScene {
       { t: 6, pos: P(0.5, 1.9, 2.3), look: P(0, 1.55, -1) },        // pushed in to his back
       { t: 9.5, pos: P(1.6, 1.75, 1.3), look: P(0, 1.65, 0) },       // over the shoulder as he turns
       { t: 11, pos: P(1.9, 1.7, 0.4), look: P(0, 1.7, 0) },          // face, lightning
+      { t: 13.5, pos: P(0.6, 2.4, 3.3), look: P(0, 1.6, -4) },       // drift back behind him
       { t: 17, pos: P(-4.4, 2.3, 2.0), look: P(-30, 6, -400) },      // reveal the valley and the sanctuary
       { t: 22, pos: P(-1.4, 1.0, -2.6), look: P(0, 1.8, 0) },        // low front angle, imposing
       { t: LOOP, pos: P(0.35, 2.1, 3.85), look: P(0, 1.5, -3) },
@@ -122,7 +123,7 @@ export class TitleScene {
     const head = this.rig ? this.rig.jointWorld('head') : this.balcony.clone().add(new THREE.Vector3(0, 1.7, 0));
     this.faceLight.position.copy(head).add(new THREE.Vector3(1.5, 1.2, -2.5));
     this.faceLight.target.position.copy(head);
-    this.faceLight.intensity = g.weather.flash * 220 + 6;
+    this.faceLight.intensity = g.weather.flash * 70 + 5;
 
     // The World behind him when Versus is hovered
     if (this.stand.visible) {
