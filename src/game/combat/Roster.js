@@ -64,7 +64,11 @@ export class BossBrain {
     this.used = {};
     this.enabled = true;
     this.reactCool = 0;
+    this.punishCool = 0;
+    this.guardT = 0;
     this.lastHp = f.hp;
+    // AI perfect counters are rare (a short window), more common on harder phases/difficulty
+    f.counterWindow = 0.04 + 0.02 * difficulty;
   }
 
   get clock() { return this.game.clock; }
@@ -95,22 +99,44 @@ export class BossBrain {
       f.steer(0, 0, dt);
       return;
     }
+    // holding a reactive guard
+    if (this.guardT > 0) {
+      this.guardT -= dt;
+      if (this.guardT <= 0 || f.stun > 0) { this.guardT = 0; this.kit.guard(false); } else { f.faceTowards(t.pos); f.steer(0, 0, dt); return; }
+    }
     if (f.busy()) { if (!f.action?.def.move && !f.action?.def.tick) f.steer(0, 0, dt); return; }
 
-    // reactions: dodge incoming player attacks
+    // reactions to the player's offence (their own strike or their Stand's): dodge or guard
     this.reactCool -= dt;
-    if (t.action && d < 3.5 && this.reactCool <= 0 && !f.rootedUntil) {
-      const name = t.action.def.name;
-      const isAtk = /jab|punch|heavy|kb|rush|thrust|rb|ovr/.test(name);
-      const chance = (0.08 + 0.05 * this.phase) * this.difficulty * (this.style === 'far' ? 1.6 : 1);
-      if (isAtk && Math.random() < chance) {
+    this.punishCool -= dt;
+    const tDef = t.action?.def;
+    const sAct = t.stand?.action; const sDef = sAct?.def;
+    const threat = (tDef && (tDef.clip?.active || /jab|punch|heavy|kb|rush|thrust|rb|ovr|command|knockback/.test(tDef.name)))
+      || (sDef && (sDef.clip?.active || sDef.rush));
+    if (threat && d < 5 && this.reactCool <= 0 && !f.rootedUntil) {
+      const dodgeP = (0.06 + 0.04 * this.phase) * this.difficulty * (this.style === 'far' ? 1.7 : 1);
+      const guardP = ({ close: 0.24, medium: 0.17, skirmish: 0.12, far: 0.06 }[this.style] ?? 0.14) * this.difficulty * (0.75 + 0.15 * this.phase);
+      const r = Math.random();
+      if (r < dodgeP) {
         const side = f.forward().applyAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2).multiplyScalar(Math.random() < 0.5 ? 1 : -1);
         if (this.style === 'far') side.add(f.forward().multiplyScalar(-1));
         this.kit.dodge(side);
         this.reactCool = 1.4 / this.difficulty;
         return;
       }
-      this.reactCool = 0.25;
+      if (r < dodgeP + guardP && !this.kit.rushing) {
+        this.kit.guard(true);
+        this.guardT = 0.45 + Math.random() * 0.4;
+        this.reactCool = 1.1 / this.difficulty;
+        return;
+      }
+      this.reactCool = 0.3;
+    }
+    // punish: the player's Stand (or the player) is stuck in recovery after a whiffed or blocked blow
+    const recovering = (sDef?.clip && sAct.t / sDef.dur > sDef.clip.active[1]) || (tDef?.clip && t.action.t / tDef.dur > tDef.clip.active[1]);
+    if (recovering && d < 4.2 && !(t.invuln > 0.1) && this.punishCool <= 0 && Math.random() < 0.35 * this.difficulty) {
+      this.punishCool = 1.6;
+      if ((this.phase >= 2 && this.kit.heavy()) || this.kit.light()) { this.think = 0.35; return; }
     }
 
     // movement: keep the preferred distance band, strafe inside it
@@ -131,8 +157,18 @@ export class BossBrain {
     // decide
     this.think -= dt;
     if (this.think > 0) return;
-    this.think = (0.9 - this.phase * 0.12) / (0.6 + this.difficulty * 0.4) * (0.7 + Math.random() * 0.6);
-    const opts = this.kit.abilities.filter((a) => (a.phase || 1) <= this.phase && d >= a.min && d <= a.max && (this.used[a.name] || 0) <= this.clock && !(f.overwritten && a.name !== 'light'));
+    // don't waste blows on a target that is rising from the ground (invulnerable)
+    if (t.invuln > 0.15) { this.think = 0.15; return; }
+    // keep a string going while the target is reeling
+    const chaining = t.stun > 0 && this.kit.lastAttackT > this.clock - 0.6;
+    this.think = chaining ? 0.16 : (0.9 - this.phase * 0.12) / (0.6 + this.difficulty * 0.4) * (0.7 + Math.random() * 0.6);
+    // Stand users strike from further away now that their Stand lunges to the target
+    const lunge = f.stand ? 1.4 : 0;
+    const opts = this.kit.abilities.filter((a) => {
+      const max = a.max + (/^(light|heavy|knock|kb|rush)$/.test(a.name) ? lunge : 0);
+      return (a.phase || 1) <= this.phase && d >= a.min && d <= max && (this.used[a.name] || 0) <= this.clock && !(f.overwritten && a.name !== 'light')
+        && (!chaining || a.name === 'light' || a.name === 'heavy');
+    });
     if (!opts.length) return;
     let total = 0;
     for (const a of opts) total += a.weight;
