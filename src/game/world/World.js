@@ -28,11 +28,11 @@ function terrainMaterial(far = false) {
         ${far ? 'if (distance(vWPos.xz, uCenter) < uRadius) discard;' : ''}
         float dA = texture2D(uGround, vWPos.xz * 0.21).r;
         float dB = texture2D(uGround, vWPos.xz * 0.033 + 0.37).r;
-        diffuseColor.rgb *= 0.62 + dA * 0.55 + (dB - 0.5) * 0.35;
+        diffuseColor.rgb *= (0.62 + dA * 0.55 + (dB - 0.5) * 0.35) * 0.55;
         float puddle = smoothstep(0.56, 0.6, texture2D(uGround, vWPos.xz * 0.045).r) * vWet;
         diffuseColor.rgb *= 1.0 - puddle * 0.45 - vWet * 0.18;`)
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
-        roughnessFactor = mix(roughnessFactor, 0.32, vWet * 0.8);
+        roughnessFactor = mix(roughnessFactor, 0.5, vWet * 0.7);
         roughnessFactor = mix(roughnessFactor, 0.04, puddle);`);
   };
   m.customProgramCacheKey = () => (far ? 'terrainFar' : 'terrain');
