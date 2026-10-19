@@ -30,7 +30,7 @@ export function teleport(g, x, z, y = null) {
   pl.pos.set(x, gy + 0.05, z);
   pl.vel.set(0, 0, 0);
   if (pl.stand) pl.stand._placeAtAnchor?.(true);
-  g.camera.snap?.();
+  g.camera.setTarget(pl, true);
   return true;
 }
 
