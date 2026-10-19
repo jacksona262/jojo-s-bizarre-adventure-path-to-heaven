@@ -410,7 +410,7 @@ function gravewater(ctx) {
   const nodes = [P(5, 0), P(25, 0), P(25, 20), P(45, 20), P(45, -10), P(70, -10), P(70, 18), P(95, 18), P(25, -25), P(55, -35)];
   const links = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [1, 8], [8, 9], [9, 5]];
   for (const [i, j] of links) walk(nodes[i].x, nodes[i].z, nodes[j].x, nodes[j].z);
-  ctx.world.gebNodes = nodes.map((n) => ({ ...n, y: wl + 0.54 }));
+  ctx.world.gebNodes = nodes.map((n) => new THREE.Vector3(n.x, wl + 0.54, n.z));
   for (const n of [nodes[3], nodes[5], nodes[7]]) lampPost(b, new Frame(n.x, wl + 0.5, n.z, 0), 0.6, 0.6);
   // Verdant estate (Giorno): greenhouse + overgrown terrace
   const vf = ctx.frame(-320, 70, 'road');
