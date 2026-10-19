@@ -680,13 +680,13 @@ async function q9(c) {
         c.addClue('The truth: the journal, the symbol and the voice were all DIO, from after.');
         await talk(c, enya, Q.bridge);
         state = 'cross';
-        collapseT = 0;
+        collapseT = -2.5;
         c.objective(Q.title, 'Cross the collapsing bridge. Stop time if you must.', northEdge);
       }
       if (state === 'cross') {
         // planks give way from the south end, accelerating
         if (!g.time.stopped) collapseT += dt;
-        const front = Math.floor(collapseT * 1.15);
+        const front = Math.floor(collapseT * 1.0);
         planks.forEach((p, i) => {
           if (i < front && p.fall < 0) { p.fall = 0; g.world.removePlatform(p.pl); audio.play('heavyHit', { power: 0.3 }); }
           if (p.fall >= 0 && !g.time.stopped) { p.vy -= 20 * dt; p.m.position.y += p.vy * dt; p.m.rotation.x += dt * 0.8; p.fall += dt; }
@@ -696,7 +696,7 @@ async function q9(c) {
           g.combat.applyHit(pl, sw, { damage: 18, stun: 0.3, kind: 'special', unblockable: true, noCounter: true });
           // rebuild the bridge for another attempt
           planks.forEach((p) => { if (p.fall >= 0) { p.fall = -1; p.vy = 0; p.m.position.y = ch.y - 0.15; p.m.rotation.x = 0; p.pl = g.world.addPlatform({ x: ch.x, z: p.z, hw: 2, hd: 2.1, rot: 0, y: ch.y - 0.02 }); } });
-          collapseT = -1.5;
+          collapseT = -2.5;
           toast('The bridge knits itself back together. Again.');
         }
         if (pl.pos.z < northEdge.z + 2) {
