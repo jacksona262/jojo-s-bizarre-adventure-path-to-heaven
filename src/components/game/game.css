@@ -46,6 +46,58 @@
 .pth-bar.en > i { background: linear-gradient(180deg, #ffe58a, #e6a91a 60%, #7a4c06); }
 .pth-bar.st { height: 5px; } .pth-bar.st > i { background: linear-gradient(180deg, #d8f0ff, #6aa0c8); }
 .pth-ts { position: absolute; left: 340px; bottom: 6px; width: 74px; height: 74px; }
+
+/* ---------- fighting-game HUD ---------- */
+.pth-fg { position: absolute; top: 18px; width: min(44vw, 540px); pointer-events: none; }
+.pth-fg-p1 { left: 22px; }
+.pth-fg-p2 { right: 22px; }
+.pth-fg-head { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+.pth-fg-head.mirror { flex-direction: row-reverse; text-align: right; }
+.pth-fg-emblem { width: 46px; height: 46px; flex: none; transform: rotate(45deg); border: 2px solid #d8b45a; background: radial-gradient(circle at 50% 40%, rgba(60,40,10,0.95), rgba(6,4,2,0.95)); box-shadow: 0 0 14px rgba(216,180,90,0.35), inset 0 0 10px rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; }
+.pth-fg-emblem > span { transform: rotate(-45deg); font-family: 'Cinzel Decorative','Cinzel', serif; font-weight: 900; font-size: 22px; color: #ffd34d; text-shadow: 0 0 10px rgba(255,200,80,0.6); }
+.pth-fg-emblem.heaven { border-color: #fff2c8; box-shadow: 0 0 18px rgba(255,242,200,0.6); }
+.pth-fg-emblem.heaven > span { color: #fff2c8; }
+.pth-fg-names { min-width: 0; }
+.pth-fg-name { font-family: 'Cinzel', serif; font-weight: 900; letter-spacing: 0.24em; font-size: clamp(14px, 1.35vw, 19px); text-shadow: 0 2px 8px #000, 0 0 2px #000; white-space: nowrap; }
+.pth-fg-stand { font-family: 'Cinzel', serif; letter-spacing: 0.22em; font-size: 10px; color: rgba(239,228,204,0.72); text-shadow: 0 1px 4px #000; white-space: nowrap; }
+.pth-fg-standon { margin-left: 10px; color: rgba(239,228,204,0.4); }
+.pth-fg-standon.on { color: #ffd34d; text-shadow: 0 0 8px rgba(255,211,77,0.7); }
+.pth-fg .pth-ts { position: relative; left: auto; bottom: auto; margin-left: auto; width: 62px; height: 62px; flex: none; }
+.pth-fg .pth-ts svg { width: 62px; height: 62px; }
+.pth-fgbar { position: relative; height: 18px; margin-top: 4px; transform: skewX(-22deg); background: linear-gradient(180deg, rgba(10,6,4,0.85), rgba(30,18,10,0.85)); border: 2px solid #c9a227; box-shadow: 0 0 0 1px rgba(0,0,0,0.85), 0 3px 10px rgba(0,0,0,0.6), inset 0 0 6px rgba(0,0,0,0.9); overflow: hidden; }
+.pth-fgbar > i, .pth-fgbar > b { position: absolute; left: 0; top: 0; bottom: 0; }
+.pth-fgbar.mirror > i, .pth-fgbar.mirror > b { left: auto; right: 0; }
+.pth-fgbar > i { transition: width .14s ease-out; }
+.pth-fgbar > b { background: linear-gradient(180deg, #fff6e0, #f0c060); opacity: 0.85; transition: width .8s ease .35s; }
+.pth-fgbar > s { position: absolute; inset: 0; text-decoration: none; }
+.pth-fgbar > s > u { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(0,0,0,0.55); }
+.pth-fgbar.hp > i { background: linear-gradient(180deg, #ffe08a 0%, #f2b33a 18%, #d0451f 55%, #7a0c10 100%); box-shadow: inset 0 2px 0 rgba(255,255,255,0.35); }
+.pth-fgbar.hp.low > i { animation: pthLow 0.7s ease-in-out infinite alternate; }
+.pth-fgbar.boss > i { background: linear-gradient(180deg, #f2e2ff 0%, #b98cff 20%, #6a2fc8 60%, #240a50 100%); box-shadow: inset 0 2px 0 rgba(255,255,255,0.35); }
+.pth-fgbar.en { height: 9px; border-width: 1px; width: 82%; }
+.pth-fgbar.en.mirror { margin-left: auto; }
+.pth-fgbar.en > i { background: linear-gradient(180deg, #fff2b0, #e6a91a 60%, #7a4c06); }
+.pth-fgbar.st { height: 4px; border-width: 1px; width: 62%; border-color: rgba(201,162,39,0.6); }
+.pth-fgbar.st > i { background: linear-gradient(180deg, #e2f4ff, #6aa0c8); }
+.pth-fgbar.st > b { display: none; }
+@keyframes pthLow { from { filter: brightness(1); } to { filter: brightness(1.6) saturate(1.3); } }
+.pth-fg-horse { margin-top: 8px; font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 0.2em; color: #e8d6a8; text-shadow: 0 1px 4px #000; }
+.pth-fg-vs, .pth-fg-timer { position: absolute; top: 26px; left: 50%; transform: translateX(-50%); font-family: 'Cinzel Decorative','Cinzel', serif; font-weight: 900; color: #fff1cc; text-shadow: 0 0 14px rgba(241,200,98,0.6), 0 2px 8px #000; }
+.pth-fg-vs { font-size: 22px; letter-spacing: 0.1em; opacity: 0.85; }
+.pth-fg-timer { font-size: 34px; padding: 2px 14px; border: 2px solid #c9a227; background: rgba(8,5,3,0.75); clip-path: polygon(12% 0, 88% 0, 100% 50%, 88% 100%, 12% 100%, 0 50%); }
+.pth-pips.mirror { justify-content: flex-end; }
+.pth-fg-wins { margin-top: 4px; font-size: 15px; letter-spacing: 0.3em; color: rgba(241,200,98,0.25); }
+.pth-fg-wins.mirror { text-align: right; }
+.pth-fg-wins .on { color: #f1c862; text-shadow: 0 0 8px #f1c862; }
+.pth-combo { position: absolute; right: 7vw; top: 34%; text-align: right; animation: pthCombo 0.18s ease-out; pointer-events: none; }
+.pth-combo-n { font-family: 'Cinzel Decorative','Cinzel', serif; font-weight: 900; font-size: clamp(44px, 5vw, 76px); line-height: 0.9; background: linear-gradient(180deg, #fff7d8, #ffd34d 45%, #b06a10); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 3px 0 #000) drop-shadow(0 0 12px rgba(255,190,60,0.5)); }
+.pth-combo-label { font-family: 'Cinzel', serif; font-weight: 900; letter-spacing: 0.4em; font-size: 15px; color: #fff1cc; text-shadow: 0 2px 6px #000; }
+.pth-combo-dmg { font-family: 'Cinzel', serif; letter-spacing: 0.24em; font-size: 11px; color: rgba(239,228,204,0.7); text-shadow: 0 1px 4px #000; }
+@keyframes pthCombo { from { transform: scale(1.35); opacity: 0.5; } to { transform: scale(1); opacity: 1; } }
+.pth-lock { position: absolute; left: 0; top: 0; pointer-events: none; opacity: 0; transition: opacity .15s; will-change: transform; }
+.pth-lock > span { display: block; color: #ffd34d; font-size: 20px; text-shadow: 0 0 8px #ffb020, 0 0 2px #000; animation: pthLockSpin 2.4s linear infinite; }
+@keyframes pthLockSpin { 0% { transform: scale(1) rotate(0deg); } 50% { transform: scale(1.25) rotate(180deg); } 100% { transform: scale(1) rotate(360deg); } }
+@media (max-width: 720px) { .pth-fg { width: 46vw; } .pth-fg-stand { display: none; } .pth-fg .pth-ts, .pth-fg .pth-ts svg { width: 48px; height: 48px; } .pth-fg-emblem { width: 34px; height: 34px; } }
 .pth-ts-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: 'Cinzel', serif; font-weight: 900; font-size: 10px; letter-spacing: 0.1em; text-align: center; color: #fff1c0; }
 .pth-boss { position: absolute; left: 50%; top: 34px; transform: translateX(-50%); width: min(760px, 70vw); text-align: center; }
 .pth-boss-name { font-family: 'Cinzel', serif; font-weight: 900; letter-spacing: 0.3em; font-size: 17px; text-shadow: 0 2px 10px #000; }
