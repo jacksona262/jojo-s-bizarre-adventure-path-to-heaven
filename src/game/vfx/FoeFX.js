@@ -59,17 +59,16 @@ export function installFoeFX(game) {
     }
     const heavy = kind === 'heavy' || dmg >= 12;
     const power = Math.min(2.2, 0.6 + dmg / 12);
-    // core + colour halo
-    vfx.hitSpark(p, 0xffffff, 0.8 + power * 0.5, 0.11);
-    vfx.hitSpark(_b.copy(p).addScaledVector(_d, -0.15), c, 1.1 + power * 0.6, 0.16);
+    // a colour halo just behind the hit's own flash (the strike already draws its core spark)
+    vfx.hitSpark(_b.copy(p).addScaledVector(_d, 0.25), c, 0.55 + power * 0.3, 0.13);
     // sparks blown out the far side of the target
     vfx.sparkBurst(p, c, Math.round(8 + power * 8), 8 + power * 3, _d, true);
-    vfx.burst(p, c, Math.round(4 + power * 4), 3 + power, 0.26, 0.35, { drag: 2.5 });
+    vfx.burst(p, c, Math.round(3 + power * 3), 3 + power, 0.18, 0.35, { drag: 2.5 });
     // dust at the feet
     vfx.smokePuff(_b.copy(tgt.pos).setY(tgt.pos.y + 0.15), 0x5a5048, heavy ? 4 : 2, heavy ? 1.1 : 0.7, 0.8, 0.5);
     light(p, c, heavy ? 2.6 : 1.4, heavy ? 0.22 : 0.14, heavy ? 12 : 8);
     if (heavy) {
-      vfx.ring(p, c, 0.2, 1.4 + power, 0.3, { vertical: true, face: vfx.cameraPos, alpha: 0.85 });
+      vfx.ring(p, c, 0.2, 1.0 + power * 0.7, 0.3, { vertical: true, face: vfx.cameraPos, alpha: 0.6 });
       vfx.ring(_b.copy(tgt.pos).setY(tgt.pos.y + 0.08), c, 0.3, 2.2 + power, 0.45, { alpha: 0.6 });
       if (tgt === game.player || tgt.isPlayer) game.screen?.shockwave(p, 0.45 + power * 0.15, 0.4);
     }
