@@ -241,17 +241,17 @@ export class Kit {
           a.data.aimR = a.data.aimR || new THREE.Vector3();
           const rr = Clips.rushReach(a.t, rate);
           for (const s of ['L', 'R']) {
-            const ext = rr[s] > 0.82;
+            const ext = rr[s] > 0.72;
             if (!ext && a.data[`ext${s}`]) { a.data[`ext${s}`] = false; hits[s].clear(); a.data[`jit${s}`] = null; }
             if (tg && !tg.dead) {
-              if (!a.data[`jit${s}`]) a.data[`jit${s}`] = v3((Math.random() - 0.5) * 0.5, (Math.random() - 0.4) * 0.55, (Math.random() - 0.5) * 0.3);
+              if (!a.data[`jit${s}`]) a.data[`jit${s}`] = v3((Math.random() - 0.5) * 0.34, (Math.random() - 0.35) * 0.4, (Math.random() - 0.5) * 0.2);
               tg.chestWorld(a.data[`aim${s}`]).add(a.data[`jit${s}`]);
             } else self.chestWorld(a.data[`aim${s}`]).addScaledVector(self.forward(), 1.6);
             if (ext) {
               a.data[`ext${s}`] = true;
               const before = hits[s].size;
               a.data.prevLimb = a.data[`prev${s}`] || null;
-              kit._contact(self, `hand${s}`, { damage: 1.5, stun: 0.3, knock: 0.22, kind: 'rush', sfx: 'punch', fxPower: 0.7 }, hits[s], a, { radius: 0.3 });
+              kit._contact(self, `hand${s}`, { damage: 1.5, stun: 0.3, knock: 0.22, kind: 'rush', sfx: 'punch', fxPower: 0.7 }, hits[s], a, { radius: 0.36 });
               a.data[`prev${s}`] = a.data.prevLimb;
               if (hits[s].size === before && Math.random() < 0.35) kit.vfx.fist(kit.limbPoint(self, `hand${s}`, new THREE.Vector3()), self.forward(), kit.color, 0.1, 0.9);
             } else a.data[`prev${s}`] = null;
