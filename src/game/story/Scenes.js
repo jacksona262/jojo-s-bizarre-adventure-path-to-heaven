@@ -222,7 +222,7 @@ export async function journalCinematic(game, seq, { player, journalPos }) {
   {
     const head = player.jointWorld('head', new THREE.Vector3());
     const toDesk = journalPos.clone().sub(player.pos).setY(0).normalize();
-    const page = journalPos.clone().add(V(0, 0.3, 0));
+    const page = journalPos.clone().add(V(0, 0.45, 0));
     const cand = [1, -1].map((s) => {
       const pos = head.clone().addScaledVector(toDesk, -0.8).addScaledVector(V(-toDesk.z, 0, toDesk.x), 0.42 * s).add(V(0, 0.16, 0));
       return { pos, look: page };
