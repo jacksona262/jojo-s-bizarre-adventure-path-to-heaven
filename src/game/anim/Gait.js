@@ -97,7 +97,8 @@ export class Gait {
     const back = max(0, -fwd);
     const lat = abs(side);
     const beta = lerp(0.62, 0.33, runK) - 0.06 * sprintK;
-    let L = min(leg * (0.36 + 0.16 * vn), leg * lerp(0.8, 0.9, runK));
+    // stance travel: a confident walking stride (~0.75 leg) that lengthens with speed
+    let L = min(leg * (0.5 + 0.16 * vn), leg * lerp(0.95, 1.0, runK));
     L *= 1 - 0.28 * back - 0.4 * lat * (1 - back);
     if (ctx.wading) L *= 0.8;
     if (v > 0.03) this.u = (this.u + dt * v * beta / max(0.1, L)) % 1;
@@ -155,8 +156,12 @@ export class Gait {
     }
 
     // ---------------------------------------------------------------- pelvis
-    const crouch = leg * (0.015 + 0.05 * runK + 0.035 * sprintK) * this.moveW + leg * lerp(st.crouch, STANCE.combat.crouch, this.combatW) * (1 - this.moveW * 0.5);
-    let pelvis = this.pelvisY - crouch;
+    const crouch = leg * (0.004 + 0.06 * runK + 0.035 * sprintK) * this.moveW + leg * lerp(st.crouch, STANCE.combat.crouch, this.combatW) * (1 - this.moveW * 0.5);
+    // walking stands tall over the planted leg (the bind pose's soft knees would read as a shuffle);
+    // the per-foot reach clamp below keeps the knee from locking past straight
+    const hipY = (this.hipOff.L.y + this.hipOff.R.y) * 0.5;
+    const tall = max(this.pelvisY, this.ankleH + leg * 0.975 - hipY);
+    let pelvis = lerp(this.pelvisY, tall, this.moveW * (1 - runK)) - crouch;
     const bobAmp = leg * lerp(0.022, 0.034, runK) * this.moveW * min(1, v / 1.4);
     pelvis += lerp(1, -1, runK) * bobAmp * cos(TAU * (2 * this.u - beta));
     pelvis -= this.land * leg * 0.16;
@@ -164,7 +169,7 @@ export class Gait {
     for (const s of ['L', 'R']) {
       const ho = this.hipOff[s];
       const dh = hypot(_foot[s].x - (ho.x + sway), _foot[s].z - ho.z);
-      const maxHip = _foot[s].y + Math.sqrt(max(0, (0.985 * leg) ** 2 - dh * dh));
+      const maxHip = _foot[s].y + Math.sqrt(max(0, (0.99 * leg) ** 2 - dh * dh));
       pelvis = min(pelvis, maxHip - ho.y);
     }
 
@@ -173,7 +178,7 @@ export class Gait {
     const cyc = cos(TAU * this.u);
     const hipsYaw = -0.11 * cyc * fwdAmt * (1 - 0.4 * runK) + fy * 0.5 + (st.hipsYaw || 0) * (1 - this.moveW);
     const accelLean = Math.max(-0.22, Math.min(0.25, (ctx.accel || 0) * 0.022));
-    this.lean += ((0.04 + 0.13 * runK + 0.12 * sprintK) * this.moveW * (1 - back * 0.8) + accelLean - this.lean) * min(1, dt * 8);
+    this.lean += ((0.04 + 0.22 * runK + 0.12 * sprintK) * this.moveW * (1 - back * 0.8) + accelLean - this.lean) * min(1, dt * 8);
     const turnRoll = Math.max(-0.28, Math.min(0.28, -(ctx.yawRate || 0) * v * 0.022)) * this.moveW;
     this.roll += (turnRoll - side * 0.07 * this.moveW - this.roll) * min(1, dt * 7);
     const walkRoll = 0.035 * sin(TAU * this.u) * this.moveW * (1 - runK);
@@ -182,17 +187,21 @@ export class Gait {
     const idle = ctx.idlePose ? ctx.idlePose(ctx.t) : Poses.idle(ctx.t, ctx.style);
     const guard = this._guardPose(ctx.t);
     const upper = this.combatW > 0.01 ? Poses.lerpPose(idle, guard, this.combatW, this._idle) : idle;
-    const armAmp = (0.34 + 0.42 * runK + 0.15 * sprintK) * (0.35 + 0.65 * fwdAmt);
-    const bend = 0.25 + 1.1 * runK;
-    const angL = -armAmp * cyc; const angR = armAmp * cyc;
+    // arms: a loose walking swing whose elbow bends more on the forward swing; running pumps the
+    // bent arms with the swing biased backwards so the fists drive past the hips
+    const armAmp = (0.5 + 0.38 * runK + 0.15 * sprintK) * (0.35 + 0.65 * fwdAmt);
+    const bias = -0.28 * runK * fwdAmt;
+    const bend = 0.2 + 1.25 * runK;
+    const angL = -armAmp * cyc + bias; const angR = armAmp * cyc + bias;
+    const fwdBend = (a) => 0.45 * (1 - runK * 0.6) * max(0, (a - bias) / max(0.01, armAmp));
     const armW = this.moveW * (1 - this.combatW * 0.75);
     // arm swing written into reused arrays (no per-frame garbage)
     const sw = this._sw || (this._sw = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]);
     const swing = (sx, ang, out) => { out[0] = sx; out[1] = -cos(ang); out[2] = sin(ang); return out; };
     p.uaL = lerp3(upper.uaL, swing(0.2 + 0.05 * lat, angL, sw[0]), armW, p.uaL);
-    p.faL = lerp3(upper.faL, swing(0.1, angL + bend, sw[1]), armW, p.faL);
+    p.faL = lerp3(upper.faL, swing(0.1, angL + bend + fwdBend(angL), sw[1]), armW, p.faL);
     p.uaR = lerp3(upper.uaR, swing(-0.2 - 0.05 * lat, angR, sw[2]), armW, p.uaR);
-    p.faR = lerp3(upper.faR, swing(-0.1, angR + bend, sw[3]), armW, p.faR);
+    p.faR = lerp3(upper.faR, swing(-0.1, angR + bend + fwdBend(angR), sw[3]), armW, p.faR);
     if (upper.handL) p.handL = upper.handL; else delete p.handL;
     if (upper.handR) p.handR = upper.handR; else delete p.handR;
     if (upper.clavL) p.clavL = upper.clavL; else delete p.clavL;
