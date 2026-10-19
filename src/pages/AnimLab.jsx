@@ -37,9 +37,12 @@ export default function AnimLab() {
   const [scrub, setScrub] = useState(0);
   const [skel, setSkel] = useState(false);
   const [ik, setIk] = useState(true);
+  const [strip, setStrip] = useState(qs.has('strip'));
+  const [view, setView] = useState(qs.get('view') || 'side');
   const [info, setInfo] = useState('');
   const S = useRef({});
   S.current.anim = anim; S.current.rate = rate; S.current.paused = paused; S.current.scrub = scrub; S.current.terrain = terrain; S.current.ik = ik;
+  S.current.strip = strip; S.current.view = view;
 
   useEffect(() => {
     const el = mountRef.current;
@@ -102,6 +105,46 @@ export default function AnimLab() {
       scene.add(helper);
     }).catch((e) => setInfo(`load error: ${e.message}`));
 
+    const VIEWS = { side: [1, 0.12, 0], front: [0, 0.1, 1], back: [0, 0.15, -1], '3/4': [0.75, 0.25, 0.75] };
+    const stripCam = new THREE.PerspectiveCamera(30, 1, 0.05, 100);
+    const placeCam = (camera, at, h, viewKey) => {
+      const v = VIEWS[viewKey] || VIEWS.side;
+      const dist = h * 2.9;
+      camera.position.set(at.x + v[0] * dist, at.y + h * 0.55 + v[1] * dist, at.z + v[2] * dist);
+      camera.lookAt(at.x, at.y + h * 0.5, at.z);
+    };
+    // Filmstrip: N phases of the current cycle/clip side by side in one frame.
+    const renderStrip = () => {
+      const N = 6;
+      const W = el.clientWidth; const H = el.clientHeight;
+      const name = S.current.anim;
+      const fw = Math.floor(W / N);
+      renderer.setScissorTest(true);
+      renderer.setClearColor(0x24272e);
+      const def = c.action?.def;
+      const baseT = c.action ? c.action.t : 0;
+      for (let i = 0; i < N; i += 1) {
+        if (def) {
+          const dur = def.dur > 50 ? 0.4 : def.dur;
+          c.action.t = (i / (N - 1)) * dur;
+        } else if (LOCO[name]) {
+          c.anim.gait.u = i / N;
+        } else if (c.knockdown > 0 || name.startsWith('knockdown') || name === 'launch') {
+          c.knockdown = 1.75 * (1 - i / (N - 1)) + 0.0001;
+        }
+        c.anim.update(1e-6);
+        c.group.updateMatrixWorld(true);
+        stripCam.aspect = fw / H;
+        stripCam.updateProjectionMatrix();
+        placeCam(stripCam, c.pos, c.height, S.current.view);
+        renderer.setViewport(i * fw, 0, fw, H);
+        renderer.setScissor(i * fw, 0, fw, H);
+        renderer.render(scene, stripCam);
+      }
+      renderer.setScissorTest(false);
+      renderer.setViewport(0, 0, W, H);
+      if (c.action) c.action.t = baseT;
+    };
     const clock = new THREE.Clock();
     let t = 0; let yaw = 0; let animT = 0; let lastAnim = ''; let infoT = 0;
     const tick = () => {
@@ -201,7 +244,12 @@ export default function AnimLab() {
           setInfo(`${c.anim.state} | t=${t01.toFixed(2)}${clip ? ` active ${clip.active[0]}-${clip.active[1]} contact ${clip.contact}` : ''} | speed ${Math.hypot(c.anim.vLocal.x, c.anim.vLocal.z).toFixed(1)} m/s | phase ${c.anim.gait.u.toFixed(2)} | springs ${c.anim.springs.joints.length} | face ${c.anim.face.bones.length}`);
         }
       }
-      controls.update();
+      if (c?.anim && S.current.strip) { renderStrip(); return; }
+      if (c && S.current.view !== 'free') {
+        cam.setViewOffset(el.clientWidth, el.clientHeight, -190, 0, el.clientWidth, el.clientHeight);
+        placeCam(cam, c.pos, c.height, S.current.view);
+        controls.target.set(c.pos.x, c.pos.y + c.height * 0.5, c.pos.z);
+      } else controls.update();
       renderer.render(scene, cam);
     };
     tick();
@@ -237,7 +285,9 @@ export default function AnimLab() {
           <button type="button" style={btn(paused)} onClick={() => setPaused(!paused)}>{paused ? 'paused' : 'pause'}</button>
           <button type="button" style={btn(skel)} onClick={() => setSkel(!skel)}>skeleton</button>
           <button type="button" style={btn(ik)} onClick={() => setIk(!ik)}>IK</button>
+          <button type="button" style={btn(strip)} onClick={() => setStrip(!strip)}>filmstrip</button>
         </div>
+        <div>view {['side', 'front', 'back', '3/4', 'free'].map((v) => <button key={v} type="button" style={btn(view === v)} onClick={() => setView(v)}>{v}</button>)}</div>
         {paused && <div>scrub <input type="range" min="0" max="1" step="0.005" value={scrub} onChange={(e) => setScrub(+e.target.value)} style={{ width: 240 }} /> {scrub.toFixed(3)}</div>}
         <div style={{ marginTop: 6, color: '#ffd780' }}>{info}</div>
         <div style={{ marginTop: 4, opacity: 0.6 }}>Hitbox: grey = startup/recovery, green = active, red = contact frame.</div>
