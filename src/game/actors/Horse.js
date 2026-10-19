@@ -93,15 +93,29 @@ export class Horse {
     if (this.rider) return;
     const d = this.pos.distanceTo(player.pos);
     if (d > 70 || !this.group.parent) {
-      const back = player.forward().multiplyScalar(-55);
-      const p = player.pos.clone().add(back);
-      p.y = this.game.world.groundAt(p.x, p.z, p.y + 5);
-      this.pos.copy(p);
+      this._placeNear(player, 45);
       if (!this.group.parent) this.game.engine.scene.add(this.group);
     }
     this.state = 'summoned';
     this.target = player;
+    this.summonT = 0; this.summonBest = Infinity; this.summonBestT = 0;
     if (this.game.clock - this.lastNeigh > 2) { audio.play('neigh'); this.lastNeigh = this.game.clock; }
+  }
+
+  // Somewhere open `dist` metres behind the player, out of the way of buildings: behind them if
+  // that spot is clear, otherwise on the road at the same distance.
+  _placeNear(player, dist) {
+    const world = this.game.world;
+    const p = player.pos.clone().addScaledVector(player.forward(), -dist);
+    const probe = p.clone();
+    if (world.collide(probe, 1.2, p.y) || world.isIndoor?.(p)) {
+      const z = player.pos.z + (player.forward().z > 0 ? -dist : dist);
+      p.set(roadX(z), 0, z);
+    }
+    p.y = world.groundAt(p.x, p.z, player.pos.y + 5);
+    this.pos.copy(p);
+    this.yaw = Math.atan2(player.pos.x - p.x, player.pos.z - p.z);
+    this.speed = 0;
   }
 
   update(dt) {
@@ -141,9 +155,18 @@ export class Horse {
       const d = Math.hypot(tp.x - this.pos.x, tp.z - this.pos.z);
       const ang = Math.atan2(tp.x - this.pos.x, tp.z - this.pos.z);
       let da = ang - this.yaw; da = Math.atan2(Math.sin(da), Math.cos(da));
-      steer = Math.max(-1, Math.min(1, da * 2));
+      // steer is applied as yaw -= turn (positive = right), so turning toward the target is -da
+      steer = Math.max(-1, Math.min(1, -da * 2));
       want = d > 12 ? GAIT_SPEEDS.gallop * 0.8 : d > 4 ? GAIT_SPEEDS.trot : 0;
+      if (Math.abs(da) > 1.4 && d > 6) want = Math.min(want, GAIT_SPEEDS.trot);   // turn before galloping off
       if (d < 3.2) { this.state = 'idle'; want = 0; }
+      // a whistle never leaves the player waiting: lost, blocked or stuck, she reappears closer
+      this.summonT = (this.summonT || 0) + dt;
+      if (d < (this.summonBest ?? Infinity) - 1.5) { this.summonBest = d; this.summonBestT = this.summonT; }
+      if (d > 160 || (this.summonT - (this.summonBestT || 0) > 3 && d > 8)) {
+        this._placeNear(this.target, Math.min(35, Math.max(14, d * 0.5)));
+        this.summonBest = Infinity; this.summonBestT = this.summonT;
+      }
     }
     // acceleration and turning
     const acc = want > this.speed ? 4.5 : 9;
