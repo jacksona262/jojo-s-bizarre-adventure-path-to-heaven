@@ -221,8 +221,9 @@ export class TitleScene {
 
     // camera: behind his right shoulder, DIO on the right third, breathing drift; hovers nudge it
     const aspect = g.engine.camera.aspect || 1.6;
-    // DIO sits on the right third on wide screens; on narrow screens he drifts towards centre
-    const wide = Math.min(1, Math.max(0, (aspect - 0.75) / 0.85));
+    // DIO sits on the right third so the menu column on the left stays clear; only portrait
+    // screens (where the menu overlays the scene) let him drift towards centre
+    const wide = Math.min(1, Math.max(0, (aspect - 0.6) / 0.6));
     const drift = Math.sin(t * 0.17) * 0.12;
     let px = 1.2 + drift; let py = 1.8 + Math.sin(t * 0.23) * 0.04; let pz = 2.0;
     let lx = 0.1 - 0.62 * wide; let ly = 1.5; const lz = -0.2;
