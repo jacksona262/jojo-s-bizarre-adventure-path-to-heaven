@@ -239,7 +239,10 @@ export class Character {
     let dy = this.targetYaw - this.yaw;
     dy = Math.atan2(Math.sin(dy), Math.cos(dy));
     const turnRate = this.action?.def.turn ?? 10;
-    this.yaw += dy * Math.min(1, dt * turnRate);
+    let step = dy * Math.min(1, dt * turnRate);
+    // free movement caps angular speed (set by the player controller) so turns have weight
+    if (this.maxTurn && !this.action) step = Math.max(-this.maxTurn * dt, Math.min(this.maxTurn * dt, step));
+    this.yaw += step;
     this.group.rotation.y = this.yaw;
 
     // physics
