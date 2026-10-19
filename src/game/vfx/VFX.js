@@ -565,8 +565,8 @@ export class VFX {
     const white = _col2.set(0xffffff);
     const foot = userPos.clone(); foot.y -= 1.2;
     // pillar: a thin bright core inside a wider coloured sheath, both collapsing inwards
-    this.beam(foot.clone(), foot.clone().add(_q.set(0, 4.5, 0)), 0xffffff, 0.12, 0.35);
-    this.beam(foot.clone(), foot.clone().add(_q.set(0, 4, 0)), c, 0.55, 0.55);
+    this.beam(foot.clone(), foot.clone().add(_q.set(0, 5, 0)), 0xffffff, 0.07, 0.3, 0.8);
+    this.beam(foot.clone(), foot.clone().add(_q.set(0, 4.2, 0)), c, 0.32, 0.4, 0.28);
     // ground shockwaves and a ring facing the lens
     this.ring(foot.clone().add(_q.set(0, 0.05, 0)), c, 0.3, 3.4, 0.55, { soft: 0.4 });
     this.ring(foot.clone().add(_q.set(0, 0.05, 0)), white, 0.2, 2.2, 0.35, { soft: 0.2, alpha: 0.8 });
@@ -717,15 +717,15 @@ export class VFX {
     });
   }
 
-  beam(a, b, color, width = 0.3, life = 0.3) {
+  beam(a, b, color, width = 0.3, life = 0.3, opacity = 0.9) {
     const len = a.distanceTo(b);
     const geo = new THREE.CylinderGeometry(width, width, len, 8, 1, true);
     geo.rotateX(Math.PI / 2);
-    const m = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false });
+    const m = new THREE.MeshBasicMaterial({ color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false });
     const mesh = new THREE.Mesh(geo, m);
     mesh.position.copy(a).add(b).multiplyScalar(0.5);
     mesh.lookAt(b);
-    return this.addMesh(mesh, life, (e, k) => { m.opacity = 0.9 * (1 - k); mesh.scale.set(1 - k * 0.7, 1 - k * 0.7, 1); });
+    return this.addMesh(mesh, life, (e, k) => { m.opacity = opacity * (1 - k); mesh.scale.set(1 - k * 0.7, 1 - k * 0.7, 1); });
   }
 
   // ------------------------------------------------------------- update
