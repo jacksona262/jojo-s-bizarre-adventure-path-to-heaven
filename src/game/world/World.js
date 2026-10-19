@@ -753,7 +753,12 @@ export class World {
     }
     this.forceBuild = false;
     this._vegT = (this._vegT || 0) - realDt;
-    if (changed || this._vegT <= 0) { this._vegT = 0.2; this._rebuildInstances(); }
+    // re-cull on a timer, on streaming, and immediately after a fast camera turn (no pop-in)
+    const cd = this._camDir || (this._camDir = new THREE.Vector3(0, 0, -1));
+    const nd = this._camDirNow || (this._camDirNow = new THREE.Vector3());
+    this.engine.camera.getWorldDirection(nd);
+    const turned = nd.dot(cd) < 0.966;
+    if (changed || turned || this._vegT <= 0) { this._vegT = 0.2; cd.copy(nd); this._rebuildInstances(); }
     this._updateGrass(focus);
     this.farMat.userData.uniforms.uCenter.value.set(focus.x, focus.z);
     this.farMat.userData.uniforms.uRadius.value = (RADIUS - 0.25) * CHUNK;
