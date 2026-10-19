@@ -248,6 +248,10 @@ export class World {
     return 1;
   }
 
+  // Line of sight between two points (walls, buildings, terrain). Used so blows and lock-on never
+  // pass through solid geometry.
+  segmentBlocked(a, b) { return this.occlusion(a, b) < 0.999; }
+
   addInteractable(it) { this.interactables.set(it.id, it); return it; }
   removeInteractable(id) { this.interactables.delete(id); }
 
