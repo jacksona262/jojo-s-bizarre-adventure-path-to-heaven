@@ -512,7 +512,7 @@ export class Campaign {
     const hud = {
       hp: Math.round(f.hp), hpMax: f.hpMax, energy: Math.round(f.energy), energyMax: f.energyMax,
       stamina: Math.round(f.stamina), ts: f.tsCharge ?? 0, tsDur: k?.tsDuration ? k.tsDuration() : 0,
-      stand: !!f.stand?.summoned, mounted: !!f.mounted, horseStamina: this.horse ? Math.round(this.horse.stamina) : 0,
+      stand: !!f.stand?.summoned, mounted: !!f.mounted, horseStamina: this.horse ? Math.round(this.horse.stamina) : 0, horseStaminaMax: this.horse?.staminaMax || 100,
       horseSpeed: this.horse && f.mounted ? Math.round(this.horse.speed * 3.6) : 0, gait: this.horse?.anim?.gait,
       knives: !!this.p.upgrades.knives, heaven: f.rosterKey === 'dioHeaven', fragments: this.p.fragments,
       overwriteReady: f.rosterKey === 'dioHeaven',

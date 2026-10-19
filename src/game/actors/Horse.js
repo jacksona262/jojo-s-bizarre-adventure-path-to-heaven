@@ -17,7 +17,8 @@ export class Horse {
     this.yaw = 0;
     this.speed = 0;
     this.turn = 0;
-    this.stamina = 100;
+    this.staminaMax = 300;   // three full-length gallops before she tires
+    this.stamina = this.staminaMax;
     this.rider = null;
     this.state = 'idle';
     this.target = null;
@@ -149,7 +150,7 @@ export class Horse {
         }
       }
       if (c.gallop && c.throttle > 0.1 && this.speed > 9) this.stamina = Math.max(0, this.stamina - dt * 9);
-      else this.stamina = Math.min(100, this.stamina + dt * 6);
+      else this.stamina = Math.min(this.staminaMax, this.stamina + dt * 18);
     } else if (this.state === 'summoned' && this.target) {
       const tp = this.target.pos;
       const d = Math.hypot(tp.x - this.pos.x, tp.z - this.pos.z);

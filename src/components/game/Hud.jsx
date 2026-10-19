@@ -40,7 +40,7 @@ function PlayerPanel({ hud }) {
       <FgBar cls="en" value={hud.energy} max={hud.energyMax} ticks={4} />
       <FgBar cls="st" value={hud.stamina} max={100} ticks={1} />
       {hud.mounted && (
-        <div className="pth-fg-horse">SLOW DANCER · {String(hud.gait || 'idle').toUpperCase()} · {hud.horseSpeed} KM/H<FgBar cls="st" value={hud.horseStamina} max={100} ticks={1} /></div>
+        <div className="pth-fg-horse">SLOW DANCER · {String(hud.gait || 'idle').toUpperCase()} · {hud.horseSpeed} KM/H<FgBar cls="st" value={hud.horseStamina} max={hud.horseStaminaMax || 100} ticks={1} /></div>
       )}
     </div>
   );
