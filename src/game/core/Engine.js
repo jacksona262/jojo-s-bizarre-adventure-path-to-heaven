@@ -3,13 +3,14 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
-import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { prof } from '../dev/Profiler';
 
-// Final display-space pass: grading, vignette, grain and every Stand screen effect.
+// Final pass: ACES tone mapping + sRGB output (formerly a separate OutputPass; merged to save a
+// full-resolution pass), then grading, vignette, grain and every Stand screen effect.
 const FinalShader = {
   uniforms: {
     tDiffuse: { value: null },
+    uExposure: { value: 1.3 },
     uTime: { value: 0 },
     uRes: { value: new THREE.Vector2(1, 1) },
     uVignette: { value: 0.9 },
@@ -38,7 +39,21 @@ const FinalShader = {
     uniform sampler2D tDiffuse; uniform float uTime; uniform vec2 uRes;
     uniform float uVignette, uGrain, uFlash, uTimeStop, uTsWave, uErase, uDim, uHeaven, uGravity, uFade, uDamage, uSaturation;
     uniform vec3 uFlashColor, uTsTint; uniform vec2 uTsCenter;
+    uniform float uExposure;
     varying vec2 vUv;
+    // three.js ACESFilmicToneMapping + sRGB transfer, identical to OutputPass
+    vec3 RRTAndODTFit(vec3 v){ vec3 a = v * (v + 0.0245786) - 0.000090537; vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081; return a / b; }
+    vec3 aces(vec3 color){
+      const mat3 ACESInputMat = mat3(vec3(0.59719, 0.07600, 0.02840), vec3(0.35458, 0.90834, 0.13383), vec3(0.04823, 0.01566, 0.83777));
+      const mat3 ACESOutputMat = mat3(vec3(1.60475, -0.10208, -0.00327), vec3(-0.53108, 1.10813, -0.07276), vec3(-0.07367, -0.00605, 1.07602));
+      color *= uExposure / 0.6;
+      color = ACESInputMat * color;
+      color = RRTAndODTFit(color);
+      color = ACESOutputMat * color;
+      return clamp(color, 0.0, 1.0);
+    }
+    vec3 toSRGB(vec3 c){ return mix(pow(c, vec3(0.41666)) * 1.055 - vec3(0.055), c * 12.92, vec3(lessThanEqual(c, vec3(0.0031308)))); }
+    vec3 display(vec3 hdr){ return toSRGB(aces(hdr)); }
     float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898,78.233))) * 43758.5453); }
     float noise(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
       return mix(mix(hash(i),hash(i+vec2(1,0)),f.x), mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x), f.y); }
@@ -68,6 +83,7 @@ const FinalShader = {
       col.r = texture2D(tDiffuse, uv + cdir*ca).r;
       col.g = texture2D(tDiffuse, uv).g;
       col.b = texture2D(tDiffuse, uv - cdir*ca).b;
+      col = display(col);
 
       float lum = dot(col, vec3(0.299,0.587,0.114));
       col = mix(vec3(lum), col, uSaturation);
@@ -90,7 +106,7 @@ const FinalShader = {
         col += sk * uErase * vec3(0.6,0.05,0.1);
       }
       if (uDim > 0.001) {
-        vec3 alt = texture2D(tDiffuse, vec2(1.0-uv.x, uv.y)).rgb;
+        vec3 alt = display(texture2D(tDiffuse, vec2(1.0-uv.x, uv.y)).rgb);
         col = mix(col, col*0.6 + alt.bgr*0.5, uDim*0.35);
         float seam = abs(vUv.x - 0.5 - 0.25*sin(vUv.y*3.0 + uTime*0.7));
         col += (1.0 - smoothstep(0.0, 0.03, seam)) * uDim * vec3(0.7,0.9,1.0);
@@ -153,7 +169,6 @@ export class Engine {
     this.composer.addPass(this.renderPass);
     this.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.55, 0.55, 0.82);
     this.composer.addPass(this.bloom);
-    this.composer.addPass(new OutputPass());
     this.final = new ShaderPass(FinalShader);
     this.composer.addPass(this.final);
     this.fx = this.final.uniforms;
