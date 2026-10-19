@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { instantiate } from '../assets/AssetLibrary';
 import * as Poses from '../anim/Poses';
+import { AnimController } from '../anim/AnimController';
 
 // Base class for every humanoid in the game: DIO, bosses, supporting cast and Versus fighters.
 // Handles model + procedural animation layering, kinematic movement, health/energy and hit reactions.
@@ -70,6 +71,7 @@ export class Character {
     this.materials = this.model.userData.materials || [];
     this.group.add(this.model);
     this.group.rotation.y = this.yaw;
+    if (this.rig?.valid) this.anim = new AnimController(this);
     return this;
   }
 
@@ -116,9 +118,22 @@ export class Character {
   canAct() { return !this.busy() && this.state === 'free'; }
 
   // ---------------------------------------------------------------- damage
+  // Fighters in an encounter with an enemy nearby adopt a combat stance (cached 4x per second).
+  combatStance() {
+    const now = this.game.clock || 0;
+    if (now - (this._csT || -1) > 0.25) {
+      this._csT = now;
+      const cb = this.game.combat;
+      this._cs = !!(cb && cb.fighters.has(this) && cb.nearestEnemy(this, 16));
+    }
+    return this._cs;
+  }
+
   takeHit(hit, attacker) {
     if (this.dead) return 'none';
     const dmg = hit.damage;
+    const hitDir = new THREE.Vector3().copy(this.pos).sub(attacker?.pos || this.pos).setY(0);
+    if (hitDir.lengthSq() < 1e-6) this.forward(hitDir).negate(); else hitDir.normalize();
     this.hp = Math.max(0, this.hp - dmg);
     this.hitFlash = 0.12;
     if (this.onDamaged) this.onDamaged(dmg, attacker, hit);
@@ -134,12 +149,18 @@ export class Character {
       this.stun = Math.max(this.stun, hit.stun);
       this.stunTotal = this.stun;
     }
+    const strength = hit.kind === 'rush' ? 0.55 : hit.kind === 'heavy' || (hit.knock || 0) > 6 ? 2.2 : dmg > 10 ? 1.6 : 1;
+    this.anim?.hit(hitDir, hit.stun > 0 ? strength : strength * 0.5);
     if (hit.knock) {
-      const dir = tmpV.copy(this.pos).sub(attacker.pos).setY(0).normalize();
+      const dir = tmpV.copy(hitDir);
       this.vel.x += dir.x * hit.knock;
       this.vel.z += dir.z * hit.knock;
       if (hit.launch) { this.vel.y = hit.launch; this.onGround = false; }
-      if (hit.knock > 8 || hit.launch > 5) { this.knockdown = 1.2; this.knockTotal = 1.2; this.cancelAction(); }
+      if (hit.knock > 8 || hit.launch > 5) {
+        this.knockdown = 1.75; this.knockTotal = 1.75; this.cancelAction();
+        this.stand?.cancelAction?.();
+        if (this.anim) { this.anim.knock(hitDir); this.anim.launched = (hit.launch || 0) > 4; }
+      }
     }
     return 'hit';
   }
@@ -165,8 +186,11 @@ export class Character {
   update(dt) {
     if (this.override) {
       this.t += dt;
-      const p = this.override(this.t, this);
-      if (p && this.rig) this.rig.apply(p);
+      if (this.anim) this.anim.update(dt);
+      else {
+        const p = this.override(this.t, this);
+        if (p && this.rig) this.rig.apply(p);
+      }
       this.group.rotation.y = this.yaw;
       this._flash(dt);
       return;
@@ -206,7 +230,9 @@ export class Character {
     if (this.stun > 0) this.stun -= dt;
     if (this.knockdown > 0 && !this.dead) {
       this.knockdown -= dt;
-      if (this.knockdown <= 0) this.invuln = Math.max(this.invuln, 0.5);
+      // rising from the ground cannot be punished (no off-the-ground loops)
+      if (this.knockdown < 0.75) this.invuln = Math.max(this.invuln, this.knockdown + 0.25);
+      if (this.knockdown <= 0) this.invuln = Math.max(this.invuln, 0.35);
     }
 
     // facing
@@ -272,6 +298,7 @@ export class Character {
 
   _animate(dt) {
     if (!this.rig) return;
+    if (this.anim) { this.anim.update(dt); return; }
     const sp = this.moved || 0;
     const norm = sp < 0.2 ? 0 : sp < this.moveSpeed * 0.6 ? sp / (this.moveSpeed * 0.6) : 1 + Math.min(2, (sp - this.moveSpeed * 0.6) / (this.moveSpeed * 0.7));
     this.speedParam += (norm - this.speedParam) * Math.min(1, dt * 10);
