@@ -232,7 +232,9 @@ function landOffice(ctx, dz, side) {
   b.collider(f, 2.4, -3.8, 1.0, 0.6, 1);
   ctx.platform({ x: f.x, z: f.z, hw: w / 2, hd: d / 2 + 2.8, rot: f.rotY, y: f.y + 0.22 });
   const jp = f.pt(2.3, 0.6, -3.8);
-  ctx.interact({ id: 'journal', x: jp.x, y: jp.y, z: jp.z, radius: 0.8, label: 'Read the journal', enabled: false });
+  ctx.interact({ id: 'journal', x: jp.x, y: jp.y, z: jp.z, radius: 2.0, label: 'Read the journal', enabled: false });
+  ctx.world.indoor = ctx.world.indoor || [];
+  ctx.world.indoor.push({ x: f.x, z: f.z, hw: w / 2, hd: d / 2, rot: f.rotY, top: f.y + h, bottom: f.y - 1 });
   const ip = f.pt(0, 1, -2);
   ctx.world.landOffice = { frame: f, inside: ip, door: f.pt(0, 0, d / 2 + 1.5), desk: jp };
 }
