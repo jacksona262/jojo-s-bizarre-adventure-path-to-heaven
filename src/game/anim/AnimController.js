@@ -232,7 +232,7 @@ export class AnimController {
     const combat = !!(c.lockTarget && !c.lockTarget.dead) || (c.combatStance?.() ?? false);
     const pose = g.update(dt, {
       vx: this.vLocal.x, vz: this.vLocal.z, accel: this.accel, yawRate: this.yawRate, dYaw: this.dYaw,
-      grounded: c.onGround, vy: c.vel.y, style: c.style, combat, wading: c.inWater, t: c.t,
+      grounded: c.onGround, vy: c.vel.y, style: c.style, combat, combatArms: !(c.stand && c.stand.summoned), wading: c.inWater, t: c.t,
       idlePose: c.idlePose ? (t) => c.idlePose(t, c) : null,
     });
     const sp = hypot(this.vLocal.x, this.vLocal.z);
