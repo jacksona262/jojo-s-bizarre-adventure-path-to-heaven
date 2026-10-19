@@ -9,6 +9,9 @@ const _fist = new THREE.Vector3();
 const _fore = new THREE.Vector3();
 const _capA = new THREE.Vector3();
 const _capB = new THREE.Vector3();
+const _swingP = new THREE.Vector3();
+const _swingD = new THREE.Vector3();
+const _swingV = new THREE.Vector3();
 
 // Base moveset shared by Stand users. Character-specific kits extend this and add abilities.
 // Uniform interface (used by the player controller, Versus and the boss AI):
@@ -95,8 +98,10 @@ export class Kit {
             }
           }
         }
-        if (t01 >= clip.active[0] && t01 <= clip.active[1]) kit._contact(self, clip.limb, spec, hitSet, a, opts);
-        else a.data.prevLimb = null;
+        if (t01 >= clip.active[0] && t01 <= clip.active[1]) {
+          kit._swingFx(self, clip.limb, a, spec);
+          kit._contact(self, clip.limb, spec, hitSet, a, opts);
+        } else a.data.prevLimb = null;
       },
       onEnd: opts.onEnd,
     };
@@ -110,6 +115,31 @@ export class Kit {
     const len = d.length();
     if (len > 1e-4) out.addScaledVector(d, (limb.startsWith('foot') ? 0.12 : 0.09) * (striker.height / 1.9) / len);
     return out;
+  }
+
+  // Swing trail: while a blow is live the fist (or foot) streaks a blur of afterimage fists and
+  // sparks along its path, and the striker leaves one ghost at the start of the swing.
+  _swingFx(striker, limb, a, spec) {
+    const vfx = this.vfx;
+    if (!vfx) return;
+    const p = this.limbPoint(striker, limb, _swingP);
+    if (!a.data.swingStarted) {
+      a.data.swingStarted = true;
+      vfx.afterimage(striker, this.fx.ghost, { life: 0.2, alpha: 0.35 });
+    }
+    const prev = a.data.prevLimb;
+    if (!prev) return;
+    _swingD.copy(p).sub(prev);
+    const d = _swingD.length();
+    if (d < 0.02) return;
+    const power = spec.fxPower || 1;
+    vfx.fist(prev, _swingD, this.color, 0.1 + 0.04 * power, (limb.startsWith('foot') ? 1.1 : 0.85) * (0.8 + 0.25 * power), Math.min(0.5, d * 1.5));
+    _swingD.multiplyScalar(1 / d);
+    for (let i = 0; i < 2 + Math.round(power); i += 1) {
+      _swingV.copy(_swingD).multiplyScalar(-6 - Math.random() * 4);
+      _swingV.x += (Math.random() - 0.5) * 1.5; _swingV.y += (Math.random() - 0.5) * 1.5; _swingV.z += (Math.random() - 0.5) * 1.5;
+      vfx.sparks.emit(p, _swingV, this.color, 0.12 + Math.random() * 0.08, 0.025, true);
+    }
   }
 
   _contact(striker, limb, spec, hitSet, a, opts = {}) {
@@ -213,6 +243,13 @@ export class Kit {
 
   heavy() {
     const f = this.f;
+    // chain combos: two jabs then Heavy = Roundhouse; the full four-hit string then Heavy = Barrage
+    const chain = this.comboTimer > this.clock && this.stand?.summoned ? ({ 1: 'roundhouse', 3: 'barrage' })[this.combo] : null;
+    if (chain) {
+      const free = (f.canAct() || f.action?.def.name === 'command') && this.standReady();
+      if (!free) return this.buffer('heavy');
+      return chain === 'roundhouse' ? this.comboRoundhouse() : this.comboBarrage();
+    }
     if (!f.canAct() || (this.stand?.summoned && !this.standReady())) return this.buffer('heavy');
     if (!this.spend(10)) return false;
     const t = this.assist();
@@ -227,6 +264,68 @@ export class Kit {
     f.play({ name: 'heavyCmd', dur: 0.6, upper: true, clip: Clips.sweep, move: (k) => (k > 0.4 && k < 0.6 ? 3 : 0) });
     if (withStand) this.stand.strike(this.melee(Clips.heavyR, spec, { target: t, onContact, standoff: 0.5, dashFx: true }), 'front');
     this.game.combat.emit({ type: 'attack', attacker: f, move: 'heavy' });
+    return true;
+  }
+
+  _comboCallout(name, hex) {
+    const f = this.f;
+    this.vfx.text(f.chestWorld(new THREE.Vector3()).add(v3(0, 1.0, 0)), name, hex || `#${this.color.getHexString()}`, 1.1, 0.85);
+    audio.play('counter');
+    this.game.combat.emit({ type: 'combo', attacker: f, name });
+  }
+
+  // L · L · H — ROUNDHOUSE: the Stand spins into a heavy kick that sends the target flying.
+  comboRoundhouse() {
+    const f = this.f;
+    if (!this.spend(8)) return false;
+    this.combo = 0; this.comboTimer = 0;
+    const t = this.assist();
+    if (f.action?.def.name === 'command') f.cancelAction();
+    const spec = { damage: 17, stun: 0.8, knock: 10, launch: 3.2, kind: 'heavy', guardDamage: 20, fxPower: 1.8 };
+    const onContact = (tg, res, p) => {
+      audio.play('punch', { power: 1.5 });
+      const cam = this.game.engine.camera.position;
+      this.vfx.ring(p, this.color, 0.2, 2.4, 0.35, { vertical: true, face: cam });
+      this.vfx.ring(p, 0xffffff, 0.1, 1.4, 0.22, { vertical: true, face: cam, alpha: 0.8 });
+      this.vfx.sparkBurst(p, this.color, 26, 13, tg.pos.clone().sub(f.pos).setY(0).normalize());
+      this.game.camera.shake(0.5);
+    };
+    f.play({ name: 'command', dur: 0.36, upper: true, clip: Clips.command, move: () => 1.2 });
+    this.stand.strike(this.melee(Clips.kickR, spec, { target: t, onContact, standoff: 0.42, dashFx: true, radius: 0.32, name: 'roundhouse' }), 'front');
+    this._comboCallout('ROUNDHOUSE!');
+    this.lastAttackT = this.clock;
+    return true;
+  }
+
+  // L · L · L · L(uppercut) · H — BARRAGE: six blurred jabs into the launched target, then an
+  // overhead hammer that spikes it into the ground.
+  comboBarrage() {
+    const f = this.f;
+    if (!this.spend(14)) return false;
+    this.combo = 0; this.comboTimer = 0;
+    const t = this.assist();
+    if (f.action?.def.name === 'command') f.cancelAction();
+    f.play({ name: 'barrageCmd', dur: 1.35, upper: true, pose: (k, self) => Poses.castBoth(Math.min(1, self.action.t * 4)) });
+    const jab = { damage: 3, stun: 0.4, knock: 0.25, kind: 'light', fxPower: 0.9 };
+    const spike = { damage: 13, stun: 0.9, knock: 11, launch: 1, kind: 'heavy', guardBreak: true, fxPower: 2, impactFrame: true };
+    const step = (i) => {
+      if (!this.stand?.summoned || f.dead || f.stun > 0) return;
+      if (i < 6) {
+        const clip = i % 2 ? Clips.jabR : Clips.jabL;
+        this.stand.strike(this.melee(clip, jab, { target: t, standoff: 0.38, dur: 0.15, name: 'barrageJab', onEnd: (s, cancelled) => { if (!cancelled) step(i + 1); } }), 'front');
+        if (i % 2 === 0) audio.play('whoosh', { power: 0.7 });
+      } else {
+        const onContact = (tg, res, p) => {
+          this.vfx.ring(p.clone().setY(tg.pos.y + 0.08), this.color, 0.3, 3.2, 0.45, { soft: 0.4 });
+          this.vfx.smokePuff(tg.pos.clone().add(v3(0, 0.15, 0)), 0x2a2420, 6, 1.4, 1, 0.5);
+          this.game.camera.shake(0.7);
+        };
+        this.stand.strike(this.melee(Clips.heavyR, spike, { target: t, standoff: 0.42, dashFx: true, radius: 0.34, name: 'barrageSpike', onContact }), 'front');
+      }
+    };
+    step(0);
+    this._comboCallout(this.fx.cry ? `${this.fx.cry}!` : 'BARRAGE!');
+    this.lastAttackT = this.clock;
     return true;
   }
 
