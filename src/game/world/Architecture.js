@@ -561,7 +561,7 @@ export function railTrack(b, f, x0, z0, x1, z1, y0, y1, withBed = true) {
   if (withBed) b.box('stoneDark', f, (x0 + x1) / 2, (y0 + y1) / 2 - 0.25, (z0 + z1) / 2, 3.4, 0.6, len, -ang, ry, 0);
 }
 
-export function trestle(b, f, length, height, width = 4, ry = 0) {
+export function trestle(b, f, length, height, width = 4, ry = 0, depth = 12) {
   // bridge along local z, deck at y=height relative to frame
   const g = new Frame(0, 0, 0, 0);
   g.m.copy(f.m).multiply(new THREE.Matrix4().makeRotationY(ry));
@@ -571,10 +571,10 @@ export function trestle(b, f, length, height, width = 4, ry = 0) {
     for (let z = -length / 2; z <= length / 2; z += 2.5) b.box('woodDark', g, x, height + 0.35, z, 0.1, 0.7, 0.1);
   }
   for (let z = -length / 2; z <= length / 2 + 0.01; z += 6) {
-    for (const x of [-width / 2 + 0.3, width / 2 - 0.3]) b.box('woodDark', g, x, height / 2 - 6, z, 0.3, height + 12, 0.3);
-    for (let y = 2; y < height; y += 6) {
-      b.box('woodGrey', g, 0, y + height * 0 - 6, z, width, 0.15, 0.15, 0, 0, 0.7);
-      b.box('woodGrey', g, 0, y - 6, z, width, 0.15, 0.15, 0, 0, -0.7);
+    for (const x of [-width / 2 + 0.3, width / 2 - 0.3]) b.box('woodDark', g, x, height - depth / 2, z, 0.35, depth, 0.35);
+    for (let y = height - 3; y > height - depth; y -= 5) {
+      b.box('woodGrey', g, 0, y, z, width * 1.2, 0.16, 0.16, 0, 0, 0.75);
+      b.box('woodGrey', g, 0, y, z, width * 1.2, 0.16, 0.16, 0, 0, -0.75);
     }
   }
 }
