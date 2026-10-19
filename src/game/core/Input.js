@@ -54,21 +54,33 @@ export class Input {
       this.lastDevice = 'kbm';
     };
     this._onKeyUp = (e) => { this.keys.delete(e.code); };
+    this.lockRefused = false;
+    this.dragging = false;
     this._onMouseDown = (e) => {
-      this.mouse.add(e.button);
       this.lastDevice = 'kbm';
-      if (this.wantPointerLock && !this.pointerLocked && e.target === this.el) this.requestLock();
-    };
-    this._onMouseUp = (e) => { this.mouse.delete(e.button); };
-    this._onMouseMove = (e) => {
-      if (this.pointerLocked) {
-        this.mouseDX += e.movementX;
-        this.mouseDY += e.movementY;
+      if (this.wantPointerLock && !this.pointerLocked && e.target === this.el) {
+        this.requestLock();
+        // the click that captures the mouse is not also a punch (unless capture is unavailable here)
+        if (!this.lockRefused) return;
       }
+      this.mouse.add(e.button);
+      if (e.target === this.el) this.dragging = true;
+    };
+    this._onMouseUp = (e) => { this.mouse.delete(e.button); if (!this.mouse.size) this.dragging = false; };
+    this._onMouseMove = (e) => {
+      // look with a captured mouse, or by dragging where the page cannot capture it (embedded previews)
+      if (!this.pointerLocked && !(this.dragging && this.wantPointerLock)) return;
+      const dx = e.movementX || 0; const dy = e.movementY || 0;
+      // browsers occasionally report a huge jump (on capture, or a stray event): drop it
+      if (Math.abs(dx) > 220 || Math.abs(dy) > 220) return;
+      this.mouseDX += dx;
+      this.mouseDY += dy;
     };
     this._onWheel = (e) => { this.wheel += Math.sign(e.deltaY); };
     this._onContext = (e) => e.preventDefault();
-    this._onLock = () => { this.pointerLocked = document.pointerLockElement === this.el; };
+    this._onLock = () => { this.pointerLocked = document.pointerLockElement === this.el; if (this.pointerLocked) this.lockRefused = false; };
+    this._onLockError = () => { this.lockRefused = true; };
+    document.addEventListener('pointerlockerror', this._onLockError);
     this._onBlur = () => { this.keys.clear(); this.mouse.clear(); };
     window.addEventListener('keydown', this._onKeyDown);
     window.addEventListener('keyup', this._onKeyUp);
@@ -89,10 +101,19 @@ export class Input {
 
   requestLock() {
     if (this.pointerLocked || !this.el.requestPointerLock) return;
+    const fail = () => { this.lockRefused = true; };
     try {
-      const p = this.el.requestPointerLock();
-      if (p && p.catch) p.catch(() => { /* not allowed here (no user gesture / embedded frame) */ });
-    } catch { /* pointer lock unsupported */ }
+      // raw, un-accelerated mouse input where supported; plain capture otherwise
+      const p = this.el.requestPointerLock({ unadjustedMovement: true });
+      if (p && p.catch) {
+        p.catch(() => {
+          try {
+            const q = this.el.requestPointerLock();
+            if (q && q.catch) q.catch(fail);
+          } catch { fail(); }
+        });
+      }
+    } catch { fail(); }
   }
 
   _pollPad() {
@@ -164,6 +185,7 @@ export class Input {
     this.el.removeEventListener('wheel', this._onWheel);
     this.el.removeEventListener('contextmenu', this._onContext);
     document.removeEventListener('pointerlockchange', this._onLock);
+    document.removeEventListener('pointerlockerror', this._onLockError);
     window.removeEventListener('blur', this._onBlur);
     if (document.pointerLockElement) document.exitPointerLock?.();
   }
