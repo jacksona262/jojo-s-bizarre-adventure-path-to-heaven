@@ -87,6 +87,8 @@ export function SettingsPanel() {
             </React.Fragment>
           ))}
           <div style={{ color: '#e8d6a8' }}>Move / Look</div><div>WASD · Mouse</div><div>Left / Right stick</div>
+          <div style={{ color: '#e8d6a8' }}>Combo: Roundhouse</div><div>LMB · LMB · RMB</div><div>X · X · Y</div>
+          <div style={{ color: '#e8d6a8' }}>Combo: Barrage</div><div>LMB ×4 · RMB</div><div>X ×4 · Y</div>
         </div>
         <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end' }}><button type="button" className="pth-btn active" onClick={close}>Done</button></div>
       </div>
