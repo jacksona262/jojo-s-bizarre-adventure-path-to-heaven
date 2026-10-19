@@ -168,7 +168,7 @@ function ebon(ctx) {
   // north end
   church(b, ctx.frame(-132, -24, 'road'), { lit: true });
   graveyard(ctx, -128, -46, 4, 7);
-  waterTower(b, ctx.frame(-112, 26, 'road'));
+  waterTower(b, ctx.frame(-112, 33, 'road'));
   windmill(b, ctx.frame(30, -36, 'road'));
   // back row houses
   for (const [dz, side] of [[58, -36], [8, -38], [-30, -40], [70, 34], [40, 36], [-36, 38], [-100, 40], [-10, 42]]) {
@@ -178,7 +178,7 @@ function ebon(ctx) {
   for (const [dz, side, ry, br] of [[18, 4.2, 0.2, false], [-22, -5, 2.8, true], [-74, 4.8, 1.2, false], [96, -6, 0.5, true]]) wagon(b, ctx.frame(dz, side, 'north'), 0, 0, ry, br);
   signPost(b, ctx.frame(118, 6, 'south'), 0, 0, 'EBON CROSSING');
   // the derelict spur line that once served the town
-  trackAlong(ctx, 190, -150, 31);
+  trackAlong(ctx, 190, -150, 27.5);
   storefront(b, ctx.frame(140, 40, 'road'), { w: 7, d: 8, sign: 'EBON DEPOT', wall: 'woodGrey', rng });
   signPost(b, ctx.frame(-150, 6, 'north'), 0, 0, "HEAVEN'S REACH 7 MI");
   // fences out of town
