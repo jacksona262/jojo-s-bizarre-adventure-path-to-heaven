@@ -51,7 +51,7 @@ export function runMinigame(c, type, data) {
 }
 
 // short duel against a supporting character, resolves when they fall
-function duel(c, key, pos, { hp, onPhase } = {}) {
+function duel(c, key, pos, { hp, onPhase, difficulty = 0.9 } = {}) {
   const g = c.game;
   return new Promise(async (resolve) => {
     const f = await createFighter(g, key, { team: 1, hp });
@@ -59,7 +59,7 @@ function duel(c, key, pos, { hp, onPhase } = {}) {
     f.faceTowards(c.player.pos, true);
     g.addActor(f);
     g.combat.add(f);
-    const brain = new BossBrain(g, f, { difficulty: g.difficulty * 0.9, onPhase });
+    const brain = new BossBrain(g, f, { difficulty: g.difficulty * difficulty, onPhase });
     g.combatActive = true;
     ui.set({ boss: { name: f.roster.name, stand: f.roster.standName, hp: f.hp, hpMax: f.hpMax, phase: 1, phases: 2, color: f.roster.color } });
     audio.setMusic('boss', 0.3);
@@ -264,7 +264,8 @@ async function q2(c) {
     await talk(c, mariah, Q.fight);
     g.removeActor(mariah);
     setObjective();
-    const mf = await duel(c, 'mariah', P(0, -60), { hp: 260 });
+    // a real fight: twice the old health (520 with the +40 every AI opponent gets) at full difficulty
+    const mf = await duel(c, 'mariah', P(0, -60), { hp: 480, difficulty: 1.15 });
     c.duel = null;
     await talk(c, mf, Q.win);
     g.removeActor(mf);

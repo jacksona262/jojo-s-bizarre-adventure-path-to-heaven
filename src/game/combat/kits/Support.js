@@ -290,19 +290,38 @@ export class GebKit extends Kit {
 export class BastetKit extends Kit {
   constructor(f, game) {
     super(f, game, { color: 0x6a8aff, reach: 1.4, name: 'Bastet' });
+    this.junk = [
+      new THREE.CylinderGeometry(0.012, 0.012, 0.22, 4).rotateX(Math.PI / 2),   // nails
+      new THREE.BoxGeometry(0.05, 0.05, 0.42),                                  // rail spike
+      new THREE.CylinderGeometry(0.09, 0.09, 0.05, 8).rotateX(Math.PI / 2),     // bolt washer
+      new THREE.BoxGeometry(0.03, 0.12, 0.3),                                   // knife
+    ];
+    this.junkMat = new THREE.MeshStandardMaterial({ color: 0x9a9aa2, metalness: 1, roughness: 0.3 });
   }
+
+  _mag(t) { return t && (t.magnetUntil || 0) > this.clock ? (t.magnetism || 0) : 0; }
 
   magnetize() {
     const f = this.f;
     const t = this.target();
     if (!f.canAct() || !t || !this.ready('mag')) return false;
-    this.setCool('mag', 8);
+    this.setCool('mag', this.phase >= 2 ? 6 : 8);
     f.play({ name: 'magCmd', dur: 0.5, upper: true, pose: (k) => Poses.point('R', k) });
-    t.magnetism = Math.min(5, (t.magnetism || 0) + 2);
+    t.magnetism = Math.min(5, (t.magnetism || 0) + (this.phase >= 2 ? 3 : 2));
     t.magnetUntil = this.clock + 14;
     this.vfx.text(t.chestWorld(new THREE.Vector3()).add(v3(0, 0.8, 0)), 'MAGNETIZED', '#6a8aff', 1.2, 0.5);
+    this.vfx.ring(t.pos.clone().add(v3(0, 0.1, 0)), 0x6a8aff, 0.4, 2.2, 0.5);
     audio.play('click');
     return true;
+  }
+
+  _junk(origin, dir, speed, homingTarget, rate, damage = 4) {
+    const mesh = new THREE.Mesh(this.junk[Math.floor(Math.random() * this.junk.length)], this.junkMat);
+    return this.combat.spawnProjectile({
+      owner: this.f, pos: origin, vel: dir.normalize().multiplyScalar(speed), radius: 0.16, damage, stun: 0.18, knock: 0.4, life: 3, mesh, color: 0xb0b8ff,
+      homing: homingTarget ? { target: homingTarget, rate } : null,
+      trail: (p, vfx) => { if (Math.random() < 0.35) vfx.sparks.emit(p.pos, v3(), new THREE.Color(0x8aa8ff), 0.12, 0.03); },
+    });
   }
 
   nails() {
@@ -310,12 +329,11 @@ export class BastetKit extends Kit {
     const t = this.target();
     if (!f.canAct() || !t || !this.spend(10)) return false;
     f.play({ name: 'throw', dur: 0.5, upper: true, pose: (k) => Poses.cast('R', k), events: [{ t: 0.4, fn: () => {
-      const mag = t.magnetism || 0;
-      for (let i = 0; i < 4 + mag; i += 1) {
+      const mag = this._mag(t);
+      for (let i = 0; i < 5 + mag; i += 1) {
         const origin = f.jointWorld('handR');
-        const dir = t.chestWorld(new THREE.Vector3()).sub(origin).normalize().applyAxisAngle(v3(0, 1, 0), (Math.random() - 0.5) * 1.2);
-        const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.2, 4).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x9a9aa2, metalness: 1, roughness: 0.3 }));
-        this.combat.spawnProjectile({ owner: f, pos: origin, vel: dir.multiplyScalar(18), radius: 0.15, damage: 3, stun: 0.15, knock: 0.3, life: 3, mesh, color: 0xb0b8ff, homing: { target: t, rate: 1 + mag * 1.5 } });
+        const dir = t.chestWorld(new THREE.Vector3()).sub(origin).normalize().applyAxisAngle(v3(0, 1, 0), (Math.random() - 0.5) * 1.1);
+        this._junk(origin, dir, 19, t, 1.2 + mag * 1.5, 4);
       }
       audio.play('whoosh');
     } }] });
@@ -323,33 +341,122 @@ export class BastetKit extends Kit {
     return true;
   }
 
-  light() {
+  // Magnetic storm: every loose scrap of metal around a magnetised target tears free and converges
+  // on them from all sides; the more magnetised, the more junk (lore: the victim becomes the magnet).
+  debrisStorm() {
+    const f = this.f;
+    const t = this.target();
+    const mag = this._mag(t);
+    if (!f.canAct() || !t || mag < 2 || !this.ready('storm2')) return false;
+    this.setCool('storm2', this.phase >= 2 ? 5 : 7);
+    f.play({ name: 'stormCmd', dur: 0.7, pose: (k) => Poses.castBoth(k, 0.2) });
+    this.vfx.text(t.chestWorld(new THREE.Vector3()).add(v3(0, 1.1, 0)), 'ガガガガ', '#8aa8ff', 1.2, 0.7);
+    const n = 4 + mag * 2;
+    for (let i = 0; i < n; i += 1) {
+      this.combat.addHazard(new Timer(0.25 + i * 0.07, () => {
+        if (t.dead) return;
+        const a = Math.random() * Math.PI * 2;
+        const r = 8 + Math.random() * 4;
+        const origin = t.pos.clone().add(v3(Math.cos(a) * r, 0.6 + Math.random() * 3, Math.sin(a) * r));
+        this.vfx.sparkBurst(origin, 0x8aa8ff, 4, 3);
+        this._junk(origin, t.chestWorld(new THREE.Vector3()).sub(origin), 16, t, 2.5, 4);
+      }));
+    }
+    audio.play('click');
+    return true;
+  }
+
+  // Stiletto heel string: a quick front kick, a turning kick, then a stamping heel that launches.
+  heelString() {
     const f = this.f;
     if (!f.canAct()) return false;
-    this.faceTarget();
-    f.play({ name: 'kick', dur: 0.45, pose: (k) => Poses.heavy(k), move: (k) => (k < 0.4 ? 2.5 : 0), events: [{ t: 0.5, fn: () => this.combat.strike(f, { range: 1.6, damage: 6, stun: 0.3, knock: 2, kind: 'light', color: 0x6a8aff }) }] });
-    this.combat.emit({ type: 'attack', attacker: f, move: 'light' });
+    this.faceTarget(true);
+    const steps = [
+      { dur: 0.32, dmg: 7, knock: 1.5, kind: 'light', move: 3 },
+      { dur: 0.34, dmg: 7, knock: 2, kind: 'light', move: 2.5 },
+      { dur: 0.5, dmg: 13, knock: 7, kind: 'heavy', move: 3.5, launch: 2.5 },
+    ];
+    const run = (i) => {
+      const st = steps[i];
+      if (!st || f.dead || f.stun > 0) return;
+      this.faceTarget(true);
+      f.play({ name: `heel${i}`, dur: st.dur, pose: (k) => Poses.heavy(k), move: (k) => (k < 0.45 ? st.move : 0), events: [{ t: 0.55, fn: () => {
+        this.combat.strike(f, { range: 1.8, damage: st.dmg, stun: i === 2 ? 0.7 : 0.35, knock: st.knock, launch: st.launch || 0, kind: st.kind, color: 0x6a8aff });
+        if (i === 2) this.vfx.ring(f.pos.clone().addScaledVector(f.forward(), 1.2).add(v3(0, 0.1, 0)), 0x6a8aff, 0.2, 1.8, 0.3);
+      } }], onEnd: (self, cancelled) => { if (!cancelled) run(i + 1); } });
+      this.combat.emit({ type: 'attack', attacker: f, move: i === 2 ? 'heavy' : 'light' });
+    };
+    run(0);
     return true;
+  }
+
+  // Phase 2: she whips a live power line along the ground; a telegraphed lane that stuns.
+  powerLine() {
+    const f = this.f;
+    const t = this.target();
+    if (!f.canAct() || !t || !this.ready('wire')) return false;
+    this.setCool('wire', 6);
+    const a = f.pos.clone();
+    const b = t.pos.clone().addScaledVector(t.vel, 0.35);
+    const len = Math.min(18, a.distanceTo(b) + 3);
+    b.copy(a).addScaledVector(b.clone().sub(a).setY(0).normalize(), len);
+    b.y = this.game.world.groundAt(b.x, b.z, b.y + 2);
+    this.vfx.warnLine(a, b, 1.2, 0.6, 0x6a8aff);
+    f.play({ name: 'wireCmd', dur: 0.8, upper: true, pose: (k) => Poses.cast('R', k) });
+    this.combat.addHazard(new Timer(0.6, () => {
+      const p0 = a.clone().add(v3(0, 0.25, 0)); const p1 = b.clone().add(v3(0, 0.25, 0));
+      this.vfx.beam(p0, p1, 0x9ab8ff, 0.07, 0.35, 0.95);
+      for (let i = 0; i <= 8; i += 1) this.vfx.sparks.emit(p0.clone().lerp(p1, i / 8), v3((Math.random() - 0.5) * 4, 3, (Math.random() - 0.5) * 4), new THREE.Color(0xc8d8ff), 0.3, 0.05);
+      audio.play('click');
+      for (const e of this.combat.enemiesOf(f)) {
+        const d = e.pos.clone().sub(a); const ab = b.clone().sub(a);
+        const k = Math.max(0, Math.min(1, d.dot(ab) / ab.lengthSq()));
+        if (e.pos.distanceTo(a.clone().addScaledVector(ab, k)) < 0.9) {
+          this.combat.applyHit(e, f, { damage: 12, stun: 1.0, knock: 0.5, kind: 'special', color: 0x9ab8ff, noCounter: true });
+          this.vfx.text(e.chestWorld(new THREE.Vector3()).add(v3(0, 0.6, 0)), 'ZAP', '#9ab8ff', 0.9, 0.5);
+        }
+      }
+    }));
+    return true;
+  }
+
+  light() { return this.heelString(); }
+
+  update(dt) {
+    super.update(dt);
+    // a strongly magnetised target is dragged toward her, into kicking range
+    const t = this.target();
+    const mag = this._mag(t);
+    if (t && mag >= 3 && !t.dead && dt > 0 && !(t.isFrozen?.())) {
+      const d = this.f.pos.clone().sub(t.pos).setY(0);
+      const dist = d.length();
+      if (dist > 2.2 && dist < 16) t.vel.addScaledVector(d.normalize(), dt * mag * 1.1);
+    }
   }
 
   heavy() { return this.nails(); }
   rush(holding) { if (holding && !this.rushing) return this.nails(); return false; }
   specialA() { return this.magnetize(); }
-  specialB() { return this.dodge(this.f.forward().multiplyScalar(-1)); }
+  specialB() { return this.debrisStorm() || this.dodge(this.f.forward().multiplyScalar(-1)); }
   signature() {
     const t = this.target();
     if (!t || !this.ready('storm') || !this.spend(40)) return false;
     this.setCool('storm', 12);
     t.magnetism = 5;
+    t.magnetUntil = this.clock + 14;
     for (let i = 0; i < 3; i += 1) this.combat.addHazard(new Timer(i * 0.3, () => this.nails()));
     return true;
   }
 
   get abilities() {
     return [
-      { name: 'mag', weight: 2, min: 0, max: 20, cool: 3, fn: () => this.magnetize() },
-      { name: 'nails', weight: 3, min: 3, max: 20, cool: 1, fn: () => this.nails() },
-      { name: 'kick', weight: 2, min: 0, max: 1.8, cool: 0.6, fn: () => this.light() },
+      { name: 'mag', weight: 2.2, min: 0, max: 20, cool: 3, fn: () => this.magnetize() },
+      { name: 'nails', weight: 2.6, min: 3, max: 20, cool: 1, fn: () => this.nails() },
+      { name: 'storm2', weight: 3, min: 0, max: 22, cool: 2, fn: () => this.debrisStorm() },
+      { name: 'kick', weight: 2.4, min: 0, max: 2.2, cool: 0.6, fn: () => this.heelString() },
+      { name: 'wire', weight: 2, min: 2, max: 16, cool: 2, phase: 2, fn: () => this.powerLine() },
     ];
   }
+
+  dispose() { this.junkMat.dispose(); for (const g of this.junk) g.dispose(); }
 }
