@@ -173,7 +173,7 @@ export class PlayerController {
         this.flickAcc += input.axes.lookX;
         this.flickT += realDt;
         if (this.flickT > 0.18) { this.flickT = 0; this.flickAcc *= 0.3; }
-        if (Math.abs(this.flickAcc) > 0.32) { sw = -Math.sign(this.flickAcc); this.flickAcc = 0; }
+        if (Math.abs(this.flickAcc) > 0.32) { sw = Math.sign(this.flickAcc); this.flickAcc = 0; }
       }
       if (sw) this._switchTarget(sw);
     } else input.wheel = 0;
