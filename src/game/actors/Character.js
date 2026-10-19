@@ -232,6 +232,7 @@ export class Character {
 
   _integrate(dt) {
     const world = this.game.world;
+    if (this.pinned) { this.moved = 0; this.onGround = true; return; }
     if (!this.floating) this.vel.y -= 25 * this.gravity * dt;
     else this.vel.y *= Math.exp(-dt * 4);
     // friction when no controller input / during stun
