@@ -59,7 +59,8 @@ export class Combat {
 
   // keep fighters from overlapping
   separate(c) {
-    if (c.ghost || c.dead) return;
+    // an online opponent's fighter goes where its owner puts it (their machine already resolved it)
+    if (c.ghost || c.dead || c.netRemote) return;
     for (const o of this.fighters) {
       if (o === c || o.ghost || o.dead || o.mounted) continue;
       const dx = c.pos.x - o.pos.x; const dz = c.pos.z - o.pos.z;

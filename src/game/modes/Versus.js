@@ -78,6 +78,7 @@ export class VersusMode {
       this.rin = new RemoteInput();
       this.remoteCtrl = new PlayerController(g, this.remote, { allowHorse: false, allowInteract: false, input: this.rin, remote: true });
       this.brain = null;
+      this.remote.netRemote = true;
       if (guest) for (const f of [this.p1, this.p2]) f.netShadow = true;
       this.online.net.onClose = (reason) => this.onDisconnect(reason);
       this.online.net.setHandler((m) => this.onNet(m));
