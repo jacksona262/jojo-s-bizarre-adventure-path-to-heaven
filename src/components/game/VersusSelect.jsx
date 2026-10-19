@@ -81,6 +81,7 @@ export default function VersusSelect({ game }) {
               <div style={{ marginTop: 18, fontSize: 18, lineHeight: 1.5 }}>
                 <div>Health {show.vhp} · Power {show.power} · Speed {show.speed}</div>
                 <div style={{ marginTop: 10, opacity: 0.8 }}>Light (LMB/X) · Heavy (RMB/Y) · Rush (F/RB) · Special A (G/LT) · Special B (T) · Signature (R/RT) · Guard (C/LB) · Dodge (Space/A)</div>
+                <div style={{ marginTop: 8, opacity: 0.8 }}>Combos (Stand out): Light · Light · Heavy = Roundhouse · Light ×4 · Heavy = Barrage</div>
               </div>
             </>
           ) : (
