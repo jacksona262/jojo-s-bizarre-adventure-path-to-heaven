@@ -134,6 +134,72 @@ function bushGeometry(seed) {
   return mergeGeometries(parts);
 }
 
+// ---- region props (V2): desert saguaro, marsh reeds, frontier grave crosses, rift crystals
+function cactusGeometry(seed) {
+  const rnd = mulberry(seed);
+  const parts = [];
+  const col = [0.16, 0.2, 0.12];
+  const trunk = new THREE.CylinderGeometry(0.22, 0.26, 3.2 + rnd() * 1.2, 8);
+  trunk.translate(0, 1.7, 0);
+  parts.push(prep(colorize(trunk, col, 0.12, rnd, 0.3)));
+  for (let i = 0; i < 2; i += 1) {
+    const side = i ? -1 : 1;
+    const y = 1.2 + rnd() * 0.9;
+    const elbow = new THREE.CylinderGeometry(0.14, 0.15, 0.55, 7);
+    elbow.rotateZ(Math.PI / 2);
+    elbow.translate(side * 0.42, y, 0);
+    const up = new THREE.CylinderGeometry(0.13, 0.15, 0.9 + rnd() * 0.6, 7);
+    up.translate(side * 0.68, y + 0.45, 0);
+    parts.push(prep(colorize(elbow, col, 0.12, rnd)), prep(colorize(up, col, 0.12, rnd)));
+  }
+  return mergeGeometries(parts);
+}
+
+function reedGeometry(seed) {
+  const rnd = mulberry(seed);
+  const parts = [];
+  for (let i = 0; i < 9; i += 1) {
+    const h = 0.9 + rnd() * 1.1;
+    const g = new THREE.ConeGeometry(0.03, h, 3);
+    g.translate(0, h / 2, 0);
+    g.rotateZ((rnd() - 0.5) * 0.3); g.rotateX((rnd() - 0.5) * 0.3);
+    g.translate((rnd() - 0.5) * 0.7, 0, (rnd() - 0.5) * 0.7);
+    parts.push(prep(colorize(g, [0.17, 0.16, 0.09], 0.2, rnd, 0.5)));
+    if (rnd() < 0.5) {
+      const head = new THREE.CylinderGeometry(0.05, 0.05, 0.22, 5);
+      head.translate(g.boundingBox ? 0 : 0, h * 0.9, 0);
+      head.translate((rnd() - 0.5) * 0.7, 0, (rnd() - 0.5) * 0.7);
+      parts.push(prep(colorize(head, [0.16, 0.1, 0.06], 0.1, rnd)));
+    }
+  }
+  return mergeGeometries(parts);
+}
+
+function crossGeometry(seed) {
+  const rnd = mulberry(seed);
+  const col = [0.22, 0.17, 0.12];
+  const post = new THREE.BoxGeometry(0.1, 1.2, 0.08); post.translate(0, 0.55, 0);
+  const bar = new THREE.BoxGeometry(0.62, 0.09, 0.07); bar.translate(0, 0.85, 0);
+  const mound = new THREE.SphereGeometry(0.7, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2); mound.scale(0.75, 0.22, 1.3); mound.translate(0, 0, -0.75);
+  const g = mergeGeometries([prep(colorize(post, col, 0.15, rnd)), prep(colorize(bar, col, 0.15, rnd)), prep(colorize(mound, [0.12, 0.1, 0.08], 0.2, rnd))]);
+  g.rotateZ((rnd() - 0.5) * 0.25);
+  return g;
+}
+
+function crystalGeometry(seed) {
+  const rnd = mulberry(seed);
+  const parts = [];
+  for (let i = 0; i < 4; i += 1) {
+    const h = 0.8 + rnd() * 1.8;
+    const g = new THREE.OctahedronGeometry(0.28 + rnd() * 0.2, 0);
+    g.scale(1, h, 1);
+    g.rotateZ((rnd() - 0.5) * 0.7); g.rotateX((rnd() - 0.5) * 0.7);
+    g.translate((rnd() - 0.5) * 0.9, h * 0.6, (rnd() - 0.5) * 0.9);
+    parts.push(prep(colorize(g, [0.55, 0.5, 0.68], 0.15, rnd, 0.4)));
+  }
+  return mergeGeometries(parts);
+}
+
 function grassTexture() {
   const c = document.createElement('canvas');
   c.width = 64; c.height = 128;
@@ -184,7 +250,15 @@ export function createVegetationKit() {
     broad: [broadleafGeometry(21), broadleafGeometry(22)],
     rock: [rockGeometry(31), rockGeometry(32), rockGeometry(33)],
     bush: [bushGeometry(41), bushGeometry(42)],
+    cactus: [cactusGeometry(51), cactusGeometry(52)],
+    reed: [reedGeometry(61), reedGeometry(62)],
+    cross: [crossGeometry(71), crossGeometry(72)],
+    crystal: [crystalGeometry(81), crystalGeometry(82)],
     mats: {
+      cactus: vc(),
+      reed: addWind(vc(), 0.6, 2),
+      cross: vc({ roughness: 1 }),
+      crystal: vc({ roughness: 0.25, metalness: 0.15, emissive: 0x2a2040, emissiveIntensity: 1 }),
       pine: addWind(vc(), 0.5, 10),
       dead: addWind(vc(), 0.2, 8),
       broad: addWind(vc(), 0.45, 8),
