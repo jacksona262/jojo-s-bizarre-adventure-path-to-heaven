@@ -52,26 +52,36 @@ export class Horse {
 
   forward(out = new THREE.Vector3()) { return out.set(Math.sin(this.yaw), 0, Math.cos(this.yaw)); }
 
-  mount(rider) {
+  // Mounting and dismounting are short animated transitions: the rider arcs between the ground
+  // beside the horse and the saddle while the rider's pose blends (rider.mountK 0..1).
+  mount(rider, instant = false) {
     this.rider = rider;
     rider.mounted = this;
     rider.ghost = true;
     this.state = 'ridden';
     if (rider.stand?.summoned) rider.stand.summon(false, true);
+    this.leaving = null;
+    this.mountT = instant ? 1 : 0;
+    this.mountFrom = rider.pos.clone();
+    rider.mountK = instant ? 1 : 0;
     audio.play('neigh');
   }
 
-  dismount() {
+  dismount(instant = false) {
     const r = this.rider;
     if (!r) return null;
     this.rider = null;
     r.mounted = null;
     r.ghost = false;
     const side = new THREE.Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw)).multiplyScalar(-1.3);
-    r.pos.copy(this.pos).add(side);
-    r.pos.y = this.game.world.groundAt(r.pos.x, r.pos.z, this.pos.y + 1);
+    const to = this.pos.clone().add(side);
+    to.y = this.game.world.groundAt(to.x, to.z, this.pos.y + 1);
     r.vel.set(0, 0, 0);
     r.yaw = r.targetYaw = this.yaw;
+    if (instant) { r.pos.copy(to); r.mountK = 0; r.pinned = false; } else {
+      this.leaving = { r, t: 0, from: r.pos.clone(), to };
+      r.pinned = true;
+    }
     this.state = 'idle';
     this.speed *= 0.3;
     return r;
@@ -98,7 +108,9 @@ export class Horse {
     if (this.game.time?.isFrozen(this) && !(this.rider && !this.game.time.isFrozen(this.rider))) return;
     const world = this.game.world;
     let want = 0; let steer = 0;
-    if (this.state === 'ridden') {
+    if (this.state === 'ridden' && (this.mountT ?? 1) < 0.55) {
+      want = 0; steer = 0;
+    } else if (this.state === 'ridden') {
       const c = this.controls;
       if (c.throttle > 0.1) want = c.gallop && this.stamina > 2 ? GAIT_SPEEDS.gallop : (c.throttle > 0.6 ? GAIT_SPEEDS.canter : c.throttle > 0.3 ? GAIT_SPEEDS.trot : GAIT_SPEEDS.walk);
       if (c.brake) want = this.speed > 0.5 ? 0 : -1.4;
@@ -153,11 +165,30 @@ export class Horse {
       const r = this.rider;
       const s = this.saddleWorld(new THREE.Vector3());
       r.pos.set(s.x, s.y - (r.rig ? r.rig.hipHeight * 0.92 : 0.9), s.z);
+      if ((this.mountT ?? 1) < 0.55) {
+        this.mountT += dt;
+        const k = Math.min(1, this.mountT / 0.55);
+        const e = k * k * (3 - 2 * k);
+        r.pos.lerpVectors(this.mountFrom, r.pos, e);
+        r.pos.y += Math.sin(k * Math.PI) * 0.45;
+        r.mountK = e;
+      } else r.mountK = 1;
       r.yaw = r.targetYaw = this.yaw;
       r.group.rotation.y = this.yaw;
       r.vel.set(0, 0, 0);
       r.onGround = true;
       r.moved = 0;
+    }
+    if (this.leaving) {
+      const L = this.leaving;
+      L.t += dt;
+      const k = Math.min(1, L.t / 0.45);
+      const e = k * k * (3 - 2 * k);
+      L.r.pos.lerpVectors(L.from, L.to, e);
+      L.r.pos.y += Math.sin(k * Math.PI) * 0.35;
+      L.r.mountK = 1 - e;
+      L.r.onGround = true;
+      if (k >= 1) { L.r.pinned = false; L.r.mountK = 0; this.leaving = null; }
     }
   }
 }
