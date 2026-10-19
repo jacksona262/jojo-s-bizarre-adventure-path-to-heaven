@@ -9,10 +9,13 @@ export function useNav(count, onSelect, { enabled = true, onBack = null, initial
   useEffect(() => {
     if (!enabled) return undefined;
     let raf;
+    const mountedAt = performance.now();
     const loop = () => {
       raf = requestAnimationFrame(loop);
       const g = window.__game;
       if (!g) return;
+      // the key press that opened this menu must not also act inside it
+      if (performance.now() - mountedAt < 200) return;
       const inp = g.input;
       const r = ref.current;
       const prev = horizontal ? 'left' : 'up';
