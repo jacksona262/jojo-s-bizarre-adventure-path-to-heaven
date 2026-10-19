@@ -316,10 +316,9 @@ export class Kit {
     const d = dir && dir.lengthSq() > 0.01 ? dir.clone().normalize() : f.forward().multiplyScalar(-1);
     f.invuln = 0.32;
     f.invulnStart = this.clock;
-    const fwd = f.forward();
     const side = d.x * Math.cos(f.yaw) - d.z * Math.sin(f.yaw);
-    f.play({ name: 'dodge', dur: 0.42, pose: (t) => Poses.dodge(t, side), tick: (self, t) => { const s = t < 0.6 ? 12 : 3; self.vel.x = d.x * s; self.vel.z = d.z * s; }, turn: 0 });
-    void fwd;
+    const ahead = d.x * Math.sin(f.yaw) + d.z * Math.cos(f.yaw);
+    f.play({ name: 'dodge', dur: 0.42, blendIn: 30, pose: (t) => Poses.dodge(t, side, ahead), tick: (self, t) => { const s = t < 0.6 ? 12 : 3; self.vel.x = d.x * s; self.vel.z = d.z * s; }, turn: 0 });
     audio.play('dodge');
     this.vfx.smokePuff(f.pos.clone().add(v3(0, 0.2, 0)), 0x3a342c, 4, 1, 0.8, 0.3);
     return true;
