@@ -692,14 +692,14 @@ export class World {
       this.active = sorted.map((o) => o.l);
     }
     const act = this.active || [];
-    const fl = this.flashes || [];
-    for (let i = fl.length - 1; i >= 0; i -= 1) { fl[i].t += dt; if (fl[i].t >= fl[i].life) fl.splice(i, 1); }
+    const bursts = this.flashes || [];
+    for (let i = bursts.length - 1; i >= 0; i -= 1) { bursts[i].t += dt; if (bursts[i].t >= bursts[i].life) bursts.splice(i, 1); }
     for (let i = 0; i < this.pool.length; i += 1) {
       const pl = this.pool[i];
       // impact flashes take the last slots while they last
-      const fi = i - (this.pool.length - fl.length);
-      if (fi >= 0 && fl[fi]) {
-        const f = fl[fi]; const k = 1 - f.t / f.life;
+      const fi = i - (this.pool.length - bursts.length);
+      if (fi >= 0 && bursts[fi]) {
+        const f = bursts[fi]; const k = 1 - f.t / f.life;
         pl.position.set(f.x, f.y, f.z); pl.color.setHex(f.color);
         pl.intensity = f.intensity * 16 * k * k; pl.distance = f.range;
         continue;
