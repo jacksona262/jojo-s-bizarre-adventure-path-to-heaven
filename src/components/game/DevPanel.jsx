@@ -9,13 +9,24 @@ const btn = (on) => ({ padding: '2px 7px', margin: 2, background: on ? '#c9a227'
 
 function phaseOf(a) {
   const c = a?.def?.clip;
-  if (!c) return a ? `${a.def.name}` : '—';
+  if (!c?.active) return a ? `${a.def.name}` : '—';
   const t = a.t / a.def.dur;
   const ph = t < c.active[0] ? 'startup' : t <= c.active[1] ? 'ACTIVE' : 'recovery';
   return `${a.def.name} ${ph} t=${t.toFixed(2)} [${c.active[0]}–${c.active[1]}]`;
 }
 
-export default function DevPanel() {
+// Dev tools must never take the game down with them.
+export default class DevPanelBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { err: null }; }
+  static getDerivedStateFromError(err) { return { err }; }
+  componentDidCatch(err) { console.error('[dev panel]', err); }
+  render() {
+    if (this.state.err) return <div style={{ position: 'absolute', right: 8, bottom: 8, color: '#f88', font: '11px monospace', pointerEvents: 'auto' }}>dev panel error: {String(this.state.err.message)} <button type="button" onClick={() => this.setState({ err: null })}>retry</button></div>;
+    return <DevPanel />;
+  }
+}
+
+function DevPanel() {
   const [open, setOpen] = useState(true);
   const [tab, setTab] = useState('combat');
   const [, setTick] = useState(0);
