@@ -286,7 +286,7 @@ export class World {
   nearestInteractable(pos, maxDist = 2.6) {
     let best = null; let bd = maxDist;
     for (const it of this.interactables.values()) {
-      if (it.enabled === false) continue;
+      if (it.enabled === false || it.busy || (it.available && !it.available())) continue;
       const d = Math.hypot(pos.x - it.x, pos.z - it.z) - (it.radius || 0);
       if (d < bd && Math.abs(pos.y - (it.y ?? pos.y)) < 3) { bd = d; best = it; }
     }

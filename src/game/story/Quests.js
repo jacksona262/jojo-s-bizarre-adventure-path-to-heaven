@@ -72,8 +72,16 @@ function duel(c, key, pos, { hp, onPhase } = {}) {
   });
 }
 
-function interact(c, id, pos, label, onInteract, radius = 0.8) {
-  const it = { id, x: pos.x, y: pos.y, z: pos.z, radius, label, onInteract, priority: true };
+// An interaction point. `when` says whether it is offered right now: once its task is done the
+// prompt disappears and pressing interact does nothing. It also can't be re-entered while its
+// own conversation / scene is still running.
+function interact(c, id, pos, label, onInteract, radius = 0.8, when = null) {
+  const it = { id, x: pos.x, y: pos.y, z: pos.z, radius, label, priority: true, busy: false, available: when };
+  it.onInteract = async (f) => {
+    if (it.busy || (when && !when())) return;
+    it.busy = true;
+    try { await onInteract(f); } finally { it.busy = false; }
+  };
   c.game.world.addInteractable(it);
   return it;
 }
@@ -123,7 +131,7 @@ async function q1(c) {
       toast('+1 Stand Fragment', 'reward');
       c.completeStep();
     }
-  }, 1.4));
+  }, 1.4, () => sub.stage === 'go' || sub.stage === 'report'));
   camps.forEach((p, i) => {
     const pos = V(p.x, heightAt(p.x, p.z), p.z);
     its.push(interact(c, `q1_camp${i}`, pos, 'Search the ashes', async () => {
@@ -133,8 +141,9 @@ async function q1(c) {
       await g.seq.run(async (seq) => { seq.cut(pos.clone().add(V(2.2, 1.8, 2.2)), pos, 40); await sayLines(seq, [Q.fragments[i]]); }, { letterbox: false });
       if (sub.found.every(Boolean)) sub.stage = 'report';
       audio.play('quest');
+      c.autosave(true);
       setObjective();
-    }, 3));
+    }, 3, () => sub.stage === 'camps' && !sub.found[i]));
   });
   setObjective();
   return {
@@ -212,7 +221,7 @@ async function q2(c) {
       arm.rotation.z = sub.sw[i] ? -0.5 : 0.5;
       audio.play('block');
       drawPath();
-    }, 1.2));
+    }, 1.2, () => sub.stage === 'puzzle' && !rolling));
   });
   let rolling = null;
   const post = P(-3, -40);
@@ -224,7 +233,7 @@ async function q2(c) {
     rolling = { path: route(), i: 0, t: 0, speed: 3 };
     audio.play('click');
     toast('The ore cart lurches toward you...');
-  }, 1.2));
+  }, 1.2, () => sub.stage === 'puzzle' && !rolling));
   its.push(interact(c, 'q2_mariah', mariah.pos, 'Talk to Mariah', async () => {
     if (sub.stage !== 'go') return;
     await talk(c, mariah, Q.meet);
@@ -232,8 +241,9 @@ async function q2(c) {
     sub.stage = 'puzzle';
     drawPath();
     toast(Q.hint, 'hint', 9000);
+    c.autosave(true);
     setObjective();
-  }, 1.5));
+  }, 1.5, () => sub.stage === 'go'));
   const setObjective = () => {
     if (sub.stage === 'go') c.objective(Q.title, 'Find the keeper of the barricaded rail yard.', mariah.pos);
     else if (sub.stage === 'puzzle') c.objective(Q.title, 'Route the magnetised ore cart into the barricade: set the switches, then stand at the magnet post.', post);
@@ -392,7 +402,7 @@ async function q4(c) {
       toast('Enya now offers Stand upgrades. Press U (or D-Pad Right) to open the upgrade altar.', 'reward', 8000);
       c.completeStep();
     }
-  }, 1.4));
+  }, 1.4, () => sub.stage === 'go' || sub.stage === 'return'));
   spots.forEach((p, i) => {
     its.push(interact(c, `q4_l${i}`, p, 'Light the time-ward lantern', () => {
       if (sub.stage !== 'lanterns' || sub.lit[i]) return;
@@ -404,8 +414,9 @@ async function q4(c) {
       audio.play('quest');
       toast(Q.lantern[sub.lit.filter(Boolean).length - 1]);
       if (sub.lit.every(Boolean)) sub.stage = 'return';
+      c.autosave(true);
       setObjective();
-    }, 1));
+    }, 1, () => sub.stage === 'lanterns' && !sub.lit[i]));
   });
   setObjective();
   let whisperT = 6;
@@ -483,7 +494,7 @@ async function q6(c) {
     distractUntil = g.clock + 5;
     audio.play('splash', { power: 0.6 });
     toast('The stone splashes far away. Geb surges after the sound.');
-  }, 1.5)));
+  }, 1.5, () => state === 'sneak' && g.clock > distractUntil)));
   c.objective(Q.title, 'Cross the drowned boardwalks to find the blind hunter.', start);
   return {
     async update(dt) {
@@ -582,7 +593,7 @@ async function q8(c) {
       ui.set({ boss: { name: 'Vanilla Ice', stand: 'Cream', hp: vanilla.hp, hpMax: vanilla.hpMax, phase: 1, phases: 2, color: '#b08aff' } });
       setObjective();
     }
-  }, 1.4)));
+  }, 1.4, () => state === 'obelisks' && !sub.lit[i])));
   const spawnVanilla = async () => {
     vanilla = await createFighter(g, 'vanillaIce', { team: 1, hp: 420 });
     vanilla.pos.copy(center).add(V(0, 0, -10)); vanilla.pos.y = heightAt(vanilla.pos.x, vanilla.pos.z);
