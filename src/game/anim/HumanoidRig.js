@@ -116,8 +116,8 @@ export class HumanoidRig {
     root.updateWorldMatrix(true, false);
     root.getWorldQuaternion(_qc);
     _qci.copy(_qc).invert();
-    let acc = _q2.identity();
-    const accQ = new THREE.Quaternion();
+    const accQ = this._accQ || (this._accQ = new THREE.Quaternion());
+    accQ.identity();
     for (const j of TORSO) {
       const key = j === 'spine2' ? null : j;
       if (key && pose[key]) accQ.multiply(qFromArr(pose[key], _q));
@@ -127,7 +127,7 @@ export class HumanoidRig {
         this._setModel(j, _q);
       }
     }
-    acc = this.D.chest;
+    const acc = this.D.chest;
     for (const side of ['L', 'R']) {
       const clav = `clav${side}`;
       if (this.bones[clav]) {
@@ -142,7 +142,7 @@ export class HumanoidRig {
     for (const side of ['L', 'R']) {
       this._limb(`thigh${side}`, `shin${side}`, `foot${side}`, pose[`th${side}`], pose[`sh${side}`], this.D.hips, 'level');
     }
-    if (this.inner) this.inner.position.y = this.rootBaseY + (pose.rootY || 0);
+    root.position.y = pose.rootY || 0;
   }
 
   // World position of a joint (for hitboxes, VFX anchors).
