@@ -161,13 +161,13 @@ export async function openingCinematic(game, seq, { player, horse, pucci, symbol
 
 export async function journalCinematic(game, seq, { player, journalPos }) {
   const lo = game.world.landOffice;
-  const inside = lo.inside.clone();
-  seq.place(player, journalPos.clone().add(V(0, 0, 0)).sub(lo.frame.pt(0, 0, -1.2).sub(lo.frame.pt(0, 0, 0))), null);
-  player.faceTowards(journalPos, true);
-  seq.cut(inside.clone().add(V(0.5, 1.1, 1.8)), journalPos.clone().add(V(0, 0.2, 0)), 40);
+  const F = (x, y, z) => lo.frame.pt(x, y, z);
+  seq.place(player, F(2.3, 0, -2.55), lo.frame.rotY + Math.PI);
+  player.pos.y = lo.frame.y + 0.22;
+  seq.cut(F(-2.6, 2.3, 1.2), journalPos.clone().add(V(0, 0.4, 0)), 44);
   player.override = (t) => { const p = Poses.idle(t, 'dio'); p.head = [0.45, 0, 0]; p.uaR = [-0.3, -0.5, 0.8]; p.faR = [-0.1, -0.2, 1]; return p; };
   await sayLines(seq, OPENING.journal.slice(0, 1));
-  seq.shot({ from: journalPos.clone().add(V(0.7, 0.9, 0.4)), to: journalPos.clone().add(V(0.4, 0.6, 0.2)), look: journalPos, dur: 6, fov: 30 });
+  seq.shot({ from: F(3.4, 1.55, -3.0), to: F(3.1, 1.25, -3.3), look: journalPos, dur: 6, fov: 32 });
   await sayLines(seq, OPENING.journal.slice(1, 3));
   // time misbehaves: the rain stops mid-air, the lantern flame freezes
   const fx = game.engine.fx;
@@ -179,7 +179,7 @@ export async function journalCinematic(game, seq, { player, journalPos }) {
   audio.setFrozen(true);
   await seq.say('DIO', OPENING.journal[3][1], 4.2, SPEAKERS.DIO.color);
   // The World manifests for the first time
-  seq.shot({ follow: () => player.chestWorld(new THREE.Vector3()).add(V(0, 0.4, 0)), from: player.pos.clone().add(V(2.4, 1.1, 2.6)), to: player.pos.clone().add(V(1.8, 1.4, 3.4)), look: player.pos, dur: 5, fov: 38 });
+  seq.shot({ follow: () => player.chestWorld(new THREE.Vector3()).add(V(0, 0.35, 0)), from: F(0.6, 1.5, -3.4), to: F(0.9, 1.7, -3.5), look: player.pos, dur: 5, fov: 40 });
   player.override = (t) => Poses.raiseArms(Math.min(1, t * 0.6));
   player.t = 0;
   await seq.say('DIO', OPENING.manifest[0][1], 3.6, SPEAKERS.DIO.color);
@@ -190,7 +190,7 @@ export async function journalCinematic(game, seq, { player, journalPos }) {
   game.camera.shake(0.6);
   await seq.say('DIO', OPENING.manifest[1][1], 2.2, SPEAKERS.DIO.color);
   const sp = player.stand.pos.clone().add(V(0, 1.6, 0));
-  seq.shot({ from: sp.clone().add(V(0.6, -0.8, 2.6)), to: sp.clone().add(V(0.4, -0.4, 1.8)), look: sp, dur: 3, fov: 34 });
+  seq.shot({ follow: () => player.stand.chestWorld(new THREE.Vector3()).add(V(0, 0.4, 0)), from: F(1.2, 1.0, -3.5), to: F(1.6, 1.3, -3.6), look: sp, dur: 3, fov: 42 });
   await seq.wait(1.2);
   await seq.tween(0.8, (k) => { fx.uTimeStop.value = 0.65 * (1 - k); fx.uTsWave.value = 0.4 * (1 - k); });
   audio.setFrozen(false);
