@@ -8,6 +8,39 @@ import * as THREE from 'three';
 const noop = () => {};
 const MAX_PARTS = 10;        // largest sub-meshes only: a ghost reads as a silhouette
 
+// Spectral look: nearly clear in the middle, bright at the silhouette (fresnel), so overlapping
+// sub-meshes do not add up to a flat solid shape. Skinning chunks make it work on rigged meshes.
+const GHOST_VERT = `
+  #include <common>
+  #include <skinning_pars_vertex>
+  varying vec3 vN; varying vec3 vV;
+  void main(){
+    #include <beginnormal_vertex>
+    #include <skinbase_vertex>
+    #include <skinnormal_vertex>
+    #include <begin_vertex>
+    #include <skinning_vertex>
+    vec4 mv = modelViewMatrix * vec4(transformed, 1.0);
+    vN = normalize(normalMatrix * objectNormal);
+    vV = normalize(-mv.xyz);
+    gl_Position = projectionMatrix * mv;
+  }`;
+const GHOST_FRAG = `
+  uniform vec3 uColor; uniform float uA; varying vec3 vN; varying vec3 vV;
+  void main(){
+    float f = 1.0 - abs(dot(normalize(vN), normalize(vV)));
+    float a = (0.12 + 0.88 * pow(f, 1.8)) * uA;
+    gl_FragColor = vec4(uColor * (0.55 + 0.9 * f), a);
+  }`;
+
+function ghostMaterial() {
+  return new THREE.ShaderMaterial({
+    vertexShader: GHOST_VERT, fragmentShader: GHOST_FRAG,
+    uniforms: { uColor: { value: new THREE.Color() }, uA: { value: 0 } },
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  });
+}
+
 class GhostSet {
   constructor(layer, actor, count) {
     this.actor = actor;
@@ -17,7 +50,7 @@ class GhostSet {
     src.sort((a, b) => (b.geometry.index?.count ?? b.geometry.attributes.position.count) - (a.geometry.index?.count ?? a.geometry.attributes.position.count));
     const keep = src.slice(0, MAX_PARTS);
     for (let i = 0; i < count; i += 1) {
-      const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+      const mat = ghostMaterial();
       const root = new THREE.Group();
       root.matrixAutoUpdate = false;
       root.visible = false;
@@ -59,8 +92,8 @@ class GhostSet {
         if (g.skeleton.boneTexture) g.skeleton.boneTexture.needsUpdate = true;
       }
     }
-    it.mat.color.set(color);
-    it.mat.opacity = alpha;
+    it.mat.uniforms.uColor.value.set(color);
+    it.mat.uniforms.uA.value = alpha;
     it.alpha = alpha; it.life = life; it.t = 0; it.active = true;
     it.root.visible = true;
   }
@@ -72,7 +105,7 @@ class GhostSet {
       it.t += dt;
       const k = it.t / it.life;
       if (k >= 1) { it.active = false; it.root.visible = false; continue; }
-      it.mat.opacity = it.alpha * (1 - k) * (1 - k);
+      it.mat.uniforms.uA.value = it.alpha * (1 - k) * (1 - k);
       n += 1;
     }
     return n;
