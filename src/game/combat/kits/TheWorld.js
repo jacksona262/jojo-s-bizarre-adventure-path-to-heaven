@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Kit, v3 } from '../Kit';
 import * as Poses from '../../anim/Poses';
+import * as Clips from '../../anim/Clips';
 import { audio } from '../../core/Audio';
 import { areaDamage } from '../Combat';
 
@@ -50,15 +51,21 @@ export class TheWorldKit extends Kit {
       }
       return false;
     }
-    if (tc.state || f.tsCharge < 1 || f.dead || f.stun > 0) return false;
+    if (tc.state || f.tsCharge < 1 || f.dead || f.stun > 0 || f.knockdown > 0 || f.mounted) return false;
     if (this.game.lockTimeStop) { this.game.notify?.('The World cannot stop time yet.'); return false; }
     f.tsCharge = 0;
+    // time stop always wins: it cuts through a rush, a guard or any recovery
+    if (this.rushing) { this.rushing = 0; this.onRushEnd?.(); }
+    f.guarding = false;
+    this.buffered = null;
     this.ensureStand();
     f.cancelAction();
-    f.play({ name: 'tsPose', dur: 0.5, upper: true, pose: (t) => Poses.raiseArms(Math.min(1, t * 2)) });
-    this.stand?.strike({ name: 'tsStand', dur: 0.5, pose: (t) => Poses.raiseArms(Math.min(1, t * 2)) }, 'overhead');
+    this.stand?.cancelAction();
+    // ZA WARUDO: DIO throws his arms wide as The World rises behind him in the same pose
+    f.play({ name: 'tsPose', dur: 0.7, upper: true, clip: Clips.timeStop });
+    this.stand?.strike({ name: 'tsStand', dur: 0.7, clip: Clips.timeStop }, 'overhead');
     this.vfx.text(f.chestWorld(new THREE.Vector3()).add(v3(0, 1.0, 0)), 'ザ・ワールド', '#ffd34d', 1.6, 1);
-    tc.stop(f, this.tsDuration(), { variant: 'theWorld' });
+    tc.stop(f, this.tsDuration(), { variant: this.tsVariant || 'theWorld' });
     this.game.combat.emit({ type: 'playerTimeStop' });
     return true;
   }
