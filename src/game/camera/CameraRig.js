@@ -113,6 +113,15 @@ export class CameraRig {
       }
       cam.position.copy(this.cine.pos);
       this.look.copy(this.cine.look);
+      // never film a nearby subject through a wall: pull the lens in front of whatever blocks it
+      const w = this.game.world;
+      if (w && !this.cine.noCollide && this.game.title == null) {
+        const d = cam.position.distanceTo(this.look);
+        if (d > 0.4 && d < 26) {
+          const frac = w.occlusion(this.look, cam.position, true);
+          if (frac < 0.999) cam.position.lerpVectors(this.look, cam.position, Math.max(0.18, frac - 0.04));
+        }
+      }
       cam.fov += (this.cine.fov - cam.fov) * Math.min(1, realDt * 8);
       if (Math.abs(this.cine.fov - cam.fov) < 0.05) cam.fov = this.cine.fov;
       cam.lookAt(this.look);
