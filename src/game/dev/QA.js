@@ -107,7 +107,11 @@ export async function meleeQA({ presses = 6, key = 0 } = {}) {
       if (ev.type === 'hit') hits += 1; else if (ev.type === 'blocked') blocked += 1; else if (ev.type === 'attack') attacks += 1;
     });
     for (let i = 0; i < n; i += 1) {
-      boss.stun = Math.max(boss.stun, 0.7); boss.stunTotal = 0.7;
+      // isolate the measurement: the boss and its hazards cannot interrupt the player
+      boss.stun = Math.max(boss.stun, 0.7); boss.stunTotal = 0.7; boss.stand?.cancelAction?.();
+      for (const h of [...g.combat.hazards]) g.combat.removeHazard(h);
+      for (const pr of g.combat.projectiles) if (pr.team !== pl.team) pr.life = 0;
+      pl.invuln = 0.6; pl.stun = 0;
       await click(key);
       await sleep(420);
     }
