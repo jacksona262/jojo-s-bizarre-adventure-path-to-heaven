@@ -273,7 +273,7 @@ export default function AnimLab() {
         if (infoT <= 0) {
           infoT = 0.15;
           const t01 = def ? (c.action.t / def.dur) : 0;
-          setInfo(`${c.anim.state} | t=${t01.toFixed(2)}${clip ? ` active ${clip.active[0]}-${clip.active[1]} contact ${clip.contact}` : ''} | speed ${Math.hypot(c.anim.vLocal.x, c.anim.vLocal.z).toFixed(1)} m/s | phase ${c.anim.gait.u.toFixed(2)} | springs ${c.anim.springs.joints.length} | face ${c.anim.face.bones.length}`);
+          setInfo(`${c.anim.state} | t=${t01.toFixed(2)}${clip?.active ? ` active ${clip.active[0]}-${clip.active[1]} contact ${clip.contact}` : ''} | speed ${Math.hypot(c.anim.vLocal.x, c.anim.vLocal.z).toFixed(1)} m/s | phase ${c.anim.gait.u.toFixed(2)} | springs ${c.anim.springs.joints.length} | face ${c.anim.face.bones.length}`);
         }
       }
       if (c?.anim && S.current.strip) { renderStrip(); return; }

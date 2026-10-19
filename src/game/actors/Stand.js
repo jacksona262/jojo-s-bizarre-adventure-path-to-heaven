@@ -152,7 +152,7 @@ export class Stand extends Character {
     // (at most 0.4 s), so the active frames happen where the target actually is.
     const a = this.action;
     let held = null;
-    if (a?.def.lunge && this.mode === 'strike' && a.def.clip) {
+    if (a?.def.lunge && this.mode === 'strike' && a.def.clip?.active) {
       a.data.dashT = (a.data.dashT || 0) + dt;
       const holdT = a.def.dur * a.def.clip.active[0] * 0.7;
       if (a.t >= holdT && a.data.dashT < 0.4 && this.pos.distanceTo(_want) > 0.45) held = a.t;

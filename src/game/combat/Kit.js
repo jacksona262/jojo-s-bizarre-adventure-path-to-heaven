@@ -169,7 +169,7 @@ export class Kit {
   // the actual fist; the Stand dashes to the target when one is in range.
   standReady() {
     const sa = this.stand?.action;
-    if (!sa || !sa.def.clip) return true;
+    if (!sa || !sa.def.clip?.active) return true;
     return sa.t / sa.def.dur >= sa.def.clip.active[1];
   }
 
