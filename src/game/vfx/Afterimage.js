@@ -78,13 +78,14 @@ class GhostSet {
     this.cursor = 0;
   }
 
-  spawn(color, life, alpha, scale) {
+  spawn(color, life, alpha, scale, offset = null) {
     const it = this.items[this.cursor];
     this.cursor = (this.cursor + 1) % this.items.length;
     for (const { src, g } of it.parts) {
       g.visible = src.visible && src.parent?.visible !== false;
       g.matrix.copy(src.matrixWorld);
       if (scale !== 1) g.matrix.scale(_s.setScalar(scale));
+      if (offset) { g.matrix.elements[12] += offset.x; g.matrix.elements[13] += offset.y; g.matrix.elements[14] += offset.z; }
       g.matrixWorld.copy(g.matrix);
       if (src.isSkinnedMesh && src.skeleton.boneMatrices) {
         const a = src.skeleton.boneMatrices; const b = g.skeleton.boneMatrices;
@@ -139,10 +140,11 @@ export class Afterimages {
     return s;
   }
 
-  spawn(actor, color = 0xffffff, { life = 0.26, alpha = 0.4, scale = 1 } = {}) {
+  // offset: world-space shift (a ghost standing beside the actor rather than on it)
+  spawn(actor, color = 0xffffff, { life = 0.26, alpha = 0.4, scale = 1, offset = null } = {}) {
     if (!actor?.model || !actor.group.visible) return;
     const s = this.sets.get(actor) || this.prepare(actor, 3);
-    s?.spawn(color, life, alpha, scale);
+    s?.spawn(color, life, alpha, scale, offset);
   }
 
   release(actor) {
