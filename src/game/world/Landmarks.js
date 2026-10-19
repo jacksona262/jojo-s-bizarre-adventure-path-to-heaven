@@ -47,6 +47,73 @@ function cathedral(b, f, scale = 1, detail = true) {
   }
 }
 
+// The forecourt floor is one enormous clock face, inlaid flush with the paving: a dark stone dial,
+// a brass rim, twelve hour bars and the minute ticks, with both hands frozen at a quarter past
+// midnight like every clock in the valley. All flat geometry merged into the batch, so it costs a
+// single extra draw call and puts nothing in the way of the fight.
+function clockFloor(b, f) {
+  const R = 21; const y0 = 0.115;
+  const dir = (deg) => { const a = (deg * Math.PI) / 180; return [Math.sin(a), -Math.cos(a)]; };
+  b.cyl('stoneDark', f, 0, y0, 0, R, R, 0.03, 48);
+  // rims: an outer brass band and an inner hairline
+  for (const [r, w] of [[R - 0.35, 0.55], [R - 4.2, 0.18], [3.2, 0.2]]) {
+    const n = Math.max(24, Math.round(r * 3.2));
+    for (let i = 0; i < n; i += 1) {
+      const a = (i / n) * 360;
+      const [sx, sz] = dir(a);
+      const seg = (2 * Math.PI * r) / n * 1.04;
+      b.box('brass', f, sx * r, y0 + 0.02, sz * r, seg, 0.025, w, 0, -((a * Math.PI) / 180), 0);
+    }
+  }
+  // hour bars (doubled at XII) and minute ticks
+  for (let h = 0; h < 12; h += 1) {
+    const a = h * 30;
+    const [sx, sz] = dir(a);
+    const len = h % 3 === 0 ? 2.6 : 1.7;
+    const rr = R - 1.2 - len / 2;
+    for (const off of h === 0 ? [-0.45, 0.45] : [0]) {
+      const ox = Math.cos((a * Math.PI) / 180) * off; const oz = Math.sin((a * Math.PI) / 180) * off;
+      b.box('brass', f, sx * rr + ox, y0 + 0.025, sz * rr + oz, 0.42, 0.03, len, 0, -((a * Math.PI) / 180), 0);
+    }
+  }
+  for (let m = 0; m < 60; m += 1) {
+    if (m % 5 === 0) continue;
+    const [sx, sz] = dir(m * 6);
+    b.box('brass', f, sx * (R - 1.4), y0 + 0.02, sz * (R - 1.4), 0.12, 0.025, 0.55, 0, -((m * 6 * Math.PI) / 180), 0);
+  }
+  // the hands: 00:15 (minute hand on III, hour hand just past XII)
+  for (const [deg, len, w] of [[90, R - 3.4, 0.55], [7.5, R * 0.55, 0.9]]) {
+    const [sx, sz] = dir(deg);
+    b.box('brass', f, sx * len / 2, y0 + 0.035, sz * len / 2, w, 0.035, len, 0, -((deg * Math.PI) / 180), 0);
+    b.box('brass', f, sx * (len + 0.5), y0 + 0.035, sz * (len + 0.5), w * 1.8, 0.035, 1.1, 0, -((deg * Math.PI) / 180) + Math.PI / 4, 0);
+  }
+  b.cyl('brass', f, 0, y0 + 0.04, 0, 1.1, 1.1, 0.04, 20);
+  b.cyl('glassGold', f, 0, y0 + 0.06, 0, 0.45, 0.45, 0.03, 16);
+}
+
+// A deep pointed-arch portal for the west front: three receding archivolts round the doors and a
+// glowing tympanum, so the facade reads as gothic from the arena instead of as a flat wall.
+function gothicPortal(b, f) {
+  const zf = -4.6;
+  for (let k = 0; k < 3; k += 1) {
+    const hw = 5.2 + k * 1.3;        // half-width of this archivolt
+    const spring = 11 + k * 0.4;     // where the arch springs from the jambs
+    const peak = spring + hw * 1.25; // pointed apex
+    const z = zf + 0.35 + k * 0.45;
+    const t = 0.9;
+    for (const s of [-1, 1]) {
+      b.box('gothic', f, s * hw, spring / 2, z, t, spring, 0.9);
+      // each side of the point: a straight rafter from the springing line to the apex
+      const dx = -s * hw; const dy = peak - spring;
+      const len = Math.hypot(dx, dy);
+      b.box('gothic', f, s * hw + dx / 2, spring + dy / 2, z, t, len, 0.9, 0, 0, Math.atan2(-dx, dy));
+    }
+  }
+  // tympanum glow above the doors, and a thin gold trim on the lintel
+  b.box('glassGold', f, 0, 14.6, zf + 0.1, 7.6, 0.25, 0.3);
+  for (const s of [-1, 1]) b.box('glassGold', f, s * 1.9, 16.4, zf + 0.1, 0.25, 3.4, 0.3, 0, 0, s * -0.55);
+}
+
 export function buildSanctuary(world) {
   const b = new Batch();
   const y = SANCTUARY.y || heightAt(SANCTUARY.x, SANCTUARY.z);
@@ -72,10 +139,21 @@ export function buildSanctuary(world) {
     column(b, af, x, 30, 9, 'gothic', x === 14);
     column(b, af, x, -26, 9, 'gothic');
   }
-  for (const x of [-30, 30]) for (const z of [-16, 0, 16]) column(b, af, x, z, 9, 'gothic', z === 0 && x > 0);
+  // cloister arcades down both sides frame the duel (open arches, nothing on the floor)
+  for (const x of [-31, 31]) for (let z = -20; z <= 20; z += 8) arch(b, af, x, z, 8, 7.5);
   arch(b, af, 0, 31, 12, 8);
   for (const [x, z] of [[-20, 20], [20, 20], [-20, -18], [20, -18]]) lampPost(b, af, x, z);
   b.light(af, 0, 6, -42, 0xffd890, 1.4, 0.3);
+  clockFloor(b, af);
+  gothicPortal(b, f);
+  // the Arrow's light falling on the altar: one soft additive shaft
+  const shaft = new THREE.Mesh(
+    new THREE.CylinderGeometry(1.1, 4.2, 44, 18, 1, true),
+    new THREE.MeshBasicMaterial({ color: 0xffe6b0, transparent: true, opacity: 0.07, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }),
+  );
+  shaft.position.set(SANCTUARY.x, y + 4.4 + 22, SANCTUARY.z - 42);
+  shaft.renderOrder = 2;
+  b.extra.push(shaft);
   const group = b.build(world.bank);
   group.name = 'sanctuary';
   world.root.add(group);

@@ -155,6 +155,7 @@ export class MaterialBank {
     this.map.set('ember', new THREE.MeshStandardMaterial({ color: 0x220800, emissive: 0xff4810, emissiveIntensity: 2.5, roughness: 1 }));
     this.map.set('glassRose', new THREE.MeshStandardMaterial({ color: 0x8a6cff, emissive: 0xb090ff, emissiveIntensity: 2.2, roughness: 0.2 }));
     this.map.set('glassGold', new THREE.MeshStandardMaterial({ color: 0xffd27a, emissive: 0xffc860, emissiveIntensity: 2.0, roughness: 0.2 }));
+    this.map.set('brass', new THREE.MeshStandardMaterial({ color: 0xc9a24a, emissive: 0x5a3e10, emissiveIntensity: 0.6, roughness: 0.32, metalness: 0.85 }));
     this.map.set('rift', new THREE.MeshStandardMaterial({ color: 0x6a3cff, emissive: 0x5a2cff, emissiveIntensity: 2.5, roughness: 0.3, transparent: true, opacity: 0.85 }));
   }
 
