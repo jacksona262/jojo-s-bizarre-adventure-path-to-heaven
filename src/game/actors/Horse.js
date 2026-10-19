@@ -184,6 +184,8 @@ export class Horse {
       if (this.rearT <= 0) this.anim.rear = 0;
     }
     this.anim.update(dt, actual, this.turn);
+    // a full gallop draws faint speed lines at the edge of the screen
+    if (this.rider && this.rider === this.game.player && actual > 12.5 && !this.game.inCinematic) this.game.screen?.speedLines(0.16 * Math.min(1, (actual - 12.5) / 2), null, 0.1);
     // carry the rider
     if (this.rider) {
       const r = this.rider;
