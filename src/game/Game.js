@@ -18,6 +18,7 @@ import { Campaign } from './story/Campaign';
 import { VersusMode } from './modes/Versus';
 import { Character } from './actors/Character';
 import { prof } from './dev/Profiler';
+import { installFoeFX } from './vfx/FoeFX';
 import { DebugDraw } from './dev/DebugDraw';
 
 // Top-level orchestrator. One instance lives for the lifetime of the page.
@@ -85,6 +86,7 @@ export class Game {
     this._applyRenderDistance();
     this.weather = new Weather(this.engine);
     this.engine.add({ onQuality: (s) => { this.world.onQuality(s); this.weather.onQuality(s); } });
+    installFoeFX(this);
     this.world.onRegion = (r) => {
       this.weather.setRegion(r);
       audio.setRegion(r?.id);
