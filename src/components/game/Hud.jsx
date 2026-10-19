@@ -120,7 +120,6 @@ export default function Hud() {
   const objective = useUI((s) => s.objective);
   const prompt = useUI((s) => s.prompt);
   const subtitle = useUI((s) => s.subtitle);
-  const choice = useUI((s) => s.choice);
   const toast = useUI((s) => s.toast);
   const region = useUI((s) => s.region);
   const letterbox = useUI((s) => s.letterbox);

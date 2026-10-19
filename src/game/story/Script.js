@@ -302,8 +302,8 @@ export const BOSSES = {
     },
     defeat: [
       ['JOTARO', 'Tch. The Arrow\'s... glowing.'],
-      ['DIO', "No road back. Good. I have never cared much for retreating."],
       ['JOTARO', 'Don\'t touch it, DIO. Once you do, there\'s no road back.'],
+      ['DIO', "No road back. Good. I have never cared much for retreating."],
     ],
     clue: '',
   },
