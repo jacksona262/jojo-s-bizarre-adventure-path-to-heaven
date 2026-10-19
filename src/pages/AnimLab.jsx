@@ -237,7 +237,14 @@ export default function AnimLab() {
         c.t += dt;
         c.anim.update(dt || 1e-6);
         // follow camera
-        controls.target.lerp(new THREE.Vector3(c.pos.x, c.pos.y + 1, c.pos.z), 0.15);
+        if (window.__animlabFocus) {
+          // dev: inspect one joint up close, e.g. window.__animlabFocus = { joint: 'head', off: [0.1, 0.05, 0.7] }
+          const fj = c.jointWorld(window.__animlabFocus.joint, new THREE.Vector3());
+          const o = window.__animlabFocus.off || [0.1, 0.05, 0.7];
+          cam.clearViewOffset();
+          controls.target.copy(fj);
+          cam.position.set(fj.x + o[0], fj.y + o[1], fj.z + o[2]);
+        } else controls.target.lerp(new THREE.Vector3(c.pos.x, c.pos.y + 1, c.pos.z), 0.15);
         // hitbox / target visualisation
         const def = c.action?.def;
         const clip = def?.clip;
@@ -267,7 +274,7 @@ export default function AnimLab() {
         }
       }
       if (c?.anim && S.current.strip) { renderStrip(); return; }
-      if (c && S.current.view !== 'free') {
+      if (c && S.current.view !== 'free' && !window.__animlabFocus) {
         cam.setViewOffset(el.clientWidth, el.clientHeight, -190, 0, el.clientWidth, el.clientHeight);
         placeCam(cam, c.pos, c.height, S.current.view);
         controls.target.set(c.pos.x, c.pos.y + c.height * 0.5, c.pos.z);
