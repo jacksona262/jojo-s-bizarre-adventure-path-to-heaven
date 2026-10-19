@@ -386,8 +386,10 @@ export const SIGNATURE = {
     p.uaL = [0.22, -1, -0.14]; p.faL = [0.06, -0.72, 0.6]; p.uaR = [-0.22, -1, -0.14]; p.faR = [-0.06, -0.72, 0.6];
     p.chest = [-0.04 + b * 0.01, 0, 0]; p.head = [0.1, 0.05, 0];
   }),
-  avdol: sig((p, b) => { // arms folded, upright
-    p.uaL = [0.45, -0.85, 0.35]; p.faL = [-0.95, 0.15, 0.3]; p.uaR = [-0.45, -0.85, 0.4]; p.faR = [0.95, 0.2, 0.25];
+  avdol: sig((p, b) => { // upright fortune-teller, hands held low and ready to call the flame
+    // (his auto-rigged coat cannot fold its arms without the sleeves collapsing)
+    p.uaL = [0.32, -0.92, 0.18]; p.faL = [0.22, -0.55, 0.75]; p.uaR = [-0.32, -0.92, 0.18]; p.faR = [-0.22, -0.55, 0.75];
+    p.handL = [-0.3, 0, 0]; p.handR = [-0.3, 0, 0];
     p.chest = [-0.07 + b * 0.012, 0, 0]; p.head = [-0.05, 0, 0];
   }),
   kakyoin: sig((p, b, t) => { // right hand raised before the chest, poised
@@ -402,8 +404,8 @@ export const SIGNATURE = {
     p.uaL = [0.28, -1, 0.05]; p.faL = [0.15, -0.85, 0.45]; p.uaR = [-0.3, -1, 0.05]; p.faR = [-0.2, -0.85, 0.4];
     p.spine = [0.05, 0, 0.04]; p.chest = [0.02 + b * 0.012, 0, 0]; p.head = [-0.06, 0, -0.05];
   }),
-  kira: sig((p, b) => { // composed office worker: hands folded at the belt
-    p.uaL = [0.3, -0.95, 0.25]; p.faL = [-0.75, -0.2, 0.6]; p.uaR = [-0.3, -0.95, 0.25]; p.faR = [0.75, -0.25, 0.6];
+  kira: sig((p, b) => { // composed office worker: hands meeting softly at the belt
+    p.uaL = [0.28, -0.95, 0.2]; p.faL = [-0.4, -0.55, 0.65]; p.uaR = [-0.28, -0.95, 0.2]; p.faR = [0.4, -0.58, 0.65];
     p.chest = [-0.02 + b * 0.008, 0, 0]; p.head = [0.04, 0, 0];
   }),
   diavolo: sig((p, b) => { // hunched and coiled, arms out
