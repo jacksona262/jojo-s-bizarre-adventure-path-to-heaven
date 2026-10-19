@@ -99,6 +99,7 @@ export default function AnimLab() {
     ch.load().then(() => {
       if (disposed) return;
       c = ch;
+      window.__animlab = { c: ch };   // dev: measure the live character from the console
       scene.add(c.group);
       helper = new THREE.SkeletonHelper(c.model);
       helper.visible = false;
