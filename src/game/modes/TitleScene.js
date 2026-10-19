@@ -1,16 +1,32 @@
 import * as THREE from 'three';
-import { instantiate } from '../assets/AssetLibrary';
-import { buildMansion } from '../world/Landmarks';
-import { MANSION, SANCTUARY } from '../world/Layout';
+import { Character } from '../actors/Character';
 import * as Poses from '../anim/Poses';
 import { audio } from '../core/Audio';
-import { ease } from '../camera/CameraRig';
 
-// The homepage: DIO on the balcony of a frontier mansion overlooking the real valley,
-// Ebon Crossing below and Heaven's Reach on the horizon. A directed camera loop plays behind
-// the menu; hovering menu items nudges the camera.
+// The homepage: DIO seen from behind in three-quarter view on a near-black void, head turned
+// back over his right shoulder, right hand raised to his face, blond hair lifting in a slow wind.
+// A gold rim light carves him out of the dark; gold dust drifts; the camera breathes. It renders
+// in its own scene (the world is never drawn behind the menu), so it is cheap and loads fast.
+// Menu hovers change the staging: Versus summons a gold silhouette of The World behind him.
 
-const LOOP = 26;
+const BG = 0x050408;
+const _v = new THREE.Vector3();
+const _v2 = new THREE.Vector3();
+
+function radialTexture(inner, outer) {
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const g = c.getContext('2d');
+  const gr = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+  gr.addColorStop(0, inner);
+  gr.addColorStop(0.45, outer);
+  gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = gr;
+  g.fillRect(0, 0, 256, 256);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
 
 export class TitleScene {
   constructor(game) {
@@ -18,140 +34,201 @@ export class TitleScene {
     this.t = 0;
     this.hover = null;
     this.hoverK = 0;
-    this.offset = new THREE.Vector3();
-    this.lookOffset = new THREE.Vector3();
+    this.standK = 0;
     this.ready = false;
+    this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color(BG);
+    this.scene.fog = new THREE.FogExp2(BG, 0.075);
+    this.balcony = null;   // no world focus: the world keeps streaming around Ebon in the background
   }
 
   async load() {
     const g = this.game;
-    const world = g.world;
-    const m = buildMansion(world, MANSION.x, MANSION.z, MANSION.y, Math.PI);
-    this.mansion = m;
-    g.engine.scene.add(m.group);
-    this.lights = m.lights.map((l) => world.registerLight(l));
-    this.balcony = m.balcony;
-    // models go inside holders: the rig owns each model's local y (ground offset)
-    const dioModel = await instantiate('dioHome');
-    this.dio = new THREE.Group();
-    this.dio.add(dioModel);
-    this.dio.position.copy(this.balcony);
-    this.dio.rotation.y = Math.PI; // facing north, away from the doorway
-    g.engine.scene.add(this.dio);
-    this.rig = dioModel.userData.rig;
-    const standModel = await instantiate('theWorld');
-    this.stand = new THREE.Group();
-    this.stand.add(standModel);
-    this.stand.visible = false;
-    g.engine.scene.add(this.stand);
-    this.standRig = standModel.userData.rig;
-    this.faceLight = new THREE.SpotLight(0xdfe8ff, 0, 12, 0.5, 0.6, 1.2);
-    g.engine.scene.add(this.faceLight);
-    g.engine.scene.add(this.faceLight.target);
-    world.warm(this.balcony);
+    const s = this.scene;
+    // DIO: a real Character so he gets the animation controller (hair springs, blinking)
+    this.dio = new Character(g, { partKey: 'dioHome', name: 'DIO', style: 'dio', height: 1.95 });
+    await this.dio.load();
+    this.dio.yaw = Math.PI + 0.55;
+    this.dio.group.rotation.y = this.dio.yaw;
+    this.dio.override = (t) => this._pose(t);
+    s.add(this.dio.group);
+    // a gentle wind through the hair
+    if (this.dio.anim?.springs) this.dio.anim.springs.wind = new THREE.Vector3();
+
+    this.world = new Character(g, { partKey: 'theWorld', name: 'The World', style: 'stand', height: 2.3, floating: true });
+    await this.world.load();
+    for (const m of this.world.materials) {
+      m.transparent = true; m.opacity = 0; m.depthWrite = false;
+      if (m.color) m.color.lerp(new THREE.Color(0xffd36a), 0.55);
+      if (m.emissive) { m.emissive.set(0x6a4a10); m.emissiveIntensity = 1; m.userData.baseEmissive = m.emissive.clone(); }
+    }
+    this.world.group.visible = false;
+    this.world.override = (t) => Poses.crossArms(t);
+    s.add(this.world.group);
+
+    // lighting: gold rim from beyond him, cool soft key on the turned face, faint fill
+    s.add(new THREE.HemisphereLight(0x2a2232, 0x020203, 0.35));
+    this.rim = new THREE.SpotLight(0xffc066, 95, 14, 0.62, 0.85, 1.4);
+    this.rim.position.set(-1.1, 3.4, -2.6);
+    s.add(this.rim, this.rim.target);
+    this.rim2 = new THREE.SpotLight(0xffb050, 40, 12, 0.5, 0.9, 1.4);
+    this.rim2.position.set(2.2, 2.2, -2.0);
+    s.add(this.rim2, this.rim2.target);
+    this.face = new THREE.SpotLight(0xd8e0ff, 16, 10, 0.42, 0.9, 1.5);
+    this.face.position.set(1.9, 2.3, 1.7);
+    s.add(this.face, this.face.target);
+    this.hairGlow = new THREE.PointLight(0xffd27a, 2.2, 2.2, 2);
+    s.add(this.hairGlow);
+
+    // backlight halo and a low, dark floor haze
+    this.halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: radialTexture('rgba(255,196,96,0.55)', 'rgba(150,80,20,0.12)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+    this.halo.scale.set(4.6, 4.6, 1);
+    this.halo.position.set(-0.35, 1.75, -2.2);
+    s.add(this.halo);
+    this.menace = new THREE.Sprite(new THREE.SpriteMaterial({ map: radialTexture('rgba(150,60,220,0.5)', 'rgba(60,10,90,0.12)'), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0, fog: false }));
+    this.menace.scale.set(5.5, 5.5, 1);
+    this.menace.position.set(-1.1, 1.8, -1.6);
+    s.add(this.menace);
+
+    // drifting gold dust
+    const N = 220;
+    const pos = new Float32Array(N * 3);
+    this.dustSeed = new Float32Array(N);
+    for (let i = 0; i < N; i += 1) {
+      pos[i * 3] = (Math.random() - 0.5) * 6;
+      pos[i * 3 + 1] = Math.random() * 3.6;
+      pos[i * 3 + 2] = -2.5 + Math.random() * 4.5;
+      this.dustSeed[i] = Math.random() * 100;
+    }
+    const dg = new THREE.BufferGeometry();
+    dg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const dust = new THREE.Points(dg, new THREE.PointsMaterial({
+      color: 0xffcf73, size: 0.022, transparent: true, opacity: 0.75, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: true,
+    }));
+    this.dust = dust;
+    s.add(dust);
+
+    // render this scene instead of the world while the title is up
+    this.prevScene = g.engine.renderPass.scene;
+    g.engine.renderPass.scene = s;
     this.ready = true;
   }
 
   dispose() {
     const g = this.game;
-    if (this.mansion) { g.engine.scene.remove(this.mansion.group); this.mansion.group.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); }
-    for (const l of this.lights || []) { const i = g.world.lights.indexOf(l); if (i >= 0) g.world.lights.splice(i, 1); }
-    if (this.dio) g.engine.scene.remove(this.dio);
-    if (this.stand) g.engine.scene.remove(this.stand);
-    if (this.faceLight) { g.engine.scene.remove(this.faceLight); g.engine.scene.remove(this.faceLight.target); }
+    if (this.prevScene) g.engine.renderPass.scene = this.prevScene;
+    this.dio?.remove();
+    this.world?.remove();
+    this.scene.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material?.map) o.material.map.dispose(); });
   }
 
   setHover(h) {
-    if (h !== this.hover) {
-      this.hover = h;
-      if (h === 'versus') {
-        this.stand.visible = true;
-        this.standT = 0;
-        audio.play('summon');
-        this.game.vfx.aura(this.balcony.clone().add(new THREE.Vector3(0, 1.2, 0.5)), 0xffd34d, 1, true);
-      }
+    if (h === this.hover) return;
+    this.hover = h;
+    if (h === 'versus') {
+      this.world.group.visible = true;
+      audio.play('summon');
     }
   }
 
-  // camera keyframes in a local frame around the balcony (north = -z world)
-  _shot(t) {
-    const b = this.balcony;
-    const P = (x, y, z) => new THREE.Vector3(b.x + x, b.y + y, b.z + z);
-    const keys = [
-      { t: 0, pos: P(0.35, 2.1, 3.85), look: P(0, 1.5, -3) },      // behind DIO, from the doorway
-      { t: 6, pos: P(0.5, 1.9, 2.3), look: P(0, 1.55, -1) },        // pushed in to his back
-      { t: 9.5, pos: P(1.6, 1.75, 1.3), look: P(0, 1.65, 0) },       // over the shoulder as he turns
-      { t: 11, pos: P(1.9, 1.7, 0.4), look: P(0, 1.7, 0) },          // face, lightning
-      { t: 13.5, pos: P(0.6, 2.4, 3.3), look: P(0, 1.6, -4) },       // drift back behind him
-      { t: 17, pos: P(-4.4, 2.3, 2.0), look: P(-30, 6, -400) },      // reveal the valley and the sanctuary
-      { t: 22, pos: P(-1.4, 1.0, -2.6), look: P(0, 1.8, 0) },        // low front angle, imposing
-      { t: LOOP, pos: P(0.35, 2.1, 3.85), look: P(0, 1.5, -3) },
-    ];
-    let i = 0;
-    while (i < keys.length - 2 && t > keys[i + 1].t) i += 1;
-    const a = keys[i]; const c = keys[i + 1];
-    const k = ease.inOut(Math.min(1, (t - a.t) / (c.t - a.t)));
-    return { pos: a.pos.clone().lerp(c.pos, k), look: a.look.clone().lerp(c.look, k) };
+  // DIO's pose: back three-quarter to the camera, head turned over the right shoulder,
+  // right hand raised to the face (placed exactly by IK after the pose is applied).
+  _pose(t) {
+    const p = Poses.idle(t, 'dio');
+    const br = Math.sin(t * 1.25);
+    const look = Math.sin(t * 0.21) * 0.05;
+    p.hips = [0, 0.08, 0.02];
+    p.spine = [-0.05, -0.12, 0.02];
+    p.chest = [-0.09 + br * 0.012, -0.24, 0.03];
+    p.neck = [0.06, -0.42 + look * 0.4, 0.02];
+    p.head = [0.12 + Math.sin(t * 0.37) * 0.02, -0.62 + look, 0.1];
+    p.uaR = [-0.55, -0.15, 0.82]; p.faR = [0.5, 0.75, 0.2];
+    p.handR = [-0.6, 0.35, 0.5];
+    p.uaL = [0.32, -0.9, -0.12]; p.faL = [0.12, -0.75, 0.45];
+    p.thL = [0.12, -1, 0.06]; p.shL = [0.08, -1, -0.04];
+    p.thR = [-0.1, -1, -0.08]; p.shR = [-0.07, -1, -0.12];
+    if (this.hover === 'versus') {
+      const k = this.hoverK;
+      p.chest = [p.chest[0] - 0.06 * k, p.chest[1] - 0.08 * k, p.chest[2]];
+      p.head = [p.head[0] - 0.08 * k, p.head[1], p.head[2]];
+    }
+    return p;
   }
 
   update(dt, realDt) {
     if (!this.ready) return;
     const g = this.game;
-    this.t = (this.t + realDt) % LOOP;
+    this.t += realDt;
     const t = this.t;
-    // DIO's performance
-    let pose;
-    if (t < 6) pose = Poses.idle(g.engine.time, 'dio');
-    else if (t < 11) {
-      pose = Poses.idle(g.engine.time, 'dio');
-      const k = ease.inOut(Math.min(1, (t - 6) / 3));
-      pose.head = [-0.05, -0.95 * k, -0.05];
-      pose.chest = [-0.06, -0.35 * k, 0];
-    } else if (t < 17) {
-      pose = Poses.idle(g.engine.time, 'dio');
-      const k = 1 - ease.inOut(Math.min(1, (t - 11) / 3));
-      pose.head = [-0.05, -0.95 * k, -0.05];
-      pose.chest = [-0.06, -0.35 * k, 0];
-    } else {
-      pose = Poses.lerpPose(Poses.idle(g.engine.time, 'dio'), Poses.dioPose(g.engine.time), ease.inOut(Math.min(1, (t - 17) / 2)) * (t < 24.5 ? 1 : 1 - (t - 24.5) / 1.5));
-    }
-    if (this.hover === 'versus') pose = Poses.lerpPose(pose, Poses.dioPose(g.engine.time), Math.min(1, this.hoverK * 1.5));
-    if (this.rig) this.rig.apply(pose);
-    // lightning on the face at ~10 s
-    if (this._lastT !== undefined && this._lastT < 9.8 && t >= 9.8) g.weather.strike(this.balcony.clone().add(new THREE.Vector3(-60, 0, -300)), true);
-    this._lastT = t;
-    const head = this.rig ? this.rig.jointWorld('head') : this.balcony.clone().add(new THREE.Vector3(0, 1.7, 0));
-    this.faceLight.position.copy(head).add(new THREE.Vector3(1.5, 1.2, -2.5));
-    this.faceLight.target.position.copy(head);
-    this.faceLight.intensity = g.weather.flash * 70 + 5;
-
-    // The World behind him when Versus is hovered
-    if (this.stand.visible) {
-      this.standT = (this.standT || 0) + realDt;
-      const want = this.hover === 'versus';
-      const k = want ? Math.min(1, this.standT * 3) : Math.max(0, 1 - this.standT * 3);
-      if (!want && k <= 0) this.stand.visible = false;
-      this.stand.position.copy(this.balcony).add(new THREE.Vector3(0.9, 0.35 + Math.sin(g.engine.time * 2) * 0.05, 0.9));
-      this.stand.rotation.y = Math.PI;
-      this.stand.scale.setScalar(0.7 + 0.3 * k);
-      this.standRig?.apply(Poses.crossArms(g.engine.time));
-      if (want && Math.random() < realDt * 20) g.vfx.glow.emit(this.stand.position.clone().add(new THREE.Vector3((Math.random() - 0.5) * 1.2, Math.random() * 2.4, (Math.random() - 0.5) * 1.2)), new THREE.Vector3(0, 1.5, 0), new THREE.Color(0xffd34d), 0.6, 0.35, 0.05, 0.8, { free: true });
-    }
-
-    // camera with hover offsets
-    const s = this._shot(t);
     this.hoverK += ((this.hover ? 1 : 0) - this.hoverK) * Math.min(1, realDt * 2.5);
-    const b = this.balcony;
-    const tgtOff = new THREE.Vector3(); const tgtLook = new THREE.Vector3();
-    if (this.hover === 'new') { tgtOff.set(-1.5, 2.2, 1.5); tgtLook.set(0, -40, -260); }
-    else if (this.hover === 'versus') { tgtOff.copy(b).add(new THREE.Vector3(1.2, 1.6, -2.4)).sub(s.pos); tgtLook.copy(b).add(new THREE.Vector3(0.3, 1.5, 0.4)).sub(s.look); }
-    else if (this.hover === 'settings') { tgtOff.set(0.4, 0.2, 0.4); }
-    else if (this.hover === 'credits') { tgtOff.set(0, 3, 3); tgtLook.set(0, 30, -200); }
-    this.offset.lerp(tgtOff, Math.min(1, realDt * 2));
-    this.lookOffset.lerp(tgtLook, Math.min(1, realDt * 2));
-    const pos = s.pos.add(this.offset.clone().multiplyScalar(this.hoverK));
-    const look = s.look.add(this.lookOffset.clone().multiplyScalar(this.hoverK));
-    g.camera.setCinematic(pos, look, 44);
-    void SANCTUARY;
+
+    // wind gusts through the hair and coat
+    const wind = this.dio.anim?.springs?.wind;
+    if (wind) {
+      const gust = 0.5 + 0.5 * Math.sin(t * 0.7) * Math.sin(t * 0.23 + 1.3);
+      wind.set(1.6 + gust * 2.4, 0.6 + gust * 0.8, 0.8 + Math.sin(t * 1.9) * 0.6);
+    }
+    this.dio.update(realDt);
+    // hand to the face: the wrist lands beside the right cheek, fingers towards the temple
+    const rig = this.dio.rig;
+    if (rig) {
+      const head = rig.jointWorld('head', _v);
+      const fx = Math.sin(this.dio.yaw); const fz = Math.cos(this.dio.yaw);
+      const rx = -fz; const rz = fx;   // character's right
+      _v2.set(head.x + rx * 0.1 + fx * 0.07, head.y + 0.02 + Math.sin(t * 0.9) * 0.006, head.z + rz * 0.1 + fz * 0.07);
+      rig.reach('R', 'arm', _v2, 1, new THREE.Vector3(-0.8, -0.45, -0.25));
+    }
+
+    // The World answers the Versus hover
+    const wantStand = this.hover === 'versus';
+    this.standK += ((wantStand ? 1 : 0) - this.standK) * Math.min(1, realDt * 3);
+    if (this.world.group.visible) {
+      this.world.pos.set(-0.95, 0.25 + Math.sin(t * 2) * 0.04, -0.75);
+      this.world.yaw = Math.PI + 0.35;
+      this.world.group.rotation.y = this.world.yaw;
+      this.world.group.scale.setScalar(0.85 + 0.15 * this.standK);
+      for (const m of this.world.materials) m.opacity = this.standK * 0.55;
+      this.world.update(realDt);
+      if (this.standK < 0.01 && !wantStand) this.world.group.visible = false;
+    }
+    this.menace.material.opacity = this.standK * 0.5;
+
+    // lights track the head; the rim breathes like a distant storm
+    const head = rig ? rig.jointWorld('head', _v) : _v.set(0, 1.75, 0);
+    this.rim.target.position.copy(head);
+    this.rim2.target.position.copy(head);
+    this.face.target.position.copy(head);
+    this.hairGlow.position.set(head.x - 0.15, head.y + 0.35, head.z - 0.25);
+    const storm = Math.max(0, Math.sin(t * 0.31) * Math.sin(t * 1.7 + 2)) ** 6;
+    this.rim.intensity = 95 + storm * 120 + (this.hover === 'new' || this.hover === 'continue' ? 25 * this.hoverK : 0);
+    this.face.intensity = 16 + (this.hover === 'load' ? 10 * this.hoverK : 0);
+    this.halo.material.opacity = 0.8 + storm * 0.4;
+
+    // dust drifts up and sideways with the wind
+    const arr = this.dust.geometry.attributes.position.array;
+    for (let i = 0; i < arr.length; i += 3) {
+      const sd = this.dustSeed[i / 3];
+      arr[i] += (0.05 + Math.sin(t * 0.5 + sd) * 0.04) * realDt;
+      arr[i + 1] += (0.06 + Math.sin(sd) * 0.03) * realDt;
+      arr[i + 2] += Math.cos(t * 0.4 + sd) * 0.02 * realDt;
+      if (arr[i + 1] > 3.6) arr[i + 1] = 0;
+      if (arr[i] > 3) arr[i] = -3;
+    }
+    this.dust.geometry.attributes.position.needsUpdate = true;
+
+    // camera: behind his right shoulder, DIO on the right third, breathing drift; hovers nudge it
+    const aspect = g.engine.camera.aspect || 1.6;
+    const portrait = aspect < 1;
+    const drift = Math.sin(t * 0.17) * 0.12;
+    let px = 1.35 + drift; let py = 1.82 + Math.sin(t * 0.23) * 0.04; let pz = 2.35;
+    let lx = portrait ? 0.05 : -0.62; let ly = 1.52; const lz = -0.2;
+    let fov = portrait ? 46 : 36;
+    const hk = this.hoverK;
+    if (this.hover === 'versus') { px += 0.45 * hk; pz += 0.55 * hk; lx -= 0.35 * hk; fov += 4 * hk; }
+    else if (this.hover === 'load') { px -= 0.2 * hk; pz -= 0.45 * hk; py += 0.05 * hk; ly += 0.12 * hk; }
+    else if (this.hover === 'credits') { pz += 0.9 * hk; py += 0.3 * hk; fov += 3 * hk; }
+    else if (this.hover === 'settings') { px += 0.15 * hk; }
+    else if (this.hover === 'new' || this.hover === 'continue') { pz -= 0.25 * hk; }
+    g.camera.setCinematic(_v.set(px, py, pz), _v2.set(lx, ly, lz), fov);
   }
 }
