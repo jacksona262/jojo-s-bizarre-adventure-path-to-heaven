@@ -164,7 +164,7 @@ export const PARTS = {
   valentine: { file: 'valentine', subtree: 'Armature_259', height: 1.78, rig: SBR_RIG, label: 'Funny Valentine' },
   d4c: { file: 'valentine', subtree: 'Armature.001_105', height: 2.2, rig: D4C_RIG, label: 'D4C', stand: true },
   pucci: { file: 'pucci', height: 1.88, rig: SBR_RIG, label: 'Enrico Pucci' },
-  cmoon: { file: 'cmoon', height: 2.45, rig: null, label: 'C-Moon', stand: true },
+  cmoon: { file: 'cmoon', height: 2.45, rig: AUTO, label: 'C-Moon', stand: true },
   jotaro: { file: 'jotaro', meshes: ['Object_3'], height: 1.95, rig: AUTO, label: 'Jotaro Kujo' },
   starPlatinum: { file: 'jotaro', meshes: ['Object_2'], height: 2.3, rig: AUTO, label: 'Star Platinum', stand: true },
 
@@ -216,7 +216,7 @@ export const STAND_OF = {
 export const ASSET_NOTES = [
   'No supplied GLB contains animation clips (Giorno has four zero-length rest clips). All motion is procedural.',
   'Rigged files driven through their own skeletons: DIO + The World, cinematic DIO, Heaven DIO, Polnareff, Killer Queen, Valentine + D4C, Giorno + Gold Experience, Pucci.',
-  'C-Moon is rigged but its bone names are unreadable (lost encoding); it is animated as a floating rigid body.',
+  'C-Moon is rigged but its bone names are unreadable (lost encoding), so its bind-pose mesh is re-skinned with a generated skeleton.',
   'Static files (no skeleton) receive a generated skeleton and skin weights at load: Avdol, Kakyoin, Josuke, Jotaro, Kira, Diavolo, King Crimson, the D\'Arby brothers, Mariah, Hol Horse, Vanilla Ice, N\'Doul, Enya, Speedwagon, and the horse.',
   'Silver Chariot is not present in polnereff_eoh.glb. It is shown as a spectral rapier and armour-light effect, never as an invented humanoid.',
   'The World Over Heaven has no separate mesh. Heaven DIO\'s Stand is presented as a luminous projection of The World\'s rig recoloured white-gold.',
