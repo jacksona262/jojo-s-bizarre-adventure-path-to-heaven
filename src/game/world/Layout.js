@@ -97,7 +97,9 @@ export const POIS = [
   { id: 'arenaKakyoin', kind: 'boss', region: 'ember', dz: -480, side: 30, label: 'Ember Flats Station' },
   { id: 'railyard', kind: 'quest', region: 'redstone', dz: 520, side: 0, label: 'Bastet Rail Yard' },
   { id: 'bridgeHol', kind: 'quest', region: 'redstone', dz: -560, side: 0, label: 'Gulch Trestle' },
-  { id: 'arenaPolnareff', kind: 'boss', region: 'redstone', dz: -260, side: 26, label: 'Ashgrove Courtyard' },
+  // the courtyard itself is built at side 26 (Settlements.js); the duel line runs 4.5 m east of
+  // its fountain so neither fighter (nor the intro cutscene) ends up standing in the basin
+  { id: 'arenaPolnareff', kind: 'boss', region: 'redstone', dz: -260, side: 30.5, label: 'Ashgrove Courtyard' },
   { id: 'arenaJosuke', kind: 'boss', region: 'hollow', dz: 160, side: 0, label: 'Splintered Hamlet' },
   { id: 'enyaCabin', kind: 'quest', region: 'hollow', dz: -420, side: -30, label: "Enya's Cabin" },
   { id: 'arenaKira', kind: 'boss', region: 'iron', dz: 150, side: 0, label: 'Iron Vale Yard' },
