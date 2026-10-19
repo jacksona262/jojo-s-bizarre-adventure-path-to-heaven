@@ -256,14 +256,27 @@ export function block() {
   return p;
 }
 
-export function dodge(t, dirX) {
+// Evasive step. dirX: +1 = to the character's left, dirZ: +1 = forward (local frame).
+// The body drops and leans into the direction of travel; the trailing leg extends behind.
+export function dodge(t, dirX, dirZ = 0) {
   const p = guardStance();
-  const k = sin(clamp01(t) * PI);
-  p.spine = [0.25 * k, 0, -dirX * 0.35 * k];
-  p.chest = [0.1 * k, 0, -dirX * 0.2 * k];
-  p.thL = [0.25, -1, 0.3 * k]; p.shL = [0.1, -1, -0.5 * k];
-  p.thR = [-0.25, -1, 0.3 * k]; p.shR = [-0.1, -1, -0.5 * k];
-  p.rootY = -0.25 * k;
+  const tt = clamp01(t);
+  const k = sin(min(1, tt * 1.4) * PI * 0.5) * (1 - smooth((tt - 0.55) / 0.45));
+  const lat = dirX; const fw = dirZ;
+  p.rootRot = [fw * 0.32 * k, 0, -lat * 0.38 * k];
+  p.rootPivot = 0;
+  p.spine = [0.22 * k + max(0, -fw) * 0.15 * k, -lat * 0.2 * k, 0];
+  p.chest = [0.08 * k, -lat * 0.15 * k, 0];
+  p.head = [-0.1 * k, lat * 0.25 * k, lat * 0.2 * k];
+  // leading leg bends, trailing leg pushes off
+  const lead = lat >= 0 ? 'L' : 'R'; const trail = lead === 'L' ? 'R' : 'L';
+  const ls = lead === 'L' ? 1 : -1;
+  p[`th${lead}`] = [ls * (0.2 + abs(lat) * 0.35 * k), -1, 0.35 * k + fw * 0.3 * k];
+  p[`sh${lead}`] = [ls * 0.1, -1, -0.45 * k];
+  p[`th${trail}`] = [-ls * (0.15 + abs(lat) * 0.25 * k), -1, -0.25 * k - max(0, fw) * 0.2 * k];
+  p[`sh${trail}`] = [-ls * 0.1, -1, -0.15 * k];
+  p.uaL = [0.5 + lat * 0.2 * k, -0.6, 0.3]; p.uaR = [-0.5 + lat * 0.2 * k, -0.6, 0.3];
+  p.rootY = -0.22 * k;
   return p;
 }
 
