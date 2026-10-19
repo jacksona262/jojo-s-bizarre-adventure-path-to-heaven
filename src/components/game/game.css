@@ -187,3 +187,9 @@
   .pth-sub { font-size: 18px; }
   .pth-title-wrap { width: 86vw; right: 7vw; }
 }
+
+/* online party */
+.pth-input { background: rgba(8, 6, 4, 0.75); border: 1px solid rgba(216, 180, 90, 0.45); color: #f3e6c4; padding: 10px 12px; font-family: 'Cormorant Garamond', serif; font-size: 20px; outline: none; min-width: 0; }
+.pth-input:focus { border-color: #ffd34d; box-shadow: 0 0 0 1px rgba(255, 211, 77, 0.35); }
+.pth-online .pth-vs-card { min-height: 0; }
+@media (max-width: 640px) { .pth-online { padding: 14px !important; } .pth-online .pth-vs-card div:first-child { font-size: 10px !important; } }

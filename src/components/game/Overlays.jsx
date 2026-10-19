@@ -268,14 +268,20 @@ export function Results() {
   const game = g();
   const r = useUI((s) => s.versusResult);
   if (!r) return null;
-  const items = [
+  const leave = async (party) => { ui.set({ overlay: null }); game.overlayOpen = false; await game.toTitle(); if (party) ui.set({ screen: 'onlineLobby' }); else game.openVersusSelect(); };
+  const items = r.online ? [
+    ...(r.canRematch ? [{ label: r.waiting ? `Rematch · waiting for ${r.opponent || 'opponent'}…` : 'Rematch', fn: () => game.mode.rematch() }] : []),
+    { label: 'Leave Party', fn: () => leave(true) },
+    { label: 'Title Screen', fn: async () => { ui.set({ overlay: null }); game.overlayOpen = false; await game.fadeOut(0.5); game.toTitle(); } },
+  ] : [
     { label: 'Rematch', fn: () => game.mode.rematch() },
-    { label: 'Character Select', fn: async () => { ui.set({ overlay: null }); game.overlayOpen = false; await game.toTitle(); game.openVersusSelect(); } },
+    { label: 'Character Select', fn: () => leave(false) },
     { label: 'Title Screen', fn: async () => { ui.set({ overlay: null }); game.overlayOpen = false; await game.fadeOut(0.5); game.toTitle(); } },
   ];
+  const vs = r.online ? `vs ${r.opponent || 'Opponent'} · ` : '';
   return (
     <div className="pth-overlay">
-      <MenuList title={r.winner === 0 ? 'Victory' : 'Defeat'} sub={`${ROSTER[r.p1].name} ${r.wins[0]} – ${r.wins[1]} ${ROSTER[r.cpu].name} · Record ${r.record.wins}W ${r.record.losses}L`} items={items} />
+      <MenuList title={r.winner === 0 ? 'Victory' : 'Defeat'} sub={`${vs}${ROSTER[r.p1].name} ${r.wins[0]} – ${r.wins[1]} ${ROSTER[r.cpu].name} · ${r.online ? 'Online' : 'Record'} ${r.record.wins}W ${r.record.losses}L${r.note ? ` · ${r.note}` : ''}`} items={items} />
     </div>
   );
 }

@@ -9,6 +9,7 @@ import TitleMenu from './TitleMenu';
 import Hud from './Hud';
 import Minigames from './Minigames';
 import VersusSelect from './VersusSelect';
+import OnlineLobby from './OnlineLobby';
 import DevPanel from './DevPanel';
 import { PauseMenu, SettingsPanel, Journal, RegionMap, Upgrades, Saves, Death, Results, ChoiceNav } from './Overlays';
 
@@ -97,6 +98,7 @@ export default function GameRoot() {
       {game && (screen === 'game' || screen === 'versus') && <ChoiceNav />}
       {game && screen === 'title' && !overlay && <div className="pth-ui"><TitleMenu game={game} /></div>}
       {game && screen === 'versusSelect' && <div className="pth-ui"><VersusSelect game={game} /></div>}
+      {game && screen === 'onlineLobby' && <div className="pth-ui"><OnlineLobby game={game} /></div>}
       {game && screen === 'credits' && <Credits game={game} />}
       <div className="pth-ui">
         {game && overlay === 'pause' && <PauseMenu />}

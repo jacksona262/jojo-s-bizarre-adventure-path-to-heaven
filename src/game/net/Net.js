@@ -45,14 +45,16 @@ export class NetSession {
   }
 
   // ---------------------------------------------------------------- setup
-  static async host(name, onCode) {
+  static async host(name, { onCode, onSession } = {}) {
     const s = new NetSession('host', name);
+    onSession?.(s);
     s._bind(s.pc.createDataChannel('pth', { ordered: true }));
     await s.pc.setLocalDescription(await s.pc.createOffer());
     await gathered(s.pc);
     s.code = randomCode();
     const room = await rooms().create({ code: s.code, status: 'open', host_name: name, offer: JSON.stringify(s.pc.localDescription), version: NET_VERSION });
     s.roomId = room.id;
+    if (s.closed) { s._dropRoom(); throw new Error('cancelled'); }
     onCode?.(s.code);
     // wait for a guest's answer (realtime push when available, polling as the fallback)
     let unsub = null;

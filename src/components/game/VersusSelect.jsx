@@ -57,7 +57,10 @@ export default function VersusSelect({ game }) {
       <div className="pth-vs">
         <div className="pth-panel" style={{ padding: 22, minWidth: 0 }}>
           <div className="pth-h1">Versus</div>
-          <div style={{ fontFamily: 'Cinzel', letterSpacing: '0.2em', color: '#d8b45a', marginTop: 4 }}>{stage === 'p1' ? 'CHOOSE YOUR FIGHTER' : stage === 'cpu' ? 'CHOOSE THE CPU OPPONENT' : 'MATCH SETTINGS'} · RECORD {rec.wins}W {rec.losses}L</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginTop: 4 }}>
+            <div style={{ fontFamily: 'Cinzel', letterSpacing: '0.2em', color: '#d8b45a' }}>{stage === 'p1' ? 'CHOOSE YOUR FIGHTER' : stage === 'cpu' ? 'CHOOSE THE CPU OPPONENT' : 'MATCH SETTINGS'} · RECORD {rec.wins}W {rec.losses}L</div>
+            <button type="button" className="pth-btn active" onClick={() => { audio.play('uiSelect'); ui.set({ screen: 'onlineLobby' }); }}>Online Party · 1v1</button>
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))`, gap: 8, marginTop: 16 }}>
             {VERSUS_ROSTER.map((k, i) => {
               const r = ROSTER[k];
