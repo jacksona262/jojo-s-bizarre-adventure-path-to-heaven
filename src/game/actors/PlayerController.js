@@ -60,6 +60,9 @@ export class PlayerController {
       return;
     }
 
+    // climbing down from the saddle: no control until both feet are on the ground
+    if (f.pinned) { this._lock(realDt); return; }
+
     // ---------------------------------------------------------------- lock-on
     this._lock(realDt);
 
