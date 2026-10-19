@@ -116,8 +116,11 @@ export class Input {
   // Call once per frame before reading.
   update(dt) {
     this._pollPad();
+    // swap the two maps instead of allocating a new one every frame
+    const spare = this.prev;
     this.prev = this.cur;
-    this.cur = new Map();
+    this.cur = spare;
+    this.cur.clear();
     for (const [action, b] of Object.entries(BINDINGS)) {
       let v = false;
       for (const k of b.keys) if (this.keys.has(k)) v = true;
