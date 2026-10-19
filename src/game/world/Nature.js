@@ -167,8 +167,7 @@ function reedGeometry(seed) {
     parts.push(prep(colorize(g, [0.17, 0.16, 0.09], 0.2, rnd, 0.5)));
     if (rnd() < 0.5) {
       const head = new THREE.CylinderGeometry(0.05, 0.05, 0.22, 5);
-      head.translate(g.boundingBox ? 0 : 0, h * 0.9, 0);
-      head.translate((rnd() - 0.5) * 0.7, 0, (rnd() - 0.5) * 0.7);
+      head.translate((rnd() - 0.5) * 0.7, h * 0.9, (rnd() - 0.5) * 0.7);
       parts.push(prep(colorize(head, [0.16, 0.1, 0.06], 0.1, rnd)));
     }
   }
