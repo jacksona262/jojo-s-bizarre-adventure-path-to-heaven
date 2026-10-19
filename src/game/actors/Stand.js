@@ -111,4 +111,7 @@ export class Stand extends Character {
   }
 
   idlePose(t) { return Poses.standFloat(t, false); }
+
+  // Stands are placed by their anchor spring, not by physics.
+  _integrate() { this.moved = 0; this.onGround = true; }
 }
