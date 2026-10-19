@@ -222,7 +222,7 @@ export class Campaign {
       const ang = Math.atan2(d.x, d.z);
       const camFwd = Math.atan2(-Math.sin(cam.yaw), -Math.cos(cam.yaw));
       bearing = Math.atan2(Math.sin(ang - camFwd), Math.cos(ang - camFwd));
-      if (this.beacon) this.beacon.material.opacity = distance < 25 ? 0.05 : 0.18;
+      if (this.beacon) { this.beacon.visible = distance > 9; this.beacon.material.opacity = distance < 30 ? 0.07 : 0.18; }
     }
     const cur = ui.get().objective;
     if (!cur || cur.title !== o.title || cur.text !== o.text || cur.distance !== distance || Math.abs((cur.bearing ?? 0) - (bearing ?? 0)) > 0.03) {
