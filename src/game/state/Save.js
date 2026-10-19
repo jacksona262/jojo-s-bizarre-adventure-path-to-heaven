@@ -57,7 +57,7 @@ export const Save = {
   settings() {
     return {
       quality: 'high', master: 0.8, music: 0.55, sfx: 0.85, ambience: 0.7, sensitivity: 1, invertY: false,
-      subtitles: true, subtitleSize: 1, difficulty: 'normal', shake: 1, fov: 55, showFps: false,
+      subtitles: true, subtitleSize: 1, difficulty: 'normal', shake: 1, fov: 55, showFps: false, screenFx: 'full',
       ...(read('settings') || {}),
     };
   },
