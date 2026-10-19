@@ -119,7 +119,12 @@ export class Afterimages {
 
   update(dt) {
     let n = 0;
-    for (const s of this.sets.values()) n += s.update(dt);
+    for (const [actor, s] of this.sets) {
+      // an actor that has left the scene (removed by a mode or a quest) frees its pool
+      if (actor.group.parent) s.seen = true;
+      else if (s.seen) { s.dispose(); this.sets.delete(actor); continue; }
+      n += s.update(dt);
+    }
     this.active = n;
   }
 
