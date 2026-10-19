@@ -16,6 +16,7 @@ import { TitleScene } from './modes/TitleScene';
 import { Campaign } from './story/Campaign';
 import { VersusMode } from './modes/Versus';
 import { Character } from './actors/Character';
+import { prof } from './dev/Profiler';
 
 // Top-level orchestrator. One instance lives for the lifetime of the page.
 
@@ -262,28 +263,42 @@ export class Game {
     }
     this.clock += dt;
     this.time.update(realDt);
+    prof.begin('mode');
     if (this.mode?.update) this.mode.update(dt, realDt);
+    prof.end('mode');
 
+    prof.begin('actors');
     for (const a of this.actors) {
       if (a.kit) a.kit.update(a.isFrozen() && !this.time.allowed.has(a) ? 0 : dt);
       a.update(dt);
       if (a.stand) a.stand.update(dt);
     }
     if (this.horse) this.horse.update(dt);
+    prof.end('actors');
+    prof.begin('combat');
     this.combat.update(dt, realDt);
+    prof.end('combat');
     const camPos = this.engine.camera.position;
+    prof.begin('vfx');
     this.vfx.update(dt, realDt, camPos);
+    prof.end('vfx');
     if (this.world) {
       const focus = this.player ? this.player.pos : (this.title?.balcony || camPos);
+      prof.begin('world');
       this.world.update(dt, realDt, focus, camPos);
+      prof.end('world');
+      prof.begin('weather');
       this.weather.update(this.time.stopped || this._frozenWeather ? 0 : dt, realDt, focus);
+      prof.end('weather');
       const indoor = this.world.isIndoor(camPos);
       this.weather.rain.visible = !indoor && this.weather.rainIntensity > 0.05;
       if (indoor !== this._indoor) { this._indoor = indoor; audio.setWeather(indoor ? 0.35 : 1, indoor ? 0.2 : 0.8); }
       this.world.flash = this.weather.flash;
       this.engine.fx.uFlash.value = Math.max(this.engine.fx.uFlash.value * Math.exp(-realDt * 8), this.weather.flash * 0.05);
     }
+    prof.begin('camera');
     this.camera.update(dt, realDt, (this.inCinematic || this.overlayOpen) ? null : input);
+    prof.end('camera');
     this.seq.update(realDt);
     audio.tickMusic();
     audio.tickAmbience(this.engine.time);
