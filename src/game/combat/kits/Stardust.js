@@ -150,8 +150,57 @@ export class HierophantKit extends Kit {
     this.exposedUntil = 0;
   }
 
+  // An Emerald Splash shot: a faceted emerald with a white-hot core that tumbles in flight, trailing
+  // a green streak and droplets of Hierophant's glowing fluid, and shattering into shards on impact.
   gem(origin, dir, speed, dmg = 2) {
-    return this.combat.spawnProjectile({ owner: this.f, pos: origin, vel: dir.clone().normalize().multiplyScalar(speed), radius: 0.22, damage: dmg, stun: 0.12, knock: 0.6, life: 2.2, mesh: this.vfx.gem(0x30ff80), color: 0x40ff90, destructible: true, trail: (p, vfx) => { if (Math.random() < 0.4) vfx.glow.emit(p.pos, v3(), new THREE.Color(0x30ff80), 0.6, 0.25, 0.05, 0.25); } });
+    const mesh = this.vfx.gem(0x30ff80, 0.16 + Math.random() * 0.06);
+    const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.07, 0), new THREE.MeshBasicMaterial({ color: 0xeaffef }));
+    mesh.add(core);
+    const spin = v3(Math.random() * 12, Math.random() * 12, 0);
+    const vel = dir.clone().normalize().multiplyScalar(speed);
+    return this.combat.spawnProjectile({
+      owner: this.f, pos: origin, vel, radius: 0.22, damage: dmg, stun: 0.12, knock: 0.6, life: 2.2, mesh, color: 0x40ff90, destructible: true,
+      trail: (p, vfx) => {
+        mesh.rotation.x += spin.x * 0.016; mesh.rotation.y += spin.y * 0.016;
+        vfx.sparks.emit(p.pos, p.vel.clone().multiplyScalar(-0.15), EMERALD, 0.12, 0.05);
+        if (Math.random() < 0.5) vfx.glow.emit(p.pos, v3(0, -0.4, 0), EMERALD, 0.55, 0.22, 0.04, 0.3);
+      },
+      onExpire: (p) => {
+        this.vfx.sparkBurst(p.pos, EMERALD_HI, 6, 5);
+        this.vfx.burst(p.pos, EMERALD, 4, 2, 0.25, 0.25);
+      },
+    });
+  }
+
+  // Hierophant gathers the emerald fluid between its palms before a splash
+  chargeHands(dur = 0.45, power = 1) {
+    if (!this.stand) return;
+    const st = this.stand;
+    const p = st.chestWorld(new THREE.Vector3()).addScaledVector(st.forward ? st.forward() : this.f.forward(), 0.45);
+    this.vfx.ring(p, EMERALD, 1.4 * power, 0.15, dur, { vertical: true, face: this.vfx.cameraPos, alpha: 0.9 });
+    for (let i = 0; i < 18 * power; i += 1) {
+      const off = v3((Math.random() - 0.5) * 2.4, (Math.random() - 0.5) * 2.4, (Math.random() - 0.5) * 2.4).multiplyScalar(power);
+      this.vfx.glow.emit(p.clone().add(off), off.clone().multiplyScalar(-1 / dur), EMERALD, 0.8, 0.12, 0.3, dur);
+    }
+    this.vfx.aura(p, 0x30ff80, 0.5 * power);
+  }
+
+  // the moment of release: a green flash, a shock ring and a cone of spray
+  muzzle(origin, aim, power = 1) {
+    const d = aim.clone().normalize();
+    this.vfx.hitSpark(origin, 0x7dffb0, 1.6 * power, 0.16);
+    this.vfx.ring(origin, EMERALD, 0.2, 1.8 * power, 0.35, { vertical: true, face: origin.clone().add(d), alpha: 0.8 });
+    this.vfx.sparkBurst(origin, EMERALD_HI, Math.floor(16 * power), 14, d);
+    for (let i = 0; i < 10 * power; i += 1) this.vfx.glow.emit(origin, d.clone().multiplyScalar(6 + Math.random() * 6).add(v3((Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 3)), EMERALD, 0.7, 0.35, 0.05, 0.35);
+  }
+
+  // a rematch puts the arena back as it was: the barrier and its threads are taken down
+  resetFight() {
+    this._unsub?.(); this._unsub = null;
+    for (const n of this.nodes) { n.mesh.removeFromParent(); for (const t of n.threads || []) t.removeFromParent(); }
+    this.nodes = [];
+    this.f.damageTakenMul = 1;
+    this.exposedUntil = 0;
   }
 
   splash() {
@@ -161,11 +210,12 @@ export class HierophantKit extends Kit {
     const t = this.faceTarget(true);
     this.ensureStand();
     f.play({ name: 'splashCmd', dur: 0.7, upper: true, pose: (k) => Poses.point('R', k) });
-    this.stand.strike({ name: 'splash', dur: 0.7, pose: (k) => Poses.castBoth(k, 0.1), events: [{ t: 0.5, fn: () => {
+    this.stand.strike({ name: 'splash', dur: 0.7, pose: (k) => Poses.castBoth(k, 0.1), events: [{ t: 0.08, fn: () => this.chargeHands(0.3) }, { t: 0.5, fn: () => {
       const origin = this.stand.chestWorld(new THREE.Vector3());
       const aim = (t ? t.chestWorld(new THREE.Vector3()) : origin.clone().addScaledVector(f.forward(), 10)).sub(origin);
       const n = 8 + this.phase * 3;
       for (let i = 0; i < n; i += 1) this.gem(origin, aim.clone().applyAxisAngle(UP, (Math.random() - 0.5) * 0.9).add(v3(0, (Math.random() - 0.5) * 2.4, 0)), 18 + Math.random() * 6);
+      this.muzzle(origin, aim);
       audio.play('emerald');
       this.vfx.text(origin.clone().add(v3(0, 1, 0)), 'エメラルドスプラッシュ', '#3cff8a', 1.3, 0.7);
     } }] });
@@ -179,12 +229,16 @@ export class HierophantKit extends Kit {
     const t = this.faceTarget(true);
     this.ensureStand();
     this.vfx.aura(this.stand.chestWorld(new THREE.Vector3()), 0x30ff80, 0.8);
+    this.chargeHands(0.9, 1.6);
+    this.vfx.text(f.chestWorld(new THREE.Vector3()).add(v3(0, 1.1, 0)), 'くらえ', '#3cff8a', 1.1, 0.7);
     let shots = 0;
     f.play({ name: 'concCmd', dur: 1.9, pose: (k) => Poses.castBoth(Math.min(1, k * 2)), uninterruptible: false, tick: (self, k) => {
       if (k > 0.5 && shots < 20 && Math.random() < 0.7) {
         shots += 1;
         const origin = this.stand.chestWorld(new THREE.Vector3());
         const aim = (t ? t.chestWorld(new THREE.Vector3()) : origin.clone().addScaledVector(f.forward(), 10)).sub(origin);
+        if (shots === 1) this.muzzle(origin, aim, 1.4);
+        else if (shots % 3 === 0) this.vfx.hitSpark(origin, 0x7dffb0, 0.9, 0.08);
         this.gem(origin, aim.applyAxisAngle(UP, (Math.random() - 0.5) * 0.08), 30, 2.2);
         if (shots % 4 === 0) audio.play('emerald');
       }
@@ -202,8 +256,16 @@ export class HierophantKit extends Kit {
     b.y = this.game.world.groundAt(b.x, b.z, b.y + 2);
     this.vfx.warnLine(a, b, 1.4, 0.65, 0x30ff80);
     f.play({ name: 'tendrilCmd', dur: 0.9, upper: true, pose: (k) => Poses.point('L', k) });
+    // Hierophant unravels into ribbon-like tendrils that burrow and whip out along the ground
+    for (let i = 0; i < 6; i += 1) this.vfx.glow.emit(a.clone().add(v3((Math.random() - 0.5), 0.4, (Math.random() - 0.5))), v3(0, 1.2, 0), EMERALD, 0.6, 0.2, 0.05, 0.6);
     this.combat.addHazard(new Timer(0.65, () => {
-      this.vfx.vine(a.clone().add(v3(0, 0.3, 0)), b.clone().add(v3(0, 0.3, 0)), 0x36d070, 0.08, 1.4, 0.15, 0x0c4a20);
+      this.vfx.vine(a.clone().add(v3(0, 0.3, 0)), b.clone().add(v3(0, 0.3, 0)), 0x36d070, 0.08, 1.4, 0.15, 0x1c8a40);
+      this.vfx.vine(a.clone().add(v3(0.3, 0.2, 0)), b.clone().add(v3(-0.3, 0.5, 0.3)), 0x2fbf62, 0.05, 1.2, 0.18, 0x1c8a40);
+      for (let i = 0; i <= 8; i += 1) {
+        const q = a.clone().lerp(b, i / 8).add(v3(0, 0.35, 0));
+        this.vfx.sparks.emit(q, v3((Math.random() - 0.5) * 3, 2 + Math.random() * 2, (Math.random() - 0.5) * 3), EMERALD_HI, 0.3, 0.04);
+      }
+      this.vfx.ring(b.clone().add(v3(0, 0.1, 0)), EMERALD, 0.3, 1.8, 0.4);
       for (const e of this.combat.enemiesOf(f)) {
         if (distToSegment(e.pos, a, b) < 0.9) {
           this.combat.applyHit(e, f, { damage: 6, stun: 1.3, knock: 0, kind: 'special', color: 0x40ff90, noCounter: true });
@@ -234,9 +296,8 @@ export class HierophantKit extends Kit {
   }
 
   addThread(a, b) {
-    const geo = new THREE.BufferGeometry().setFromPoints([a, b]);
-    const mat = new THREE.LineBasicMaterial({ color: 0x50ff9a, transparent: true, opacity: 0.1 });
-    const line = new THREE.Line(geo, mat);
+    const line = threadMesh(a, b, 0.022);
+    const { geometry: geo, material: mat } = line;
     this.game.engine.scene.add(line);
     const th = { a, b, line, mat, life: 18 };
     const kit = this;
@@ -265,6 +326,10 @@ export class HierophantKit extends Kit {
   trapBurst(a, b) {
     const c = a.clone().add(b).multiplyScalar(0.5);
     audio.play('emerald');
+    // the thread snaps: a whip of sparks along it, then emeralds erupt from both anchors
+    for (let i = 0; i <= 10; i += 1) this.vfx.sparks.emit(a.clone().lerp(b, i / 10), v3((Math.random() - 0.5) * 4, 3 + Math.random() * 3, (Math.random() - 0.5) * 4), EMERALD_HI, 0.35, 0.05);
+    for (const end of [a, b]) { this.vfx.hitSpark(end.clone().add(v3(0, 0.5, 0)), 0x7dffb0, 1.4, 0.15); this.vfx.ring(end, EMERALD, 0.2, 2.2, 0.4); }
+    this.vfx.text(c.clone().add(v3(0, 1.4, 0)), 'ピシッ', '#3cff8a', 1, 0.6);
     for (const end of [a, b]) {
       for (let i = 0; i < 7; i += 1) this.gem(end.clone().add(v3(0, 0.6, 0)), c.clone().sub(end).add(v3((Math.random() - 0.5) * 2, Math.random() * 1.5, (Math.random() - 0.5) * 2)), 16, 4);
     }
@@ -278,15 +343,36 @@ export class HierophantKit extends Kit {
     f.play({ name: 'barrierCmd', dur: 1.2, pose: (k) => Poses.raiseArms(k) });
     this.vfx.text(f.chestWorld(new THREE.Vector3()).add(v3(0, 1.2, 0)), '半径20mエメラルドスプラッシュ', '#3cff8a', 2, 0.6);
     const center = f.pos.clone();
+    const scene = this.game.engine.scene;
+    // the 20 m Emerald Splash: Hierophant's threads are strung out to eight anchors around the
+    // arena and webbed between them; a severed anchor takes its threads down with it
+    this.vfx.ring(center.clone().add(v3(0, 0.15, 0)), EMERALD, 1, 17, 1.2, { alpha: 0.8 });
+    this.vfx.aura(f.chestWorld(new THREE.Vector3()), 0x30ff80, 1.6);
+    this.game.camera.shake(0.25);
+    const hub = f.chestWorld(new THREE.Vector3());
     for (let i = 0; i < 8; i += 1) {
       const a = (i / 8) * Math.PI * 2;
       const p = center.clone().add(v3(Math.cos(a) * 17, 0, Math.sin(a) * 17));
       p.y = this.game.world.groundAt(p.x, p.z, p.y + 3) + 1.4;
       const mesh = this.vfx.gem(0x30ff80, 0.45);
+      const halo = new THREE.Mesh(new THREE.SphereGeometry(0.8, 12, 8), new THREE.MeshBasicMaterial({ color: 0x30ff80, transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending, depthWrite: false }));
+      mesh.add(halo);
       mesh.position.copy(p);
-      this.game.engine.scene.add(mesh);
-      const node = { p, mesh, hp: 1, id: i };
+      scene.add(mesh);
+      const spoke = threadMesh(hub, p, 0.03); spoke.material.opacity = 0.35;
+      scene.add(spoke);
+      const node = { p, mesh, halo, hp: 1, id: i, threads: [spoke] };
       this.nodes.push(node);
+      this.vfx.sparkBurst(p, EMERALD_HI, 10, 6);
+    }
+    for (let i = 0; i < 8; i += 1) {
+      const n0 = this.nodes[i]; const n1 = this.nodes[(i + 1) % 8];
+      for (const dy of [0, -1.1]) {
+        const th = threadMesh(n0.p.clone().add(v3(0, dy, 0)), n1.p.clone().add(v3(0, dy, 0)), 0.025);
+        th.material.opacity = 0.45;
+        scene.add(th);
+        n0.threads.push(th); n1.threads.push(th);
+      }
     }
     // nodes behave as targets for DIO's strikes via a proxy check each frame
     const kit = this;
@@ -294,7 +380,14 @@ export class HierophantKit extends Kit {
       t: 0,
       update(dt) {
         this.t += dt;
-        for (const n of kit.nodes) n.mesh.rotation.y += dt * 2;
+        const pulse = 0.3 + 0.2 * Math.sin(this.t * 4);
+        for (const n of kit.nodes) {
+          n.mesh.rotation.y += dt * 2;
+          if (n.hp <= 0) continue;
+          n.halo.scale.setScalar(1 + 0.15 * Math.sin(this.t * 5 + n.id));
+          for (const th of n.threads) th.material.opacity = kit.game.time.stopped ? 0.9 : pulse + 0.15;
+          if (dt > 0 && Math.random() < 0.15) kit.vfx.glow.emit(n.p, v3((Math.random() - 0.5), 0.8, (Math.random() - 0.5)), EMERALD, 0.5, 0.2, 0.05, 0.6);
+        }
         // threads between neighbours
         if (dt > 0 && Math.floor(this.t / 3) !== Math.floor((this.t - dt) / 3)) {
           const alive = kit.nodes.filter((n) => n.hp > 0);
@@ -307,7 +400,7 @@ export class HierophantKit extends Kit {
         kit.f.damageTakenMul = kit.nodes.filter((n) => n.hp > 0).length >= 4 ? 0.45 : 1;
         return kit.nodes.every((n) => n.hp <= 0) || kit.f.dead;
       },
-      dispose() { for (const n of kit.nodes) n.mesh.removeFromParent(); kit.nodes = []; kit.f.damageTakenMul = 1; },
+      dispose() { for (const n of kit.nodes) { n.mesh.removeFromParent(); for (const t of n.threads) t.removeFromParent(); } kit.nodes = []; kit.f.damageTakenMul = 1; },
     });
     // strikes near a node destroy it
     this._unsub = this.combat.on((ev) => {
@@ -318,6 +411,15 @@ export class HierophantKit extends Kit {
         if (n.hp > 0 && Math.hypot(a.pos.x - n.p.x, a.pos.z - n.p.z) < 3.2) {
           n.hp = 0;
           this.vfx.burst(n.p, 0x30ff80, 20, 6, 0.4, 0.5);
+          this.vfx.sparkBurst(n.p, EMERALD_HI, 24, 12);
+          this.vfx.hitSpark(n.p, 0x7dffb0, 2, 0.16);
+          // its threads snap and fall away
+          for (const th of n.threads) {
+            if (!th.parent) continue;
+            const [p0, p1] = th.userData.ends;
+            for (let i = 0; i <= 6; i += 1) this.vfx.sparks.emit(p0.clone().lerp(p1, i / 6), v3(0, -1, 0), EMERALD_HI, 0.4, 0.04);
+            th.removeFromParent();
+          }
           audio.play('block');
           n.mesh.visible = false;
         }
