@@ -57,6 +57,7 @@ function BossPanel({ boss }) {
         </div>
       </div>
       <FgBar cls="boss" value={boss.hp} max={boss.hpMax} mirror />
+      {boss.poise != null && <FgBar cls={`poise ${boss.poise < 30 ? 'cracking' : ''}`} value={boss.poise} max={100} mirror ticks={1} />}
       <div className="pth-pips mirror">{[...Array(boss.phases || 1)].map((_, i) => <div key={i} className={`pth-pip ${i < boss.phase ? 'on' : ''}`} />)}</div>
     </div>
   );
@@ -157,6 +158,7 @@ export default function Hud() {
               </div>
               <FgBar cls={i ? 'boss' : 'hp'} value={p.hp} max={p.hpMax} mirror={i === 1} />
               <FgBar cls="en" value={p.energy} max={p.energyMax} ticks={4} mirror={i === 1} />
+              {i === 1 && p.poise != null && <FgBar cls={`poise ${p.poise < 30 ? 'cracking' : ''}`} value={p.poise} max={100} mirror ticks={1} />}
               <div className={`pth-fg-wins ${i ? 'mirror' : ''}`}>{[...Array(2)].map((_, k) => <span key={k} className={k < versus.wins[i] ? 'on' : ''}>✦</span>)}</div>
             </div>
           ))}
