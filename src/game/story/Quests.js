@@ -665,7 +665,7 @@ async function q9(c) {
       const pl = c.player;
       if (state === 'climb' && pl.pos.distanceTo(southEdge) < 16) {
         state = 'talk';
-        if (pl.mounted) pl.mounted.dismount();
+        if (pl.mounted) pl.mounted.dismount(true);
         g.horseForbidden = true;
         await talk(c, sw, Q.meet.slice(0, 1));
         await talk(c, enya, Q.meet.slice(1, 2));

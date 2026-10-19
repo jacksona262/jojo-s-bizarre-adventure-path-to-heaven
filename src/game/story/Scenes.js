@@ -101,7 +101,7 @@ export async function openingCinematic(game, seq, { player, horse, pucci, symbol
   await seq.say('', OPENING.ride[1][1], 5.2, SPEAKERS.NAR.color);
   await seq.wait(1.0);
   // the lone rider
-  horse.mount(player);
+  horse.mount(player, true);
   horse.pos.copy(R(215, 0, 0));
   horse.yaw = Math.PI;
   horse.state = 'scripted';
@@ -148,7 +148,7 @@ export async function openingCinematic(game, seq, { player, horse, pucci, symbol
   audio.play('click');
   // dismount
   horse.speed = 0;
-  horse.dismount();
+  horse.dismount(true);
   horse.state = 'idle';
   player.yaw = player.targetYaw = Math.PI;
   seq.place(player, R(66, -1.2, 0), Math.PI);

@@ -410,7 +410,7 @@ export class Campaign {
     this.encounter = { key, center, data, phaseHp: [], step: s };
     g.combatActive = true;
     this.clearObjective();
-    if (this.player.mounted) this.player.mounted.dismount();
+    if (this.player.mounted) this.player.mounted.dismount(true);
     this.horse.state = 'idle';
     const boss = await createFighter(g, key, { team: 1 });
     boss.hpMax = Math.round(boss.hpMax * (g.difficulty > 1 ? 1.15 : g.difficulty < 1 ? 0.75 : 1));
