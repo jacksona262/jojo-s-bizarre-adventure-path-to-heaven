@@ -639,8 +639,11 @@ export class World {
     if (!show) return;
     const dir = target.clone().sub(cam).normalize();
     const place = Math.min(dist, D);
+    // exaggerate the far silhouette so the sanctuary reads as a landmark from the start of the road
+    const boost = 1 + 2.6 * smoothstep(1500, 11000, dist);
     this.impostor.position.copy(cam).addScaledVector(dir, place);
-    this.impostor.scale.setScalar(place / dist);
+    this.impostor.position.y -= 40 * (boost - 1) * (place / dist);
+    this.impostor.scale.setScalar((place / dist) * boost);
     const vis = smoothstep(11500, 2500, dist);
     this.impostor.userData.setVisibility?.(vis, this.flash || 0);
   }
