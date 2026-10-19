@@ -11,6 +11,7 @@ import { preload, instantiate } from '../assets/AssetLibrary';
 import { BOSSES, TUTORIAL, SPEAKERS } from './Script';
 import { openingCinematic, journalCinematic, bossIntro, bossVictory, heavenCinematic, endingCinematic, sayLines } from './Scenes';
 import { QUEST_HANDLERS } from './Quests';
+import { Beacon } from '../vfx/Beacon';
 import * as Poses from '../anim/Poses';
 import { Restorable } from '../combat/kits/Diamond';
 
@@ -203,17 +204,12 @@ export class Campaign {
 
   placeBeacon(pos) {
     const g = this.game;
-    if (!this.beacon) {
-      const m = new THREE.MeshBasicMaterial({ color: 0xffd36a, transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending, depthWrite: false, fog: false });
-      this.beacon = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 120, 12, 1, true), m);
-      this.beacon.renderOrder = 3;
-      g.engine.scene.add(this.beacon);
-    }
+    if (!this.beacon) this.beacon = new Beacon(g.engine.scene);
     const y = g.world.groundAt(pos.x, pos.z, pos.y + 5);
-    this.beacon.position.set(pos.x, y + 60, pos.z);
+    this.beacon.setPosition(pos.x, y, pos.z);
   }
 
-  removeBeacon() { if (this.beacon) { this.beacon.removeFromParent(); this.beacon.geometry.dispose(); this.beacon = null; } }
+  removeBeacon() { if (this.beacon) { this.beacon.dispose(); this.beacon = null; } }
 
   _pubObjective() {
     const o = this.objectiveData;
@@ -226,7 +222,7 @@ export class Campaign {
       const ang = Math.atan2(d.x, d.z);
       const camFwd = Math.atan2(-Math.sin(cam.yaw), -Math.cos(cam.yaw));
       bearing = Math.atan2(Math.sin(ang - camFwd), Math.cos(ang - camFwd));
-      if (this.beacon) { this.beacon.visible = distance > 9; this.beacon.material.opacity = distance < 30 ? 0.07 : 0.18; }
+      this.beaconDist = distance;
     }
     const cur = ui.get().objective;
     if (!cur || cur.title !== o.title || cur.text !== o.text || cur.distance !== distance || Math.abs((cur.bearing ?? 0) - (bearing ?? 0)) > 0.03) {
@@ -792,6 +788,7 @@ export class Campaign {
     if (this.dead) return;
     this.ctrl?.update(dt, realDt);
     this.h?.update?.(dt, realDt);
+    this.beacon?.update(realDt, this.beaconDist);
     // Heaven DIO's overwrite marks on enemies
     void realDt;
     // horse whistle hint once
