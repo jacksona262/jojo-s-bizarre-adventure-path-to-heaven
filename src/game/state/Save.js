@@ -3,14 +3,18 @@
 
 const KEY = 'pth.v1';
 const VERSION = 1;
+// Dev / QA sessions (chapter jumps, ?step=...) keep their journey in a separate namespace so they
+// can never overwrite a player's real saves. Settings are shared.
+let sandbox = false;
+const ns = (k) => (sandbox && k.startsWith('save.') ? `${KEY}.dev.${k}` : `${KEY}.${k}`);
 
 function read(k) {
-  try { const s = localStorage.getItem(`${KEY}.${k}`); return s ? JSON.parse(s) : null; } catch { return null; }
+  try { const s = localStorage.getItem(ns(k)); return s ? JSON.parse(s) : null; } catch { return null; }
 }
 function write(k, v) {
-  try { localStorage.setItem(`${KEY}.${k}`, JSON.stringify(v)); return true; } catch { return false; }
+  try { localStorage.setItem(ns(k), JSON.stringify(v)); return true; } catch { return false; }
 }
-function remove(k) { try { localStorage.removeItem(`${KEY}.${k}`); } catch { /* storage unavailable */ } }
+function remove(k) { try { localStorage.removeItem(ns(k)); } catch { /* storage unavailable */ } }
 
 export function newProgress() {
   return {
@@ -33,6 +37,8 @@ export function newProgress() {
 
 export const Save = {
   slots: ['auto', 'slot1', 'slot2', 'slot3'],
+  setSandbox(on) { sandbox = !!on; },
+  get sandboxed() { return sandbox; },
   load(slot) {
     const d = read(`save.${slot}`);
     if (!d || d.version !== VERSION) return null;
