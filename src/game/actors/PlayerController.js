@@ -69,6 +69,8 @@ export class PlayerController {
     // ---------------------------------------------------------------- combat input
     const actionsVoid = f.actionsVoid;
     if (!actionsVoid) {
+      // time stop is never gated behind a rush, a guard or an attack's recovery
+      if (input.pressed('timestop') && (kit.rushing || f.guarding || f.busy())) kit.signature();
       kit.guard(input.down('guard') && !kit.rushing);
       if (input.pressed('dodge')) kit.dodge(mag > 0.1 ? move : null);
       if (input.down('rush') || kit.rushing) kit.rush(input.down('rush'), dt);
