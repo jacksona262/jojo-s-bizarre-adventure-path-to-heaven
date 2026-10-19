@@ -9,9 +9,14 @@ const SPRINT = 7.0;
 const _toT = new THREE.Vector3();
 
 export class PlayerController {
-  constructor(game, fighter, { allowHorse = true, allowInteract = true } = {}) {
+  // remote: driven by an online opponent's replicated input (a RemoteInput) instead of this
+  // machine's keyboard/pad; it keeps acting while the local player has a menu open, and it
+  // neither moves the local camera nor shows prompts.
+  constructor(game, fighter, { allowHorse = true, allowInteract = true, input = null, remote = false } = {}) {
     this.game = game;
     this.f = fighter;
+    this._input = input;
+    this.remote = remote;
     this.allowHorse = allowHorse;
     this.allowInteract = allowInteract;
     this.stepT = 0;
@@ -22,14 +27,16 @@ export class PlayerController {
     this.flickT = 0;
   }
 
-  get input() { return this.game.input; }
+  get input() { return this._input || this.game.input; }
+
+  basis() { return this.remote ? this._input.basis() : this.game.camera.basis(); }
 
   update(dt, realDt) {
     const g = this.game;
     const f = this.f;
     const input = this.input;
     const kit = f.kit;
-    if (!input || g.inCinematic || g.paused || g.overlayOpen) {
+    if (!input || g.inCinematic || (!this.remote && (g.paused || g.overlayOpen))) {
       if (kit?.rushing) kit.rush(false, dt);
       if (f.guarding) kit?.guard(false);
       f.steer(0, 0, dt);
@@ -41,7 +48,7 @@ export class PlayerController {
       if (input.pressed('timestop')) kit?.signature?.();
       return;
     }
-    const { f: cf, r: cr } = g.camera.basis();
+    const { f: cf, r: cr } = this.basis();
     const mx = input.axes.moveX; const my = input.axes.moveY;
     const move = new THREE.Vector3().addScaledVector(cr, mx).addScaledVector(cf, my);
     const mag = Math.min(1, move.length());
@@ -55,7 +62,7 @@ export class PlayerController {
       h.controls.steer = mx;
       h.controls.gallop = input.down('sprint');
       if (input.pressed('interact') && h.speed < 6) { h.dismount(); audio.play('step'); }
-      this._prompt(h.speed < 6 ? 'Dismount' : null, 'interact');
+      if (!this.remote) this._prompt(h.speed < 6 ? 'Dismount' : null, 'interact');
       this._lock(realDt);
       return;
     }
@@ -183,13 +190,13 @@ export class PlayerController {
       }
       if (sw) this._switchTarget(sw);
     } else input.wheel = 0;
-    g.camera.lock = f.lockTarget;
+    if (!this.remote) g.camera.lock = f.lockTarget;
   }
 
   // Best target: closest to the centre of the camera view, nearer ones preferred, visible only.
   _bestTarget(maxDist = 35, exclude = null) {
     const g = this.game; const f = this.f;
-    const { f: cf } = g.camera.basis();
+    const { f: cf } = this.basis();
     let best = null; let bs = -Infinity;
     for (const e of g.combat.enemiesOf(f)) {
       if (e === exclude) continue;
@@ -206,7 +213,7 @@ export class PlayerController {
   _switchTarget(dir) {
     const g = this.game; const f = this.f;
     const cur = f.lockTarget;
-    const { f: cf, r: cr } = g.camera.basis();
+    const { f: cf, r: cr } = this.basis();
     const angle = (e) => { const d = e.pos.clone().sub(f.pos).setY(0); return Math.atan2(d.dot(cr), d.dot(cf)); };
     const a0 = angle(cur);
     let best = null; let bd = Infinity;

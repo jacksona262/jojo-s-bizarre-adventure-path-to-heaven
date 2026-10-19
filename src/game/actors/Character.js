@@ -137,7 +137,11 @@ export class Character {
     this.hp = Math.max(0, this.hp - dmg);
     this.hitFlash = 0.12;
     if (this.onDamaged) this.onDamaged(dmg, attacker, hit);
-    if (this.hp <= 0) { this.die(attacker); return 'kill'; }
+    if (this.hp <= 0) {
+      // online guest: health and knockouts come from the host, so a local blow never kills
+      if (this.netShadow) this.hp = 1;
+      else { this.die(attacker); return 'kill'; }
+    }
     if (this.action?.def.armor && !hit.breaksArmor) return 'armored';
     // anti-stunlock: a burst of small hits stops interrupting after a few in quick succession
     const now = this.game.clock;

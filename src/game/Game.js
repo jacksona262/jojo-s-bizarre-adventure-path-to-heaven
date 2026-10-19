@@ -318,7 +318,8 @@ export class Game {
 
     if (this.slow) { this.slow.t -= realDt; if (this.slow.t <= 0) { this.slow = null; this.engine.timeScale = 1; } }
     this.screen.update(realDt);
-    if (this.paused) {
+    // (an online match can't be paused: the opponent keeps playing while your menu is open)
+    if (this.paused && !this.mode?.online) {
       this.camera.update(0, realDt, null);
       return;
     }
