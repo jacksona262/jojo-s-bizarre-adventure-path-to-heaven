@@ -31,13 +31,27 @@ export function ots(listener, speaker, side = 1, dist = 1.6) {
   return { pos: a.clone().addScaledVector(dir, -dist).addScaledVector(right, 0.7).add(V(0, 0.15, 0)), look: b };
 }
 
+// Front three-quarter close-up of the speaker (never blocked by the Stand floating behind them).
+export function closeUp(speaker, listener, side = 1, dist = 2.5) {
+  const head = speaker.jointWorld('head', new THREE.Vector3());
+  const toL = listener.pos.clone().sub(speaker.pos).setY(0);
+  if (toL.lengthSq() < 1e-4) toL.set(0, 0, 1);
+  toL.normalize();
+  const right = V(toL.z, 0, -toL.x).multiplyScalar(side);
+  const pos = speaker.pos.clone().addScaledVector(toL, dist).addScaledVector(right, dist * 0.42);
+  pos.y = head.y - 0.12;
+  return { pos, look: head.clone().add(V(0, -0.08, 0)) };
+}
+
 export async function conversation(seq, a, b, lines) {
-  // a = DIO usually; alternate shots by speaker
+  // a = DIO usually; close-ups alternate sides line by line
+  let n = 0;
   for (const [who, text] of lines) {
     const sp = SPEAKERS[who] || { name: who, color: '#fff' };
     const speakerIsA = who === 'DIO' || who === 'HEAVEN';
-    const s = speakerIsA ? ots(b, a, -1) : ots(a, b, 1);
-    seq.cut(s.pos, s.look, 38);
+    const s = speakerIsA ? closeUp(a, b, n % 2 ? 1 : -1) : closeUp(b, a, n % 2 ? -1 : 1);
+    n += 1;
+    seq.shot({ from: s.pos, to: s.pos.clone().lerp(s.look, 0.06), look: s.look, dur: Math.min(7, 2 + text.length * 0.045), fov: 36, ease: 'linear' });
     const target = speakerIsA ? a : b;
     const prev = target.override;
     target.override = (t) => Poses.talk(t, 1);
