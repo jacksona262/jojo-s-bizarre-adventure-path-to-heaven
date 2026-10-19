@@ -36,14 +36,36 @@ export function lerpPose(a, b, t, out = rest()) {
     o[2] = pa[2] + (pb[2] - pa[2]) * t;
   }
   out.rootY = (a.rootY || 0) + ((b.rootY || 0) - (a.rootY || 0)) * t;
+  lerpRoot(a, b, t, out);
   return out;
 }
 const ZERO = [0, 0, 0];
+const ZERO2 = [0, 0];
+
+// Whole-body channels: rootRot (Euler), rootOff ([x, z]), rootPivot, drop (0..1 of pelvis height).
+function lerpRoot(a, b, t, out) {
+  if (a.rootRot || b.rootRot) {
+    const pa = a.rootRot || ZERO; const pb = b.rootRot || ZERO;
+    const o = out.rootRot && out.rootRot !== pa && out.rootRot !== pb ? out.rootRot : (out.rootRot = [0, 0, 0]);
+    o[0] = pa[0] + (pb[0] - pa[0]) * t; o[1] = pa[1] + (pb[1] - pa[1]) * t; o[2] = pa[2] + (pb[2] - pa[2]) * t;
+  } else delete out.rootRot;
+  if (a.rootOff || b.rootOff) {
+    const pa = a.rootOff || ZERO2; const pb = b.rootOff || ZERO2;
+    out.rootOff = [pa[0] + (pb[0] - pa[0]) * t, pa[1] + (pb[1] - pa[1]) * t];
+  } else delete out.rootOff;
+  const pv = b.rootPivot ?? a.rootPivot;
+  if (pv !== undefined) out.rootPivot = pv; else delete out.rootPivot;
+  if (a.drop || b.drop) out.drop = (a.drop || 0) + ((b.drop || 0) - (a.drop || 0)) * t; else delete out.drop;
+}
 
 export function copyPose(a, out = rest()) {
   for (const k of LIMBS) out[k] = [a[k][0], a[k][1], a[k][2]];
   for (const k of EULERS) { if (a[k]) out[k] = [a[k][0], a[k][1], a[k][2]]; else delete out[k]; }
   out.rootY = a.rootY || 0;
+  if (a.rootRot) out.rootRot = [a.rootRot[0], a.rootRot[1], a.rootRot[2]]; else delete out.rootRot;
+  if (a.rootOff) out.rootOff = [a.rootOff[0], a.rootOff[1]]; else delete out.rootOff;
+  if (a.rootPivot !== undefined) out.rootPivot = a.rootPivot; else delete out.rootPivot;
+  if (a.drop) out.drop = a.drop; else delete out.drop;
   return out;
 }
 
@@ -56,6 +78,10 @@ export function mirror(p) {
   if (p.handR) o.handL = [p.handR[0], -p.handR[1], -p.handR[2]];
   if (p.handL) o.handR = [p.handL[0], -p.handL[1], -p.handL[2]];
   o.rootY = p.rootY || 0;
+  if (p.rootRot) o.rootRot = [p.rootRot[0], -p.rootRot[1], -p.rootRot[2]];
+  if (p.rootOff) o.rootOff = [-p.rootOff[0], p.rootOff[1]];
+  if (p.rootPivot !== undefined) o.rootPivot = p.rootPivot;
+  if (p.drop) o.drop = p.drop;
   return o;
 }
 
