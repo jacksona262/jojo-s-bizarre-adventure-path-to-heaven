@@ -343,8 +343,8 @@ export class Kit {
     audio.play('dodge');
     this.vfx.smokePuff(f.pos.clone().add(v3(0, 0.2, 0)), 0x3a342c, 4, 1, 0.8, 0.3);
     // a dodge leaves two fading afterimages along its path
-    this.vfx.afterimage(f, this.fx.ghost, { life: 0.3, alpha: 0.32 });
-    setTimeout(() => { if (!f.dead && f.action?.def.name === 'dodge') this.vfx.afterimage(f, this.fx.ghost, { life: 0.26, alpha: 0.24 }); }, 110);
+    this.vfx.afterimage(f, this.fx.ghost, { life: 0.3, alpha: 0.65 });
+    setTimeout(() => { if (!f.dead && f.action?.def.name === 'dodge') this.vfx.afterimage(f, this.fx.ghost, { life: 0.26, alpha: 0.45 }); }, 110);
     return true;
   }
 

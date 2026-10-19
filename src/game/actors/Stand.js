@@ -176,11 +176,11 @@ export class Stand extends Character {
     const sp = this.svel.length();
     this._ghostT = (this._ghostT ?? 0) - dt;
     if (a.def.rush) {
-      if (this._ghostT <= 0) { this._ghostT = 0.085; vfx.afterimage(this, col, { life: 0.16, alpha: 0.2 }); }
+      if (this._ghostT <= 0) { this._ghostT = 0.085; vfx.afterimage(this, col, { life: 0.16, alpha: 0.4 }); }
     } else if (this.mode === 'strike' && sp > (a.def.dashFx ? 4.5 : 7.5)) {
       if (this._ghostT <= 0) {
         this._ghostT = a.def.dashFx ? 0.045 : 0.075;
-        vfx.afterimage(this, col, { life: a.def.dashFx ? 0.24 : 0.18, alpha: a.def.dashFx ? 0.4 : 0.24 });
+        vfx.afterimage(this, col, { life: a.def.dashFx ? 0.24 : 0.18, alpha: a.def.dashFx ? 0.75 : 0.45 });
       }
       if (a.def.dashFx && this.user.kit?.onScreen) this.game.screen?.speedLines(0.32, this.chestWorld(_chest), 0.08);
     }
