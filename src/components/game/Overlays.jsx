@@ -75,6 +75,7 @@ export function SettingsPanel() {
         <Row label="Ambience"><Slider k="ambience" /></Row>
         <Row label="Look sensitivity"><Slider k="sensitivity" min={0.3} max={2.5} step={0.05} /></Row>
         <Row label="Invert look Y"><Seg k="invertY" opts={[false, true]} /></Row>
+        <Row label="Screen effects"><Seg k="screenFx" opts={['full', 'reduced', 'off']} /></Row>
         <Row label="Show FPS"><Seg k="showFps" opts={[false, true]} /></Row>
         <div className="pth-h2" style={{ marginTop: 18 }}>Controls</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '4px 18px', fontSize: 15, marginTop: 8 }}>
