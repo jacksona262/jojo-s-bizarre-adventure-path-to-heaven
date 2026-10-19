@@ -1,5 +1,9 @@
 // Campaign saves (auto checkpoint + 3 manual slots) and settings in localStorage.
 // Versus mode never reads or writes campaign data.
+// Saves must survive game updates: the storage key never changes, older (or newer) save formats
+// are migrated instead of discarded, missing fields fall back to defaults, the story position is
+// also stored by step id (so new chapters can be inserted), and every slot keeps a backup of its
+// previous save in case a write is interrupted.
 
 const KEY = 'pth.v1';
 const VERSION = 1;
@@ -10,6 +14,24 @@ const ns = (k) => (sandbox && k.startsWith('save.') ? `${KEY}.dev.${k}` : `${KEY
 
 function read(k) {
   try { const s = localStorage.getItem(ns(k)); return s ? JSON.parse(s) : null; } catch { return null; }
+}
+const isSave = (d) => !!d && typeof d === 'object' && typeof d.step === 'number';
+// bring any saved progress up to the current format
+function migrate(d) {
+  const base = newProgress();
+  const out = { ...base, ...d, version: VERSION };
+  out.upgrades = { ...base.upgrades, ...(d.upgrades || {}) };
+  out.sub = d.sub && typeof d.sub === 'object' ? d.sub : {};
+  out.flags = d.flags && typeof d.flags === 'object' ? d.flags : {};
+  for (const k of ['clues', 'defeated']) out[k] = Array.isArray(d[k]) ? d[k] : [];
+  out.step = Math.max(0, Math.floor(d.step || 0));
+  return out;
+}
+function readSave(slot) {
+  const main = read(`save.${slot}`);
+  if (isSave(main)) return main;
+  const bak = read(`save.${slot}.bak`);
+  return isSave(bak) ? bak : null;
 }
 function write(k, v) {
   try { localStorage.setItem(ns(k), JSON.stringify(v)); return true; } catch { return false; }
@@ -40,19 +62,20 @@ export const Save = {
   setSandbox(on) { sandbox = !!on; },
   get sandboxed() { return sandbox; },
   load(slot) {
-    const d = read(`save.${slot}`);
-    if (!d || d.version !== VERSION) return null;
-    return { ...newProgress(), ...d, upgrades: { ...newProgress().upgrades, ...(d.upgrades || {}) } };
+    const d = readSave(slot);
+    return d ? migrate(d) : null;
   },
   save(slot, progress) {
-    const d = { ...progress, savedAt: Date.now() };
+    const prev = read(`save.${slot}`);
+    if (isSave(prev)) write(`save.${slot}.bak`, prev);
+    const d = { ...progress, version: VERSION, savedAt: Date.now() };
     return write(`save.${slot}`, d);
   },
-  remove(slot) { remove(`save.${slot}`); },
+  remove(slot) { remove(`save.${slot}`); remove(`save.${slot}.bak`); },
   list() {
     return this.slots.map((s) => {
-      const d = read(`save.${s}`);
-      return { slot: s, data: d && d.version === VERSION ? d : null };
+      const d = readSave(s);
+      return { slot: s, data: d ? migrate(d) : null };
     });
   },
   latest() {
