@@ -103,7 +103,7 @@ export default function AnimLab() {
     }).catch((e) => setInfo(`load error: ${e.message}`));
 
     const clock = new THREE.Clock();
-    let t = 0; let path = 0; let yaw = 0; let animT = 0; let lastAnim = ''; let infoT = 0;
+    let t = 0; let yaw = 0; let animT = 0; let lastAnim = ''; let infoT = 0;
     const tick = () => {
       if (disposed) return;
       requestAnimationFrame(tick);
@@ -114,7 +114,7 @@ export default function AnimLab() {
       if (c?.anim) {
         const name = S.current.anim;
         if (name !== lastAnim) {
-          lastAnim = name; animT = 0; path = 0; yaw = 0;
+          lastAnim = name; animT = 0; yaw = 0;
           c.dead = false; c.knockdown = 0; c.action = null; c.guarding = false; c.floating = isStand || name.startsWith('float');
           c.pos.set(0, 0, 0); c.vel.set(0, 0, 0); c.anim.prevPos.copy(c.pos); c.anim.reaction = null; c.anim.launched = false;
           c.anim.gait.reset();
