@@ -31,15 +31,20 @@ export class TitleScene {
     g.engine.scene.add(m.group);
     this.lights = m.lights.map((l) => world.registerLight(l));
     this.balcony = m.balcony;
-    this.dio = await instantiate('dioHome');
+    // models go inside holders: the rig owns each model's local y (ground offset)
+    const dioModel = await instantiate('dioHome');
+    this.dio = new THREE.Group();
+    this.dio.add(dioModel);
     this.dio.position.copy(this.balcony);
     this.dio.rotation.y = Math.PI; // facing north, away from the doorway
     g.engine.scene.add(this.dio);
-    this.rig = this.dio.userData.rig;
-    this.stand = await instantiate('theWorld');
+    this.rig = dioModel.userData.rig;
+    const standModel = await instantiate('theWorld');
+    this.stand = new THREE.Group();
+    this.stand.add(standModel);
     this.stand.visible = false;
     g.engine.scene.add(this.stand);
-    this.standRig = this.stand.userData.rig;
+    this.standRig = standModel.userData.rig;
     this.faceLight = new THREE.SpotLight(0xdfe8ff, 0, 12, 0.5, 0.6, 1.2);
     g.engine.scene.add(this.faceLight);
     g.engine.scene.add(this.faceLight.target);
