@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { audio } from '../core/Audio';
+import { Atmosphere } from './Atmosphere';
 
 // Permanent stormy night: sky dome, moon, clouds, lightning, rain, fog and lights.
 // Simulation time (sim) halts during a time stop: rain hangs in the air, clouds freeze.
@@ -149,11 +150,14 @@ export class Weather {
     this.enabled = true;
     this.strikeRate = 1;
     this.heaven = 0;
+    this.atmo = new Atmosphere(scene);
+    this.atmo.onQuality(this.engine.quality || 'high');
   }
 
   setRegion(region) {
     const dens = { hollow: 0.009, gravewater: 0.008, rift: 0.006, heaven: 0.0052, bleak: 0.005, redstone: 0.0042, ember: 0.0036, ebon: 0.0042, iron: 0.0048 };
     this.fogTarget = dens[region?.id] ?? 0.0045;
+    this.atmo.setRegion(region?.id);
   }
 
   // Strike lightning now; optional world position for a visible bolt.
@@ -203,6 +207,7 @@ export class Weather {
     this.rain.visible = this.rainIntensity > 0.05;
     const f = this.engine.scene.fog;
     f.density += (this.fogTarget - f.density) * Math.min(1, realDt * 0.5);
+    this.atmo.update(simDt, realDt, cam);
 
     // lightning (pauses during time stop)
     if (this.enabled && simDt > 0) {
@@ -240,6 +245,7 @@ export class Weather {
   }
 
   onQuality(s) {
+    this.atmo.onQuality(this.engine.quality);
     this.moon.shadow.mapSize.set(s.shadows, s.shadows);
     if (this.moon.shadow.map) { this.moon.shadow.map.dispose(); this.moon.shadow.map = null; }
   }
