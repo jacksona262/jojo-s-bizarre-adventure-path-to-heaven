@@ -107,6 +107,11 @@ function gothicPortal(b, f) {
       const dx = -s * hw; const dy = peak - spring;
       const len = Math.hypot(dx, dy);
       b.box('gothic', f, s * hw + dx / 2, spring + dy / 2, z, t, len, 0.9, 0, 0, Math.atan2(-dx, dy));
+      // a thin gold edge on the innermost arch so the pointed outline reads in the dark
+      if (k === 0) {
+        b.box('glassGold', f, s * (hw - t / 2 - 0.05), spring / 2, z + 0.5, 0.12, spring, 0.1);
+        b.box('glassGold', f, s * (hw - t / 2 - 0.05) + dx / 2, spring + dy / 2, z + 0.5, 0.12, len, 0.1, 0, 0, Math.atan2(-dx, dy));
+      }
     }
   }
   // tympanum glow above the doors, and a thin gold trim on the lintel
