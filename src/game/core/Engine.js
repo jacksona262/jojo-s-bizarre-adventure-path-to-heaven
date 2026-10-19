@@ -231,18 +231,47 @@ export class Engine {
     for (const s of this.systems) if (s.onQuality) s.onQuality(this.settings);
   }
 
-  resize() {
+  // Full quality resolution for the preset (the dynamic-resolution ceiling).
+  get maxPixelRatio() { return Math.min(window.devicePixelRatio || 1, this.settings.pixelRatio); }
+
+  resize(pr = this.maxPixelRatio) {
     const w = this.parent.clientWidth || window.innerWidth;
     const h = this.parent.clientHeight || window.innerHeight;
-    const pr = Math.min(window.devicePixelRatio || 1, this.settings.pixelRatio);
+    this.pr = pr;
     this.renderer.setPixelRatio(pr);
     this.renderer.setSize(w, h, false);
     this.composer.setPixelRatio(pr);
     this.composer.setSize(w, h);
-    this.bloom.setSize(Math.floor(w * pr / 2), Math.floor(h * pr / 2));
+    // Bloom is a wide blur: rendering it above ~1.25x CSS resolution costs up to 4x the fill rate
+    // for no visible difference, so it is capped there (and so looks the same on every preset).
+    const bpr = Math.min(pr, 1.25);
+    this.bloom.setSize(Math.floor(w * bpr / 2), Math.floor(h * bpr / 2));
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.fx.uRes.value.set(w * pr, h * pr);
+  }
+
+  // Dynamic resolution: render at the preset's full pixel ratio whenever the machine keeps up, and
+  // only when frames run long (big fights, time stops, heavy effects) ease the internal resolution
+  // down in small steps, climbing back as soon as there is headroom. Ultra stays Ultra; it just
+  // never stutters to hold a resolution the GPU cannot sustain at that moment.
+  _dynamicRes(raw) {
+    const d = this.dyn || (this.dyn = { ema: 16.7, slow: 0, fast: 0, cool: 2 });
+    if (document.visibilityState !== 'visible' || raw <= 0 || raw >= 0.1) return;
+    const ms = raw * 1000;
+    d.ema += (ms - d.ema) * 0.06;
+    d.cool -= raw;
+    const max = this.maxPixelRatio;
+    const min = Math.max(1, max * 0.62);
+    if (d.ema > 19.5) { d.slow += raw; d.fast = 0; } else if (d.ema < 15.5) { d.fast += raw; d.slow = 0; } else { d.slow = 0; d.fast = 0; }
+    if (d.cool > 0) return;
+    if (d.slow > 0.6 && this.pr > min + 0.01) {
+      this.resize(Math.max(min, +(this.pr * 0.88).toFixed(3)));
+      d.slow = 0; d.cool = 1.2;
+    } else if (d.fast > 3 && this.pr < max - 0.01) {
+      this.resize(Math.min(max, +(this.pr * 1.08).toFixed(3)));
+      d.fast = 0; d.cool = 2;
+    }
   }
 
   add(system) { this.systems.push(system); return system; }
@@ -277,6 +306,7 @@ export class Engine {
     prof.gpuBegin();
     this.composer.render(raw);
     prof.gpuEnd();
+    if (this.dynamicResolution !== false) this._dynamicRes(raw);
     prof.end('render');
     prof.frame(raw * 1000);
     this.cpuMs = performance.now() - t0;
