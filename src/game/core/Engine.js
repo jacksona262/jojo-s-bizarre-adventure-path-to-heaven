@@ -42,18 +42,18 @@ const FinalShader = {
     uniform float uExposure;
     varying vec2 vUv;
     // three.js ACESFilmicToneMapping + sRGB transfer, identical to OutputPass
-    vec3 RRTAndODTFit(vec3 v){ vec3 a = v * (v + 0.0245786) - 0.000090537; vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081; return a / b; }
-    vec3 aces(vec3 color){
+    vec3 pthRRT(vec3 v){ vec3 a = v * (v + 0.0245786) - 0.000090537; vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081; return a / b; }
+    vec3 pthAces(vec3 color){
       const mat3 ACESInputMat = mat3(vec3(0.59719, 0.07600, 0.02840), vec3(0.35458, 0.90834, 0.13383), vec3(0.04823, 0.01566, 0.83777));
       const mat3 ACESOutputMat = mat3(vec3(1.60475, -0.10208, -0.00327), vec3(-0.53108, 1.10813, -0.07276), vec3(-0.07367, -0.00605, 1.07602));
       color *= uExposure / 0.6;
       color = ACESInputMat * color;
-      color = RRTAndODTFit(color);
+      color = pthRRT(color);
       color = ACESOutputMat * color;
       return clamp(color, 0.0, 1.0);
     }
-    vec3 toSRGB(vec3 c){ return mix(pow(c, vec3(0.41666)) * 1.055 - vec3(0.055), c * 12.92, vec3(lessThanEqual(c, vec3(0.0031308)))); }
-    vec3 display(vec3 hdr){ return toSRGB(aces(hdr)); }
+    vec3 pthSRGB(vec3 c){ return mix(pow(c, vec3(0.41666)) * 1.055 - vec3(0.055), c * 12.92, vec3(lessThanEqual(c, vec3(0.0031308)))); }
+    vec3 display(vec3 hdr){ return pthSRGB(pthAces(hdr)); }
     float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898,78.233))) * 43758.5453); }
     float noise(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
       return mix(mix(hash(i),hash(i+vec2(1,0)),f.x), mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x), f.y); }
