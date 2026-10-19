@@ -117,17 +117,3 @@ export function portrait(key) {
   }
   return cache.get(key);
 }
-
-export function portraitNow(key) {
-  const p = cache.get(key);
-  return p && p.done ? p.value : null;
-}
-
-// mark settled promises so synchronous readers can use them
-const _origPortrait = portrait;
-export function warmPortraits(keys) {
-  for (const k of keys) {
-    const p = _origPortrait(k);
-    if (!p.tracked) { p.tracked = true; p.then((v) => { p.done = true; p.value = v; }); }
-  }
-}
