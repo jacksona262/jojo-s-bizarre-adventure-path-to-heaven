@@ -59,6 +59,9 @@ export const WORLD = {
 
 export const SANCTUARY = { x: 0, z: -SPACING * 8 - 220, y: 0 }; // y filled in from terrain
 
+// Title-screen mansion on the southern slope above Ebon Crossing (x resolved from the road).
+export const MANSION = { side: -34, z: 236, x: 0, y: 0 };
+
 export function regionAt(z) {
   let best = REGIONS[0];
   let bd = Infinity;
