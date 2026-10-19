@@ -35,7 +35,6 @@ function PlayerPanel({ hud }) {
           <div className="pth-fg-name" style={{ color: heaven ? '#fff2c8' : '#ffd34d' }}>{heaven ? 'DIO · HEAVEN' : 'DIO'}</div>
           <div className="pth-fg-stand">{heaven ? 'THE WORLD OVER HEAVEN' : 'THE WORLD'}<span className={`pth-fg-standon ${hud.stand ? 'on' : ''}`}>{hud.stand ? 'STAND ✦' : 'STAND ·'}</span></div>
         </div>
-        <TsRing ts={hud.ts} dur={hud.tsDur} heaven={heaven} />
       </div>
       <FgBar cls="hp" value={hud.hp} max={hud.hpMax} />
       <FgBar cls="en" value={hud.energy} max={hud.energyMax} ticks={4} />
@@ -142,6 +141,7 @@ export default function Hud() {
   return (
     <div className={`pth-ui ${letterbox ? 'pth-letterbox' : ''}`}>
       {showHud && !versus && <PlayerPanel hud={hud} />}
+      {showHud && hud.ts != null && <div className="pth-ts-corner"><TsRing ts={hud.ts} dur={versus ? 0 : hud.tsDur} heaven={hud.heaven} /></div>}
       {showHud && <LockReticle />}
       {showHud && <ComboCounter combo={combo} />}
       {showHud && versus && (
@@ -154,7 +154,6 @@ export default function Hud() {
                   <div className="pth-fg-name" style={{ color: p.color }}>{p.name}</div>
                   <div className="pth-fg-stand">{p.stand}{p.overwritten ? ' · OVERWRITTEN' : ''}</div>
                 </div>
-                {i === 0 && hud && hud.ts != null && <TsRing ts={hud.ts} dur={0} />}
               </div>
               <FgBar cls={i ? 'boss' : 'hp'} value={p.hp} max={p.hpMax} mirror={i === 1} />
               <FgBar cls="en" value={p.energy} max={p.energyMax} ticks={4} mirror={i === 1} />
