@@ -148,7 +148,7 @@ export class TitleScene {
     // camera: behind him and a touch to his left, so more of the raised arm's side of the back shows.
     // DIO sits on the left of wide screens (the menu is on the right); portrait screens centre him.
     const aspect = g.engine.camera.aspect || 1.6;
-    const portrait = aspect < 0.85;
+    const portrait = aspect <= 0.8;   // matches the CSS (max-aspect-ratio: 4/5) menu layout
     // on any landscape screen he keeps the same share of the width, so the right ~44% (the menu
     // column) stays clear; portrait screens centre him behind the overlaid menu
     const sx = portrait ? 0.5 : C.screenX;
