@@ -78,7 +78,7 @@ export class TitleScene {
     this.face = new THREE.SpotLight(0xd8e0ff, 20, 10, 0.2, 0.85, 1.5);
     this.face.position.set(0.7, 2.25, 1.5);
     s.add(this.face, this.face.target);
-    this.hairGlow = new THREE.PointLight(0xffd27a, 2.2, 2.2, 2);
+    this.hairGlow = new THREE.PointLight(0xffd27a, 1.1, 2.2, 2);
     s.add(this.hairGlow);
 
     // backlight halo and a low, dark floor haze
@@ -178,7 +178,7 @@ export class TitleScene {
       const head = rig.jointWorld('head', _v);
       const fx = Math.sin(this.dio.yaw); const fz = Math.cos(this.dio.yaw);
       const rx = -fz; const rz = fx;   // character's right
-      _v2.set(head.x + rx * 0.1 + fx * 0.07, head.y + 0.02 + Math.sin(t * 0.9) * 0.006, head.z + rz * 0.1 + fz * 0.07);
+      _v2.set(head.x + rx * 0.09 + fx * 0.1, head.y + 0.08 + Math.sin(t * 0.9) * 0.006, head.z + rz * 0.09 + fz * 0.1);
       rig.reach('R', 'arm', _v2, 1, new THREE.Vector3(-0.8, -0.45, -0.25));
     }
 
@@ -203,7 +203,7 @@ export class TitleScene {
     this.face.target.position.copy(head);
     this.hairGlow.position.set(head.x - 0.15, head.y + 0.35, head.z - 0.25);
     const storm = Math.max(0, Math.sin(t * 0.31) * Math.sin(t * 1.7 + 2)) ** 6;
-    this.rim.intensity = 95 + storm * 120 + (this.hover === 'new' || this.hover === 'continue' ? 25 * this.hoverK : 0);
+    this.rim.intensity = 78 + storm * 110 + (this.hover === 'new' || this.hover === 'continue' ? 25 * this.hoverK : 0);
     this.face.intensity = 16 + (this.hover === 'load' ? 10 * this.hoverK : 0);
     this.halo.material.opacity = 0.8 + storm * 0.4;
 
