@@ -51,6 +51,8 @@ export class Game {
     let devFlag = false;
     try { devFlag = localStorage.getItem('pth.dev') === '1'; } catch { /* storage blocked */ }
     this.dev = qsDev.has('dev') || qsDev.has('arena') || devFlag;
+    // dev and QA sessions never touch the player's real saves
+    Save.setSandbox(this.dev || qsDev.has('step') || qsDev.has('qa'));
     this.debugDraw = new DebugDraw(this.engine.scene);
     this.devHitboxes = false;
     // combo counter for the HUD: consecutive blows the player lands without being hit back
