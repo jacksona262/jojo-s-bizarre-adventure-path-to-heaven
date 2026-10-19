@@ -117,6 +117,12 @@ export class VersusMode {
   async onKO(winner) {
     const g = this.game;
     if (this.state !== 'fight') return;
+    // dev combat arena: no rounds, the fallen fighter simply gets back up
+    if (this.sel.dev) {
+      const f = winner === 0 ? this.p2 : this.p1;
+      setTimeout(() => { f.revive(f.hpMax); f.energy = f.energyMax; }, 1200);
+      return;
+    }
     this.state = 'ko';
     this.brain.enabled = false;
     g.slowMo(0.25, 1.5);
@@ -161,7 +167,7 @@ export class VersusMode {
         if (d > 30) { const k = 30 / d; f.pos.x = this.center.x + (f.pos.x - this.center.x) * k; f.pos.z = this.center.z + (f.pos.z - this.center.z) * k; }
         if (f.pos.y < this.center.y - 10) { f.pos.copy(this.center); this.game.combat.applyHit(f, f === this.p1 ? this.p2 : this.p1, { damage: 20, kind: 'special', unblockable: true, noCounter: true }); }
       }
-      if (this.state === 'fight') {
+      if (this.state === 'fight' && !this.sel.dev) {
         this.timer -= realDt;
         if (this.timer <= 0) {
           const w = this.p1.hp / this.p1.hpMax >= this.p2.hp / this.p2.hpMax ? 0 : 1;
