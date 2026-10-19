@@ -91,3 +91,92 @@ Load: title interactive ≈ 7.7 s after navigation (whole world built before the
 - No line-of-sight test: hits pass through walls. Facing is not snapped before attacks.
 - Knockdown keeps the body upright (no root rotation), no get-up.
 - Hair and coats are rigid even on rigs that have hair bones.
+
+## 3. V2 results (recorded 2026-10-19 after Phases 1–9)
+
+Same environment as the baseline: Claude desktop preview browser, Chrome 152 / ANGLE Metal, Apple M4,
+viewport 686×715 CSS px, DPR 2, render pixel ratio 1.25, quality "high", vsync 60 Hz. Same profiler (`?prof`).
+Frame-interval numbers are capped by vsync on this machine; CPU time and spikes are the meaningful deltas.
+Weaker GPUs were **not** available for testing.
+
+| Scenario | avg ms | p95 | p99 | spikes >33 ms | CPU avg (max) | draw calls | triangles | programs | V1 for comparison |
+|---|---|---|---|---|---|---|---|---|---|
+| Title (new DIO homepage scene) | 16.58 | 18.7 | 18.8 | 0 | 1.68 (3.2) ms | 25 | 11k | 43 | 108 calls · 296k tris · 77 programs |
+| Ebon town idle (main street) | 16.67 | 18.6 | 18.7 | 0 | 3.46 (4.4) ms | 156 | 255k | 91 | 155 · 372k · 88 |
+| Gallop 15 m/s, 20 s (z 0 → −227) | 16.64 | 18.0 | 18.5 | **0** (max 17.5 ms) | 2.78 (3.5) ms | 138 | 278k | **89 (flat)** | **5 spikes 115–134 ms**, programs 88 → 195 |
+| Empty wilderness, heavy rain (Ember Flats, off-road) | 16.68 | 18.0 | 18.5 | 0 | 3.96 (4.3) ms | 144 | 368k | 89 | – |
+| Avdol fight 22 s (3 rushes, 2 time stops, 55 hits) | 16.67 | 17.9 | 18.2 | 1 | 2.88 (3.1) ms | 170 | 251k | 104 | 141 · 417k · 116 · 1 spike · 3.0 ms |
+| Finale vs Jotaro 22 s, Heaven DIO (6 impact frames, 10 shockwaves) | 16.66 | 18.6 | 18.7 | 1 | 2.81 (14.5) ms | 101 | 192k | 104 | – |
+| Extended run 159 s (1 km gallop + 60 s fight) | 60 fps every sample | – | – | – | – | – | – | 89 → 103 when Jotaro loads, then flat | – |
+
+Memory: the GLTF cache kept each file's parser (raw .glb buffer, JSON, dependency caches) for the whole
+session. Dropping it after load cut the settled town heap from 412–429 MB to 241–261 MB (total heap
+462 → 310 MB). It is still above V1's 151 MB because V2 keeps more character templates resident; the heap does
+not grow over a 159 s session (277–294 MB after GC). Load: title interactive at 7.2 s (V1 7.7 s).
+
+## 4. Complete gameplay loop (spec 9.2) — all 21 steps run in the browser
+
+Steps 1–15 ran as one continuous playthrough from a fresh New Game (inputs synthesized as key/mouse events,
+QA saves sandboxed). Later beats used the `?step=` shortcut and the dev QA harness (`window.__qa`).
+
+| # | Step | Result / evidence |
+|---|---|---|
+| 1–2 | Launch, homepage | title in 7.2 s, menu complete, no console errors |
+| 3–4 | New Game, opening cinematic | 42 s directed sequence (establishing, tracking ride, hoof close-up, town, Pucci) |
+| 5–6 | Control, move/sprint/dodge | run 4.4 m/s in 0.1 s, sprint 7.0 m/s, stop in 0.1 s, dodge 3.6 m |
+| 7–9 | Summon, light/heavy, rush | jabL→jabR→hookL→uppercutR, heavyR, 1.2 s rush + finisher |
+| 10 | Time stop | locked in the prologue by design; 2 stops in the Avdol fight, queued hits released |
+| 11 | Fight Avdol | won by the scripted player (one death + Retry), 60 fps, 7 staggers |
+| 12 | Quest | q1 complete: Speedwagon talk + choice, 3 camps, report → clue + fragment |
+| 13–14 | Ride Slow Dancer, cross regions | 393 m in 38 s, gallop 15 m/s; Ebon → Ember at z −702 |
+| 15 | Save & reload | slot 1 → Quit → Load: same step, position, flags, fragments |
+| 16 | Later bosses | Kakyoin, Diavolo (Epitaph, 2 time erasures), Pucci triggered and fought |
+| 17 | Heaven DIO | heaven cinematic, player becomes dioHeaven |
+| 18 | Final encounter | Jotaro (760 HP) defeated by Heaven DIO in 65 s, no errors |
+| 19–20 | Ending, homepage | ending cinematic → credits → title automatically |
+| 21 | Versus | DIO vs Avdol, best of three to the results screen (CPU won 2–1), record saved |
+
+## 5. Regression combinations (spec 9.3)
+
+| Combination | Result |
+|---|---|
+| Time stop with 14 enemy projectiles in flight | frozen (0 m moved), resume and expire afterwards |
+| Time stop across a phase threshold | queued hits leave HP untouched during the stop, phase 2 → 3 at release |
+| Pause during combat | boss, projectiles and clock frozen; resume OK |
+| Save during a fight | refused with a message; slot not written |
+| Reload near a boss arena | saved 75 m out → reload → walk in → intro after 4.3 s |
+| Skip a cinematic | one press; end state restored (Stand, pose, time-stop FX, weather) |
+| Defeat a boss mid-special (Kakyoin tendrils, 11 projectiles, 1 hazard) | victory plays, everything cleaned up |
+| Mount/dismount against buildings (4 walls) | neither DIO nor the horse ends inside geometry |
+| Change graphics quality mid-fight (low/ultra/medium/high) | no errors |
+| Streaming across chunks/regions (1 km gallop) | geometry count plateaus, 60 fps |
+| Enter/exit Versus | title afterwards: 0 actors, 0 fighters, 0 afterimage pools, 0 VFX meshes |
+| Restart after defeat | Retry restores phase HP and positions |
+| Rapid lock-on switching (30 switches, 3 targets) | never drops; dead target hands over |
+| Open/close Pause, Journal, Map, Upgrades 16× | no stuck pause (after the Upgrades fix) |
+| Extended run 159 s | no heap growth, flat programs |
+
+## 6. Bugs found and fixed during Phase 9 testing
+- Journal cinematic: camera pulled into the desk for ~12 s (look point inside the desk collider) →
+  occlusion now starts after leaving a prop the look point rests in; new over-the-shoulder and close-up.
+- Summoned horse galloped **away** from the player (steering sign inverted) → fixed; far/stuck horse is
+  re-placed out of sight; mount radius now covers where she stops.
+- Boss encounters did not refill DIO (loading a low-HP save into a boss) → every duel starts fresh.
+- Heaven reveal held one static pose for ~10 s → gestures, talking, a second shot.
+- Ending first shot showed an empty courtyard (Jotaro thrown far) → actors staged before the ending.
+- Versus select: the info panel covered the roster below ~1000 px → responsive layout.
+- Homepage: title overlapped DIO's head on near-square viewports → framing pushes him right.
+- Dev invincibility never worked (`damageTakenMul = 0` treated as "unset"); time-stop releases ignored
+  damage multipliers (Hierophant's barrier included) → both fixed.
+- Stand Upgrades menu could not be closed with its own key.
+- Dev/QA sessions could overwrite the player's real saves → sandboxed save namespace for dev/QA.
+
+## 7. Remaining work and limits (honest list)
+- Not tested on weaker GPUs, real gamepads, Safari/Firefox, or touch. The M4 is far from GPU-bound.
+- Audio was verified structurally (graph, filters, every sound plays without error), not by ear.
+- Full-length play of all 9 quests and all 10 boss fights to completion by a human was not done; the
+  automated player defeated Avdol and Jotaro and fought every other boss for 30–40 s.
+- Heap is ~100 MB above V1 (more resident templates); unloading unused character templates per region would
+  bring it down.
+- GLB limitations in §1 still apply (no clips, fused fingers, rigid hair/coats on auto-rigged models, no
+  meshes for The World Over Heaven, Bastet, Emperor, Cream, Justice).
