@@ -464,18 +464,80 @@ export class HierophantKit extends Kit {
 
 // ============================================================================ Polnareff
 // Silver Chariot is not in the supplied files: it appears as a spectral rapier + armour light.
+// The rapier: a slim diamond-section blade with a ricasso, a gilded cup guard, cross quillons, a
+// knuckle bow, a leather grip and a pommel. Origin = the guard; +z runs up the blade, the grip
+// runs back along -z (so the hand closes around z = -0.065).
 function rapierMesh() {
   const g = new THREE.Group();
-  const blade = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.022, 1.25, 6), new THREE.MeshStandardMaterial({ color: 0xe8eef8, metalness: 1, roughness: 0.12, emissive: 0x6f7f9f, emissiveIntensity: 0.6 }));
-  blade.rotation.x = Math.PI / 2;
-  blade.position.z = 0.62;
-  const guard = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.015, 6, 14, Math.PI * 1.4), new THREE.MeshStandardMaterial({ color: 0xc8b070, metalness: 1, roughness: 0.25 }));
-  const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.16, 6), new THREE.MeshStandardMaterial({ color: 0x2a2a30 }));
-  grip.rotation.x = Math.PI / 2; grip.position.z = -0.08;
-  const glow = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.3, 6), new THREE.MeshBasicMaterial({ color: 0xbfd4ff, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false }));
-  glow.rotation.x = Math.PI / 2; glow.position.z = 0.62;
-  g.add(blade, guard, grip, glow);
+  const steel = new THREE.MeshStandardMaterial({ color: 0xeef2f8, metalness: 1, roughness: 0.08, emissive: 0x5a6a8a, emissiveIntensity: 0.55 });
+  const gold = new THREE.MeshStandardMaterial({ color: 0xd8b45a, metalness: 1, roughness: 0.22, emissive: 0x3a2a08, emissiveIntensity: 0.35, side: THREE.DoubleSide });
+  const leather = new THREE.MeshStandardMaterial({ color: 0x2a1a14, roughness: 0.85 });
+  const bladeGeo = new THREE.CylinderGeometry(0.0025, 0.017, 1.08, 4, 1);
+  bladeGeo.rotateX(Math.PI / 2);
+  bladeGeo.scale(1, 0.5, 1);
+  const blade = new THREE.Mesh(bladeGeo, steel);
+  blade.position.z = 0.1 + 0.54;
+  const ricasso = new THREE.Mesh(new THREE.BoxGeometry(0.026, 0.012, 0.1), steel);
+  ricasso.position.z = 0.05;
+  const cupGeo = new THREE.SphereGeometry(0.072, 18, 8, 0, Math.PI * 2, 0, Math.PI / 2.2);
+  cupGeo.rotateX(Math.PI / 2);
+  const cup = new THREE.Mesh(cupGeo, gold);
+  cup.position.z = -0.012;
+  const quil = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.25, 6).rotateZ(Math.PI / 2), gold);
+  quil.position.z = -0.016;
+  const ends = [-0.125, 0.125].map((x) => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.013, 8, 6), gold); m.position.set(x, 0, -0.016); return m; });
+  const bowGeo = new THREE.TorusGeometry(0.066, 0.006, 6, 18, Math.PI);
+  bowGeo.rotateY(Math.PI / 2);
+  const bow = new THREE.Mesh(bowGeo, gold);
+  bow.position.z = -0.08; bow.scale.y = -1;
+  const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.017, 0.13, 8).rotateX(Math.PI / 2), leather);
+  grip.position.z = -0.08;
+  const pommel = new THREE.Mesh(new THREE.SphereGeometry(0.026, 10, 8), gold);
+  pommel.position.z = -0.155;
+  const glow = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.1, 6).rotateX(Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xbfd4ff, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false }));
+  glow.position.z = 0.64;
+  g.add(blade, ricasso, cup, quil, ...ends, bow, grip, pommel, glow);
+  g.traverse((o) => { if (o.isMesh && o !== glow) o.castShadow = true; });
   return g;
+}
+
+// A fading ribbon swept by the blade (base -> tip) while it is swung: the heavy-swing smear.
+class BladeTrail {
+  constructor(scene, n = 16, color = 0xdfe8ff) {
+    this.n = n; this.pts = []; this.energy = 0;
+    this.color = new THREE.Color(color);
+    const geo = new THREE.BufferGeometry();
+    this.pos = new Float32Array(n * 6); this.col = new Float32Array(n * 6);
+    geo.setAttribute('position', new THREE.BufferAttribute(this.pos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(this.col, 3));
+    const idx = [];
+    for (let i = 0; i < n - 1; i += 1) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+    geo.setIndex(idx);
+    this.mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+    this.mesh.frustumCulled = false;
+    this.mesh.visible = false;
+    scene.add(this.mesh);
+  }
+
+  update(base, tip, active, dt) {
+    if (dt <= 0) return;
+    this.pts.unshift([base.clone(), tip.clone()]);
+    if (this.pts.length > this.n) this.pts.pop();
+    this.energy = active ? 1 : Math.max(0, this.energy - dt * 7);
+    this.mesh.visible = this.energy > 0.01;
+    if (!this.mesh.visible) return;
+    for (let i = 0; i < this.n; i += 1) {
+      const [b, t] = this.pts[Math.min(i, this.pts.length - 1)];
+      const k = (1 - i / (this.n - 1)) ** 1.5 * this.energy;
+      this.pos.set([b.x, b.y, b.z, t.x, t.y, t.z], i * 6);
+      const c = this.color;
+      this.col.set([c.r * k * 0.25, c.g * k * 0.25, c.b * k * 0.25, c.r * k, c.g * k, c.b * k], i * 6);
+    }
+    this.mesh.geometry.attributes.position.needsUpdate = true;
+    this.mesh.geometry.attributes.color.needsUpdate = true;
+  }
+
+  dispose() { this.mesh.removeFromParent(); this.mesh.geometry.dispose(); this.mesh.material.dispose(); }
 }
 
 export class SilverChariotKit extends Kit {
@@ -488,7 +550,29 @@ export class SilverChariotKit extends Kit {
     this.disarmedUntil = 0;
     this.stanceUntil = 0;
     this.armorOff = false;
+    this.trail = new BladeTrail(game.engine.scene);
     f.immuneTo = (hit, attacker) => this.parry(hit, attacker);
+    // every rapier hit lands heavy: a cross-cut of light through the target, a white flash and a
+    // spray of sparks along the line of the thrust (bigger, with a shock ring, on heavy blows)
+    this._unsubHit = this.combat.on((ev) => {
+      if (ev.type !== 'hit' || ev.attacker !== f || !ev.target?.chestWorld) return;
+      const heavy = ev.hit?.kind === 'heavy';
+      const p = ev.target.chestWorld(new THREE.Vector3());
+      const fwd = f.forward();
+      const side = v3(fwd.z, 0, -fwd.x);
+      const w = heavy ? 1.3 : 0.75;
+      for (const tilt of [0.8, -0.8]) {
+        const d = side.clone().multiplyScalar(Math.cos(tilt)).add(v3(0, Math.sin(tilt), 0)).normalize();
+        this.vfx.beam(p.clone().addScaledVector(d, -w), p.clone().addScaledVector(d, w), 0xf4f8ff, heavy ? 0.03 : 0.018, heavy ? 0.22 : 0.14, 0.95);
+      }
+      this.vfx.hitSpark(p, 0xffffff, heavy ? 2.2 : 1.2, heavy ? 0.18 : 0.11);
+      this.vfx.sparkBurst(p, SILVER, heavy ? 26 : 10, heavy ? 14 : 9, fwd);
+      this.vfx.slash(p, fwd, 0xffffff, heavy ? 1.8 : 1.1);
+      if (heavy) {
+        this.vfx.ring(p, SILVER, 0.2, 2.2, 0.3, { vertical: true, face: p.clone().sub(fwd), alpha: 0.85 });
+        this.game.camera.shake(0.3);
+      }
+    });
   }
 
   parry(hit, attacker) {
@@ -529,7 +613,7 @@ export class SilverChariotKit extends Kit {
   streak(len = 3, spread = 0, width = 0.035) {
     const f = this.f;
     const fwd = f.forward();
-    const from = f.jointWorld('handR').clone().addScaledVector(fwd, 0.25);
+    const from = this.tip(0.4);
     const dir = fwd.clone();
     if (spread) dir.add(v3((Math.random() - 0.5) * spread, (Math.random() - 0.5) * spread * 0.8, (Math.random() - 0.5) * spread)).normalize();
     const to = from.clone().addScaledVector(dir, len);
@@ -539,7 +623,7 @@ export class SilverChariotKit extends Kit {
     return to;
   }
 
-  gleam() { this.vfx.hitSpark(this.tip(), 0xffffff, 1.1, 0.22); }
+  gleam() { this.vfx.hitSpark(this.tip(1.15), 0xffffff, 1.1, 0.22); }
 
   // a rematch: armour back on, blade back in hand
   resetFight() {
@@ -689,28 +773,32 @@ export class SilverChariotKit extends Kit {
     super.update(dt);
     const f = this.f;
     if (this.clock >= this.disarmedUntil && !this.blade.visible) { this.blade.visible = true; this.bladeState = 'guard'; }
-    // position the spectral rapier
+    // The rapier stays in Polnareff's right hand: the grip sits in the palm and the blade carries
+    // on along the forearm, tipped up and forward in a fencer's line, so every arm movement of a
+    // thrust or flurry drives the blade itself.
     const fwd = f.forward();
-    const right = v3(fwd.z, 0, -fwd.x).multiplyScalar(-1);
     this.bladeT += dt;
-    let pos; let dir = fwd.clone();
     const hand = f.jointWorld('handR');
-    if (this.bladeState === 'thrust' && this.bladeT < 0.15) {
-      pos = hand.clone().addScaledVector(fwd, 0.2 + this.bladeT * 8);
-      if (Math.random() < 0.8) this.vfx.sparks.emit(pos.clone().addScaledVector(fwd, 1.1), fwd.clone().multiplyScalar(3), new THREE.Color(0xdfe8ff), 0.15, 0.04);
-    } else if (this.bladeState === 'stance') {
-      pos = hand.clone().addScaledVector(fwd, 0.15);
-      dir = fwd.clone().add(v3(0, 0.25, 0)).normalize();
-      if (Math.random() < 0.3) this.vfx.glow.emit(pos.clone().addScaledVector(dir, Math.random() * 1.2), v3(0, 0.3, 0), new THREE.Color(0xcfe0ff), 0.7, 0.2, 0.05, 0.4);
-    } else if (this.bladeState === 'aim') {
-      pos = f.chestWorld(new THREE.Vector3()).addScaledVector(fwd, 0.6).add(v3(0, 0.3, 0));
-    } else {
+    const fore = f.jointWorld('foreArmR', new THREE.Vector3());
+    const arm = hand.clone().sub(fore);
+    if (arm.lengthSq() < 1e-4) arm.copy(fwd); else arm.normalize();
+    let dir;
+    if (this.bladeState === 'stance') dir = fwd.clone().multiplyScalar(1).add(v3(0, 0.35, 0)).addScaledVector(arm, 0.4).normalize();
+    else if (this.bladeState === 'aim') dir = fwd.clone().add(v3(0, 0.08, 0)).addScaledVector(arm, 0.3).normalize();
+    else if (this.bladeState === 'thrust' && this.bladeT < 0.18) dir = arm.clone().addScaledVector(fwd, 1.2).normalize();
+    else {
       if (this.bladeState === 'thrust') this.bladeState = 'guard';
-      pos = hand.clone().addScaledVector(right, 0.05);
-      dir = fwd.clone().add(v3(0, -0.5, 0)).normalize();
+      dir = arm.clone().addScaledVector(fwd, 0.55).add(v3(0, 0.22, 0)).normalize();
     }
+    const pos = hand.clone().addScaledVector(arm, 0.075).addScaledVector(dir, 0.08);
     this.blade.position.copy(pos);
     this.blade.lookAt(pos.clone().add(dir));
+    if (this.bladeState === 'stance' && Math.random() < 0.3) this.vfx.glow.emit(pos.clone().addScaledVector(dir, Math.random() * 1.1), v3(0, 0.3, 0), new THREE.Color(0xcfe0ff), 0.7, 0.2, 0.05, 0.4);
+    if (this.bladeState === 'thrust' && this.bladeT < 0.15 && Math.random() < 0.8) this.vfx.sparks.emit(this.tip(1.15), dir.clone().multiplyScalar(3), new THREE.Color(0xdfe8ff), 0.15, 0.04);
+    // swing smear while an attack is live
+    const an = f.action?.def.name;
+    const swinging = this.blade.visible && (an === 'thrust' || an === 'fence' || this.bladeT < 0.2) && !f.dead;
+    this.trail.update(this.tip(0.25), this.tip(1.18), swinging, dt);
     if (this.armorOff && Math.random() < 0.25 && f.moved > 2) this.afterimage();
   }
 
@@ -730,7 +818,7 @@ export class SilverChariotKit extends Kit {
     ];
   }
 
-  dispose() { this.blade.removeFromParent(); }
+  dispose() { this.blade.removeFromParent(); this.trail.dispose(); this._unsubHit?.(); }
 }
 
 // ============================================================================ Jotaro
