@@ -4,6 +4,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { prof } from '../dev/Profiler';
 
 // Final display-space pass: grading, vignette, grain and every Stand screen effect.
 const FinalShader = {
@@ -170,6 +171,9 @@ export class Engine {
     this._resize = () => this.resize();
     window.addEventListener('resize', this._resize);
     this.resize();
+    r.info.autoReset = false;
+    prof.init(r);
+    if (new URLSearchParams(window.location.search).has('prof')) prof.enabled = true;
   }
 
   setQuality(q) {
@@ -210,15 +214,26 @@ export class Engine {
   }
 
   step() {
+    const t0 = performance.now();
     const raw = Math.min(this.clock.getDelta(), 0.1);
+    this.renderer.info.reset();
     this.time += raw;
     this._fpsAcc += raw; this._fpsN += 1;
     if (this._fpsAcc > 0.5) { this.fps = this._fpsN / this._fpsAcc; this._fpsAcc = 0; this._fpsN = 0; }
     let dt = raw * this.timeScale;
     if (this.hitstop > 0) { this.hitstop -= raw; dt *= 0.05; }
     this.fx.uTime.value = this.time;
+    prof.begin('update');
     for (const s of this.systems) if (s.update) s.update(dt, raw);
+    prof.end('update');
+    prof.begin('render');
+    prof.gpuBegin();
     this.composer.render(raw);
+    prof.gpuEnd();
+    prof.end('render');
+    prof.frame(raw * 1000);
+    this.cpuMs = performance.now() - t0;
+    if (prof.enabled) { prof.begin('cpuTotal'); prof.sections.get('cpuTotal').start = t0; prof.end('cpuTotal'); }
   }
 
   stop() {
