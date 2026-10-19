@@ -111,11 +111,8 @@ export function initFlats() {
 export const GULCHES = [
   { id: 'holGulch', region: 'redstone', dz: 160, depth: 26, width: 9, span: 60 },
   { id: 'diavoloCanyon', region: 'iron', dz: -640, depth: 48, width: 22, span: 120 },
+  { id: 'heavenChasm', region: 'heaven', dz: 300, depth: 40, width: 8, span: 90 },
 ];
-
-function _unused() {
-  // homepage mansion terrace (well off the playable road, used only by the title scene)
-}
 
 export function rawHeight(x, z) {
   const { a, b, t } = regionBlend(z);
