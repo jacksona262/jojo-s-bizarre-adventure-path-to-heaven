@@ -74,7 +74,19 @@ export function buildAutoHumanoid(container, bakedMeshes, H) {
     const S = new THREE.Vector3(s * shoulderX, shoulderY, 0);
     let best = -1;
     const F = new THREE.Vector3();
+    // T-pose test: farthest lateral vertex in a band around shoulder height.
+    let tipX = -1;
+    const T = new THREE.Vector3();
     for (let i = 0; i < pts.length; i += 3) {
+      if (Math.abs(pts[i + 1] - shoulderY) > 0.1 * H) continue;
+      const x = pts[i] * s;
+      if (x > tipX) { tipX = x; T.set(pts[i], pts[i + 1], pts[i + 2]); }
+    }
+    if (tipX > 0.36 * H) {
+      best = T.distanceToSquared(S);
+      F.copy(T);
+    }
+    for (let i = 0; best < 0 && i < pts.length; i += 3) {
       const x = pts[i] * s;
       const y = pts[i + 1];
       if (x < 0.19 * H || y < 0.33 * H) continue;
