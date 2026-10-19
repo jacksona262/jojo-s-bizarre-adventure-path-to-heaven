@@ -118,11 +118,25 @@ export class AnimController {
     } else if (c.knockdown > 0) {
       this.deathT = 0;
       base = this._knockdown(dt);
-    } else if (c.mounted) {
+    } else if (c.mounted || (c.mountK || 0) > 0.001) {
+      // riding, or climbing on/off (mountK 0..1 blends from the ground pose, right leg swings over)
       this.knockdownLying = false;
-      const h = c.mounted;
-      base = Poses.ride(h.anim.phase * PI * 2, min(1, h.speed / 10), h.turn || 0);
-      this.state = 'ride';
+      const h = c.mounted || this.lastHorse;
+      if (c.mounted) this.lastHorse = c.mounted;
+      const k = c.mounted ? (c.mountK ?? 1) : (c.mountK || 0);
+      const ride = h ? Poses.ride(h.anim.phase * PI * 2, min(1, h.speed / 10), h.turn || 0) : Poses.rest();
+      if (k < 0.999) {
+        const stand = Poses.guardStance();
+        base = Poses.lerpPose(stand, ride, k, this.tmp);
+        const swing = sin(k * PI);
+        base.thR = [base.thR[0] - 0.7 * swing, base.thR[1] + 0.5 * swing, base.thR[2] + 0.25 * swing];
+        base.shR = [base.shR[0] - 0.3 * swing, base.shR[1], base.shR[2] - 0.4 * swing];
+        base.spine = [(base.spine?.[0] || 0) + 0.25 * swing, base.spine?.[1] || 0, (base.spine?.[2] || 0) + 0.15 * swing];
+        this.state = c.mounted ? 'mount' : 'dismount';
+      } else {
+        base = ride;
+        this.state = 'ride';
+      }
     } else if (c.floating) {
       this.knockdownLying = false;
       base = this._float(dt);
