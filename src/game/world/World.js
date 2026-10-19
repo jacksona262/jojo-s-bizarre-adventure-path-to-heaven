@@ -252,6 +252,24 @@ export class World {
   // pass through solid geometry.
   segmentBlocked(a, b) { return this.occlusion(a, b) < 0.999; }
 
+  // Is a point (with radius) inside solid world geometry? Used to stop projectiles at walls.
+  pointBlocked(p, r = 0) {
+    const list = this.colliderGrid.get(`${Math.floor(p.x / CELL)},${Math.floor(p.z / CELL)}`);
+    if (!list) return false;
+    for (const c of list) {
+      if (c.disabled || c.noCam) continue;
+      if (c.top !== undefined && (p.y > c.top + r || (c.bottom !== undefined && p.y < c.bottom - r))) continue;
+      if (c.r !== undefined) {
+        if (Math.hypot(p.x - c.x, p.z - c.z) < c.r + r && p.y < (c.top ?? p.y + 1)) return true;
+        continue;
+      }
+      const cs = Math.cos(c.rot); const sn = Math.sin(c.rot);
+      const dx = p.x - c.x; const dz = p.z - c.z;
+      if (Math.abs(dx * cs - dz * sn) < c.hw + r && Math.abs(dx * sn + dz * cs) < c.hd + r) return true;
+    }
+    return false;
+  }
+
   addInteractable(it) { this.interactables.set(it.id, it); return it; }
   removeInteractable(id) { this.interactables.delete(id); }
 
