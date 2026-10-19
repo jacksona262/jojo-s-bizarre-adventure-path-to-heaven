@@ -9,6 +9,7 @@ import TitleMenu from './TitleMenu';
 import Hud from './Hud';
 import Minigames from './Minigames';
 import VersusSelect from './VersusSelect';
+import DevPanel from './DevPanel';
 import { PauseMenu, SettingsPanel, Journal, RegionMap, Upgrades, Saves, Death, Results, ChoiceNav } from './Overlays';
 
 function Loading() {
@@ -64,6 +65,7 @@ export default function GameRoot() {
   const screen = useUI((s) => s.screen);
   const overlay = useUI((s) => s.overlay);
   const minigame = useUI((s) => s.minigame);
+  const dev = useUI((s) => s.dev);
 
   useEffect(() => {
     let g;
@@ -107,6 +109,7 @@ export default function GameRoot() {
         {game && overlay === 'results' && <Results />}
         {game && minigame && <Minigames />}
       </div>
+      {game && dev && (screen === 'game' || screen === 'versus') && <div className="pth-ui"><DevPanel /></div>}
       {(screen === 'boot' || screen === 'loading') && <Loading />}
       {error && (
         <div className="pth-overlay">
