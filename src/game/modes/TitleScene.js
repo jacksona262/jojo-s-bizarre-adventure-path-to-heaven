@@ -82,7 +82,7 @@ export class TitleScene {
       { t: 6, pos: P(0.5, 1.9, 2.3), look: P(0, 1.55, -1) },        // pushed in to his back
       { t: 9.5, pos: P(1.6, 1.75, 1.3), look: P(0, 1.65, 0) },       // over the shoulder as he turns
       { t: 11, pos: P(1.9, 1.7, 0.4), look: P(0, 1.7, 0) },          // face, lightning
-      { t: 17, pos: P(-2.5, 2.6, 2.2), look: P(-30, 20, -400) },     // reveal the valley and the sanctuary
+      { t: 17, pos: P(-4.4, 2.3, 2.0), look: P(-30, 6, -400) },      // reveal the valley and the sanctuary
       { t: 22, pos: P(-1.4, 1.0, -2.6), look: P(0, 1.8, 0) },        // low front angle, imposing
       { t: LOOP, pos: P(0.35, 2.1, 3.85), look: P(0, 1.5, -3) },
     ];
@@ -104,13 +104,13 @@ export class TitleScene {
     else if (t < 11) {
       pose = Poses.idle(g.engine.time, 'dio');
       const k = ease.inOut(Math.min(1, (t - 6) / 3));
-      pose.head = [-0.05, 0.85 * k, 0.05];
-      pose.chest = [-0.06, 0.3 * k, 0];
+      pose.head = [-0.05, -0.95 * k, -0.05];
+      pose.chest = [-0.06, -0.35 * k, 0];
     } else if (t < 17) {
       pose = Poses.idle(g.engine.time, 'dio');
       const k = 1 - ease.inOut(Math.min(1, (t - 11) / 3));
-      pose.head = [-0.05, 0.85 * k, 0.05];
-      pose.chest = [-0.06, 0.3 * k, 0];
+      pose.head = [-0.05, -0.95 * k, -0.05];
+      pose.chest = [-0.06, -0.35 * k, 0];
     } else {
       pose = Poses.lerpPose(Poses.idle(g.engine.time, 'dio'), Poses.dioPose(g.engine.time), ease.inOut(Math.min(1, (t - 17) / 2)) * (t < 24.5 ? 1 : 1 - (t - 24.5) / 1.5));
     }
