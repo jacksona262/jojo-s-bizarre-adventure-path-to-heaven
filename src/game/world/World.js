@@ -13,6 +13,8 @@ const RES = 40;
 const RADIUS = 3; // chunks each side
 const CELL = 16;
 const _occP = new THREE.Vector3();
+// instanced layers that the render distance may drop (trees, bushes, plants)
+const VEG_PLANT = /^(pine|dead|broad|bush|reed|cactus)/;
 
 function terrainMaterial(far = false) {
   const t = getTextures();
@@ -549,25 +551,51 @@ export class World {
     const fx = this.center.x; const fz = this.center.z;
     const counts = this._vegCounts || (this._vegCounts = {});
     for (const key of Object.keys(this.inst)) counts[key] = 0;
-    let drawn = 0;
+    // render distance: trees, bushes and plants past it are not drawn (rocks, graves, crystals,
+    // buildings and terrain always are). Chunks straddling the limit are filtered per plant.
+    const vd = this.vegDistance ?? Infinity;
+    const cx = cam.position.x; const cz = cam.position.z;
+    let drawn = 0; let culledPlants = 0;
     for (const ch of this.chunks.values()) {
       const v = ch.veg;
       if (!v?.mats) continue;
-      const cxm = (v.box.min.x + v.box.max.x) / 2; const czm = (v.box.min.z + v.box.max.z) / 2;
+      const b = v.box;
+      const cxm = (b.min.x + b.max.x) / 2; const czm = (b.min.z + b.max.z) / 2;
       const near = Math.hypot(cxm - fx, czm - fz) < 90;
-      if (!near && !this._frustum.intersectsBox(v.box)) continue;
+      if (!near && !this._frustum.intersectsBox(b)) continue;
       drawn += 1;
+      const ddx = Math.max(b.min.x - cx, 0, cx - b.max.x); const ddz = Math.max(b.min.z - cz, 0, cz - b.max.z);
+      const dMin = Math.hypot(ddx, ddz);
+      const dMax = Math.hypot(Math.max(Math.abs(b.min.x - cx), Math.abs(b.max.x - cx)), Math.max(Math.abs(b.min.z - cz), Math.abs(b.max.z - cz)));
       for (const key in v.mats) {
         const im = this.inst[key];
         if (!im) continue;
         const src = v.mats[key];
+        const plant = VEG_PLANT.test(key);
+        if (plant && dMin > vd) { culledPlants += src.length / 16; continue; }
         const room = im.instanceMatrix.count - counts[key];
+        if (room <= 0) continue;
+        if (plant && dMax > vd) {
+          // straddling chunk: copy only the plants inside the limit
+          const dst = im.instanceMatrix.array; let c = counts[key];
+          const vd2 = vd * vd; const end = Math.min(src.length, (room) * 16 + 0);
+          for (let o = 0; o < src.length && c < im.instanceMatrix.count; o += 16) {
+            const px = src[o + 12] - cx; const pz = src[o + 14] - cz;
+            if (px * px + pz * pz > vd2) { culledPlants += 1; continue; }
+            for (let j = 0; j < 16; j += 1) dst[c * 16 + j] = src[o + j];
+            c += 1;
+          }
+          void end;
+          counts[key] = c;
+          continue;
+        }
         const n = Math.min(room, src.length / 16);
         if (n <= 0) continue;
         im.instanceMatrix.array.set(n * 16 === src.length ? src : src.subarray(0, n * 16), counts[key] * 16);
         counts[key] += n;
       }
     }
+    this.vegCulled = culledPlants;
     for (const [key, im] of Object.entries(this.inst)) {
       im.count = counts[key];
       im.instanceMatrix.clearUpdateRanges();
