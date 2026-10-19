@@ -380,8 +380,30 @@ export class World {
     mesh.matrixAutoUpdate = false;
     this.root.add(mesh);
     const veg = this._scatter(cx, cz, x0, z0);
+    this._bakeVeg(veg, x0, z0, g.boundingBox);
     const roadside = buildRoadside(this, cx, cz, x0, z0, CHUNK);
     return { mesh, veg, roadside, cx, cz };
+  }
+
+  // Precompute this chunk's instance matrices once (per vegetation kind) plus a bounding box, so
+  // per-frame visibility culling is a cheap buffer copy instead of re-composing matrices.
+  _bakeVeg(veg, x0, z0, gbox) {
+    const m4 = new THREE.Matrix4(); const q = new THREE.Quaternion(); const e = new THREE.Euler();
+    const p = new THREE.Vector3(); const s = new THREE.Vector3();
+    veg.mats = {};
+    for (const [key, arr] of Object.entries(veg.inst)) {
+      const n = arr.length / 6;
+      const out = new Float32Array(n * 16);
+      for (let i = 0; i < n; i += 1) {
+        const o = i * 6;
+        e.set(0, arr[o + 4], 0); q.setFromEuler(e);
+        m4.compose(p.set(arr[o], arr[o + 1], arr[o + 2]), q, s.set(arr[o + 3], arr[o + 5], arr[o + 3]));
+        m4.toArray(out, i * 16);
+      }
+      veg.mats[key] = out;
+    }
+    const pad = 10;   // canopies overhang the chunk edge
+    veg.box = new THREE.Box3(new THREE.Vector3(x0 - pad, gbox.min.y - 2, z0 - pad), new THREE.Vector3(x0 + CHUNK + pad, gbox.max.y + 28, z0 + CHUNK + pad));
   }
 
   _disposeChunk(ch) {
@@ -489,33 +511,44 @@ export class World {
     this.grassKey = '';
   }
 
+  // Fill the shared instanced meshes with only the chunks that can matter this frame: inside the
+  // camera frustum, or close enough to cast a shadow into view. Runs ~5x a second (and whenever
+  // chunks stream); copying pre-baked matrices keeps it well under a millisecond.
   _rebuildInstances() {
-    const m4 = new THREE.Matrix4();
-    const q = new THREE.Quaternion();
-    const e = new THREE.Euler();
-    const p = new THREE.Vector3();
-    const s = new THREE.Vector3();
-    const counts = {};
+    const cam = this.engine.camera;
+    cam.updateMatrixWorld();
+    this._vp = this._vp || new THREE.Matrix4();
+    this._frustum = this._frustum || new THREE.Frustum();
+    this._frustum.setFromProjectionMatrix(this._vp.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse));
+    const fx = this.center.x; const fz = this.center.z;
+    const counts = this._vegCounts || (this._vegCounts = {});
     for (const key of Object.keys(this.inst)) counts[key] = 0;
+    let drawn = 0;
     for (const ch of this.chunks.values()) {
-      if (!ch.veg) continue;
-      for (const [key, arr] of Object.entries(ch.veg.inst)) {
+      const v = ch.veg;
+      if (!v?.mats) continue;
+      const cxm = (v.box.min.x + v.box.max.x) / 2; const czm = (v.box.min.z + v.box.max.z) / 2;
+      const near = Math.hypot(cxm - fx, czm - fz) < 90;
+      if (!near && !this._frustum.intersectsBox(v.box)) continue;
+      drawn += 1;
+      for (const key in v.mats) {
         const im = this.inst[key];
         if (!im) continue;
-        for (let i = 0; i < arr.length; i += 6) {
-          if (counts[key] >= im.instanceMatrix.count) break;
-          e.set(0, arr[i + 4], 0);
-          q.setFromEuler(e);
-          m4.compose(p.set(arr[i], arr[i + 1], arr[i + 2]), q, s.set(arr[i + 3], arr[i + 5], arr[i + 3]));
-          im.setMatrixAt(counts[key], m4);
-          counts[key] += 1;
-        }
+        const src = v.mats[key];
+        const room = im.instanceMatrix.count - counts[key];
+        const n = Math.min(room, src.length / 16);
+        if (n <= 0) continue;
+        im.instanceMatrix.array.set(n * 16 === src.length ? src : src.subarray(0, n * 16), counts[key] * 16);
+        counts[key] += n;
       }
     }
     for (const [key, im] of Object.entries(this.inst)) {
       im.count = counts[key];
+      im.instanceMatrix.clearUpdateRanges();
+      im.instanceMatrix.addUpdateRange(0, Math.max(16, counts[key] * 16));
       im.instanceMatrix.needsUpdate = true;
     }
+    this.vegChunksDrawn = drawn;
   }
 
   _updateGrass(pos) {
@@ -719,7 +752,8 @@ export class World {
       changed = true;
     }
     this.forceBuild = false;
-    if (changed) this._rebuildInstances();
+    this._vegT = (this._vegT || 0) - realDt;
+    if (changed || this._vegT <= 0) { this._vegT = 0.2; this._rebuildInstances(); }
     this._updateGrass(focus);
     this.farMat.userData.uniforms.uCenter.value.set(focus.x, focus.z);
     this.farMat.userData.uniforms.uRadius.value = (RADIUS - 0.25) * CHUNK;
