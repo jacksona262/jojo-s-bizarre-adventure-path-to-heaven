@@ -344,6 +344,7 @@ export class Game {
       prof.end('weather');
       const indoor = this.world.isIndoor(camPos);
       this.weather.rain.visible = !indoor && this.weather.rainIntensity > 0.05;
+      this.weather.atmo.points.visible = !indoor;
       if (indoor !== this._indoor) { this._indoor = indoor; audio.setWeather(indoor ? 0.35 : 1, indoor ? 0.2 : 0.8); }
       this.world.flash = this.weather.flash;
       this.engine.fx.uFlash.value = Math.max(this.engine.fx.uFlash.value * Math.exp(-realDt * 8), this.weather.flash * 0.05);
