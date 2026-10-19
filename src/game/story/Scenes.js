@@ -227,6 +227,9 @@ export async function journalCinematic(game, seq, { player, journalPos }) {
   game.weather.sim -= 0;
   const wasEnabled = game.weather.enabled;
   game._frozenWeather = true;
+  // push in on DIO's face as the world stops around him
+  const cu = clearShot(game, [closeUp(player, { pos: journalPos }, 1, 1.9), closeUp(player, { pos: journalPos }, -1, 1.9), closeUp(player, { pos: journalPos }, 1, 1.3)]);
+  seq.shot({ from: cu.pos, to: cu.pos.clone().lerp(cu.look, 0.15), look: cu.look, dur: 5.5, fov: 30 });
   await seq.tween(0.6, (k) => { fx.uTimeStop.value = k * 0.65; fx.uTsWave.value = k * 0.4; });
   audio.setFrozen(true);
   await seq.say('DIO', OPENING.journal[3][1], 4.2, SPEAKERS.DIO.color);
