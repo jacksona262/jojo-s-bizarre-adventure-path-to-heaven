@@ -5,6 +5,18 @@ import { audio } from '../core/Audio';
 
 const tmp = new THREE.Vector3();
 const tmp2 = new THREE.Vector3();
+const _la = new THREE.Vector3();
+const _lb = new THREE.Vector3();
+
+// No blow, blast or bolt lands through a wall: line of sight from the attack's origin to the target.
+export function losBlocked(game, from, target) {
+  const w = game.world;
+  if (!w?.segmentBlocked) return false;
+  _la.copy(from); _la.y = Math.max(_la.y, (target.pos?.y ?? 0)) + 1.2;
+  if (from.y !== undefined && from.y > _la.y) _la.y = from.y;
+  target.chestWorld(_lb);
+  return w.segmentBlocked(_la, _lb);
+}
 
 export class Combat {
   constructor(game) {
@@ -74,6 +86,7 @@ export class Combat {
       if (Math.abs((t.pos.y + 0.9) - (origin.y + 0.9)) > (spec.height ?? 2.2)) continue;
       const ang = Math.acos(Math.max(-1, Math.min(1, (dx * fwd.x + dz * fwd.z) / Math.max(1e-4, Math.hypot(dx, dz)))));
       if (d > 0.35 && ang > arc) continue;
+      if (!spec.ignoreWalls && losBlocked(this.game, (spec.owner || attacker).pos, t)) continue;
       if (spec.hitSet) { if (spec.hitSet.has(t)) continue; spec.hitSet.add(t); }
       const r = this.applyHit(t, attacker, spec);
       hits.push({ target: t, result: r });
@@ -231,7 +244,7 @@ export class Combat {
     const time = game.time;
     for (let i = this.projectiles.length - 1; i >= 0; i -= 1) {
       const p = this.projectiles[i];
-      if (time?.isFrozenProjectile(p)) continue;
+      if (time?.isFrozenProjectile(p, dt)) continue;
       p.age += dt;
       p.life -= dt;
       if (p.homing && p.homing.target && !p.homing.target.dead) {
@@ -250,6 +263,8 @@ export class Combat {
       if (p.trail) p.trail(p, game.vfx);
       let dead = p.life <= 0;
       if (!dead && p.ground && game.world && p.pos.y < game.world.groundAt(p.pos.x, p.pos.z, p.pos.y + 1) + 0.05) dead = true;
+      // walls stop bolts (unless the projectile phases through matter)
+      if (!dead && !p.phasing && game.world?.pointBlocked?.(p.pos, p.radius * 0.5)) dead = true;
       if (!dead) {
         for (const f of this.fighters) {
           if (f.team === p.team || f.dead || f.untargetable || p.hitSet.has(f)) continue;
@@ -295,6 +310,7 @@ export function areaDamage(combat, owner, center, radius, hit, filter = null) {
   for (const f of combat.enemiesOf(owner)) {
     if (filter && !filter(f)) continue;
     if (Math.hypot(f.pos.x - center.x, f.pos.z - center.z) < radius + f.radius && Math.abs(f.pos.y - center.y) < 2.5) {
+      if (!hit.ignoreWalls && radius > 1.5 && losBlocked(combat.game, center, f)) continue;
       out.push({ target: f, result: combat.applyHit(f, owner, hit) });
     }
   }
