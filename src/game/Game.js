@@ -262,7 +262,10 @@ export class Game {
     if (this.world) {
       const focus = this.player ? this.player.pos : (this.title?.balcony || camPos);
       this.world.update(dt, realDt, focus, camPos);
-      this.weather.update(this.time.stopped ? 0 : dt, realDt, focus);
+      this.weather.update(this.time.stopped || this._frozenWeather ? 0 : dt, realDt, focus);
+      const indoor = this.world.isIndoor(camPos);
+      this.weather.rain.visible = !indoor && this.weather.rainIntensity > 0.05;
+      if (indoor !== this._indoor) { this._indoor = indoor; audio.setWeather(indoor ? 0.35 : 1, indoor ? 0.2 : 0.8); }
       this.world.flash = this.weather.flash;
       this.engine.fx.uFlash.value = Math.max(this.engine.fx.uFlash.value * Math.exp(-realDt * 8), this.weather.flash * 0.05);
     }
