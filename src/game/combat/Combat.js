@@ -182,7 +182,8 @@ export class Combat {
     if (attacker.counterUntil && game.clock < attacker.counterUntil) { hit.damage *= attacker.counterBonus || 1.5; attacker.counterUntil = 0; }
     if (attacker.overwritten) hit.damage *= 0.25;
     if (target.kit?.interceptHit && target.kit.interceptHit(hit, attacker)) return 'rewritten';
-    if (target.damageTakenMul) hit.damage *= target.damageTakenMul;
+    // (0 is a valid multiplier: the dev panel's invincibility)
+    if (typeof target.damageTakenMul === 'number') hit.damage *= target.damageTakenMul;
     const res = target.takeHit(hit, attacker);
     const p = hit.at ? hit.at.clone() : target.chestWorld(new THREE.Vector3());
     const dir = tmp.copy(target.pos).sub(attacker.pos).setY(0).normalize();
