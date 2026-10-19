@@ -136,6 +136,7 @@ export class Afterimages {
   prepare(actor, count = 4) {
     if (!actor?.model) return null;
     let s = this.sets.get(actor);
+    if (s && s.items.length < count) { s.dispose(); s = null; }
     if (!s) { s = new GhostSet(this.layer, actor, count); this.sets.set(actor, s); }
     return s;
   }
