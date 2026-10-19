@@ -52,6 +52,22 @@ export async function createFighter(game, key, { team = 1, versus = false, hp = 
 }
 
 // ------------------------------------------------------------------------------------- brain
+// Story fights grow tougher as the journey goes on: fight 1 +0, fight 2 +10, then +10 per fight
+// number (fight 5 +50, fight 10 +100, the finale +140), on top of every opponent's base health.
+export const STORY_FIGHTS = ['avdol', 'kakyoin', 'mariah', 'polnareff', 'holHorse', 'josuke', 'kira', 'diavolo', 'giorno', 'valentine', 'vanillaIce', 'pucci', 'jotaro', 'jotaroFinal'];
+export function storyFightBonus(key) {
+  const n = STORY_FIGHTS.indexOf(key) + 1;
+  if (n <= 1) return 0;
+  return n === 2 ? 10 : n * 10;
+}
+// apply it (after the brain has added the base bonus)
+export function addStoryBonus(f, key) {
+  const b = storyFightBonus(key);
+  f.hpMax += b;
+  f.hp = f.hpMax;
+  return b;
+}
+
 const _pv = new THREE.Vector3();
 const _ps = new THREE.Vector3();
 
@@ -84,9 +100,9 @@ export class BossBrain {
     this.poiseBase = f.poiseMax;
     // Diavolo as an opponent hits 35% harder (his blows are meant to be the most punishing in the game)
     if (f.rosterKey === 'diavolo') f.damageBonus = 1.35;
-    // every AI opponent (bosses, quest duels, Versus CPU) fights with 40 extra health
-    f.hpMax += 40;
-    f.hp = Math.min(f.hpMax, f.hp + 40);
+    // every AI opponent (bosses, quest duels, Versus CPU) fights with 140 extra health
+    f.hpMax += 140;
+    f.hp = Math.min(f.hpMax, f.hp + 140);
     this.lastHp = f.hp;
     // what the AI has learned about the player this fight
     this.read = { guards: 0, attacks: 0, dodges: 0, lastSeen: null };

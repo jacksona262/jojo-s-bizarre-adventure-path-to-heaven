@@ -5,7 +5,7 @@ import { resolvePOI, roadX, heightAt, GULCHES } from '../world/Terrain';
 import { REGIONS } from '../world/Layout';
 import { QUESTS } from './Script';
 import { conversation, sayLines } from './Scenes';
-import { createFighter, BossBrain } from '../combat/Roster';
+import { createFighter, BossBrain, addStoryBonus } from '../combat/Roster';
 import { Restorable } from '../combat/kits/Diamond';
 import { railTrack, Batch, Frame } from '../world/Architecture';
 import { Timer } from '../combat/Hazards';
@@ -60,6 +60,7 @@ function duel(c, key, pos, { hp, onPhase, difficulty = 0.9 } = {}) {
     g.addActor(f);
     g.combat.add(f);
     const brain = new BossBrain(g, f, { difficulty: g.difficulty * difficulty, onPhase });
+    addStoryBonus(f, key);
     g.combatActive = true;
     ui.set({ boss: { name: f.roster.name, stand: f.roster.standName, hp: f.hp, hpMax: f.hpMax, phase: 1, phases: 2, color: f.roster.color } });
     audio.setMusic('boss', 0.3);
@@ -330,6 +331,7 @@ async function q3(c) {
     g.addActor(hol); g.combat.add(hol);
     await talk(c, hol, Q.meet);
     brain = new BossBrain(g, hol, { difficulty: g.difficulty, keep: [12, 22], style: 'far' });
+    addStoryBonus(hol, 'holHorse');
     g.combatActive = true;
     c.objective(Q.title, `Cross the trestle. Strike Emperor's bullets back at Hol Horse (${reflects}/3).`, far);
     toast(Q.hint, 'hint', 8000);
@@ -601,6 +603,7 @@ async function q8(c) {
     vanilla.pos.copy(center).add(V(0, 0, -10)); vanilla.pos.y = heightAt(vanilla.pos.x, vanilla.pos.z);
     g.addActor(vanilla); g.combat.add(vanilla);
     brain = new BossBrain(g, vanilla, { difficulty: g.difficulty, keep: [8, 18], style: 'far' });
+    addStoryBonus(vanilla, 'vanillaIce');
     vanilla.onDeath = async () => {
       g.combatActive = false; ui.set({ boss: null });
       vanilla.revive(1); vanilla.dead = true;

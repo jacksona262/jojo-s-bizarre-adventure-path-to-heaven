@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { ui, toast } from '../core/Store';
 import { audio } from '../core/Audio';
 import { Save } from '../state/Save';
-import { createFighter, BossBrain, ROSTER } from '../combat/Roster';
+import { createFighter, BossBrain, ROSTER, addStoryBonus } from '../combat/Roster';
 import { PlayerController } from '../actors/PlayerController';
 import { Horse } from '../actors/Horse';
 import { roadX, heightAt, resolvePOI, GULCHES } from '../world/Terrain';
@@ -52,7 +52,7 @@ const STORY_UPGRADES = {
   pucci: { tsAwareness: true, note: 'Unlocked: move inside an enemy\'s stopped time (press R while frozen).' },
 };
 
-const BASE_HP = 260;
+const BASE_HP = 360;
 
 export class Campaign {
   constructor(game) {
@@ -132,7 +132,7 @@ export class Campaign {
   applyUpgrades() {
     const f = this.player;
     const u = this.p.upgrades;
-    const hpBase = f.rosterKey === 'dioHeaven' ? 360 : BASE_HP;
+    const hpBase = f.rosterKey === 'dioHeaven' ? 460 : BASE_HP;
     const frac = f.hp / f.hpMax;
     f.hpMax = hpBase + 40 * (u.vitality || 0);
     f.hp = Math.max(1, Math.min(f.hpMax, Math.round(f.hpMax * frac)));
@@ -443,6 +443,8 @@ export class Campaign {
       onPhase: (p) => this.onBossPhase(p),
     });
     if (s.final) { brain.phase = 3; boss.kit.phase = 3; brain.thresholds = [0.5, 0.25]; }
+    addStoryBonus(boss, s.final ? 'jotaroFinal' : key);
+    this.encounter.phaseHp = [boss.hpMax];
     this.encounter.brain = brain;
     brain.enabled = false;
     g.world.warm(center);

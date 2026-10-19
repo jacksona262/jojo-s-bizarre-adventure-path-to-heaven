@@ -24,7 +24,9 @@ export class Sequencer {
     const g = this.game;
     this.running = true;
     this.skipping = false;
-    this.skippable = skippable;
+    // every scene and line plays in full: nothing in the story can be skipped
+    void skippable;
+    this.skippable = false;
     g.inCinematic = true;
     ui.set({ letterbox, prompt: null });
     try {

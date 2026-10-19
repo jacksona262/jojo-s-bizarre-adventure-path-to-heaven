@@ -21,7 +21,7 @@ export class Horse {
     this.yaw = 0;
     this.speed = 0;
     this.turn = 0;
-    this.staminaMax = 300;   // three full-length gallops before she tires
+    this.staminaMax = 600;   // six full-length gallops before she tires
     this.stamina = this.staminaMax;
     this.rider = null;
     this.state = 'idle';
@@ -156,7 +156,7 @@ export class Horse {
         }
       }
       if (c.gallop && c.throttle > 0.1 && this.speed > 9) this.stamina = Math.max(0, this.stamina - dt * 9);
-      else this.stamina = Math.min(this.staminaMax, this.stamina + dt * 18);
+      else this.stamina = Math.min(this.staminaMax, this.stamina + dt * 36);
     } else if (this.state === 'summoned' && this.target) {
       const tp = this.target.pos;
       const d = Math.hypot(tp.x - this.pos.x, tp.z - this.pos.z);
@@ -164,8 +164,9 @@ export class Horse {
       let da = ang - this.yaw; da = Math.atan2(Math.sin(da), Math.cos(da));
       // steer is applied as yaw -= turn (positive = right), so turning toward the target is -da
       steer = Math.max(-1, Math.min(1, -da * 2));
-      want = d > 12 ? GAIT_SPEEDS.gallop * 0.8 : d > 4 ? GAIT_SPEEDS.trot : 0;
-      if (Math.abs(da) > 1.4 && d > 6) want = Math.min(want, GAIT_SPEEDS.trot);   // turn before galloping off
+      // answering a whistle she runs at twice her usual pace
+      want = d > 12 ? GAIT_SPEEDS.gallop * 1.6 : d > 4 ? GAIT_SPEEDS.trot * 2 : 0;
+      if (Math.abs(da) > 1.4 && d > 6) want = Math.min(want, GAIT_SPEEDS.trot * 2);   // turn before galloping off
       if (d < 2.9) { this.state = 'idle'; want = 0; }
       // a whistle never leaves the player waiting: lost, blocked or stuck, she reappears closer
       this.summonT = (this.summonT || 0) + dt;
@@ -176,7 +177,7 @@ export class Horse {
       }
     }
     // acceleration and turning
-    const acc = want > this.speed ? 4.5 : 9;
+    const acc = (want > this.speed ? 4.5 : 9) * (this.state === 'summoned' ? 2 : 1);
     this.speed += Math.sign(want - this.speed) * Math.min(Math.abs(want - this.speed), acc * dt);
     const turnRate = 2.2 - Math.min(1.3, Math.abs(this.speed) / 12);
     this.turn += (steer - this.turn) * Math.min(1, dt * 6);

@@ -198,7 +198,6 @@ export default function Hud() {
           <span style={subtitle.speaker ? undefined : { fontStyle: 'italic', color: '#d8ccb0' }}>{subtitle.text}</span>
         </div>
       )}
-      {letterbox && !choice && <div className="pth-skip">{keys.skip} · SKIP</div>}
       {card && (
         <div className="pth-card">
           <div className="pth-card-1">{card[0]}</div>
