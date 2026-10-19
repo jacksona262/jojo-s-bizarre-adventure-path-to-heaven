@@ -124,6 +124,11 @@ export class Character {
     if (this.onDamaged) this.onDamaged(dmg, attacker, hit);
     if (this.hp <= 0) { this.die(attacker); return 'kill'; }
     if (this.action?.def.armor && !hit.breaksArmor) return 'armored';
+    // anti-stunlock: a burst of small hits stops interrupting after a few in quick succession
+    const now = this.game.clock;
+    this.recentHits = (this.recentHits || []).filter((t) => now - t < 1.2);
+    this.recentHits.push(now);
+    if (this.recentHits.length > 6 && hit.kind !== 'heavy' && dmg < 6) hit = { ...hit, stun: 0, knock: Math.min(hit.knock || 0, 0.5) };
     if (hit.stun > 0) {
       this.cancelAction();
       this.stun = Math.max(this.stun, hit.stun);
