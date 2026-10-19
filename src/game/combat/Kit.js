@@ -209,7 +209,6 @@ export class Kit {
     return true;
   }
 
-  // Call every frame while the rush button is held.
   // Call every frame while the rush button is held. The Stand plants itself in front of the
   // target and throws alternating straights; each fist that actually reaches the target lands.
   rush(holding, dt) {
