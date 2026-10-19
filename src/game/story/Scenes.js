@@ -172,14 +172,15 @@ export async function coldOpen(game, seq, { player }) {
     perform(jotaro, { talking: true, lookAt: null });
     await say(COLD_OPEN.after[1]);
     // 6 · Star Platinum rises behind him
-    const sp = J.clone().add(V(-0.55, 0.35, -0.9));
+    // over his right shoulder, risen high enough to loom above him
+    const sp = J.clone().add(V(-1.05, 0.55, -0.55));
     star = await game.spawnNPC('starPlatinum', sp, 0, { name: 'Star Platinum' });
     star.pinned = true; star.pos.y = sp.y;
     star.idlePose = (t) => Poses.standFloat(t, false);
     extras.push(star);
     game.vfx.standSummon(J.clone().add(V(0, 1.2, 0)), sp.clone().add(V(0, 1.4, 0)), 0x8f7cff, 'ゴ', '#a99cff');
     audio.play('summon');
-    seq.shot({ from: J.clone().add(V(1.6, 0.6, 5.2)), to: J.clone().add(V(1.1, 0.8, 4.0)), look: J.clone().add(V(0, 1.7, 0)), dur: 5, fov: 40, ease: 'linear' });
+    seq.shot({ from: J.clone().add(V(2.4, 0.7, 4.6)), to: J.clone().add(V(1.7, 0.85, 3.6)), look: J.clone().add(V(-0.45, 1.9, 0)), dur: 5, fov: 42, ease: 'linear' });
     await say(COLD_OPEN.after[2]);
     stopPerform(jotaro);
     await seq.fade(1, 0.35);
