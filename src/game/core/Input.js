@@ -57,7 +57,7 @@ export class Input {
     this._onMouseDown = (e) => {
       this.mouse.add(e.button);
       this.lastDevice = 'kbm';
-      if (this.wantPointerLock && !this.pointerLocked && e.target === this.el) this.el.requestPointerLock?.();
+      if (this.wantPointerLock && !this.pointerLocked && e.target === this.el) this.requestLock();
     };
     this._onMouseUp = (e) => { this.mouse.delete(e.button); };
     this._onMouseMove = (e) => {
@@ -88,7 +88,11 @@ export class Input {
   }
 
   requestLock() {
-    if (!this.pointerLocked) this.el.requestPointerLock?.();
+    if (this.pointerLocked || !this.el.requestPointerLock) return;
+    try {
+      const p = this.el.requestPointerLock();
+      if (p && p.catch) p.catch(() => { /* not allowed here (no user gesture / embedded frame) */ });
+    } catch { /* pointer lock unsupported */ }
   }
 
   _pollPad() {
