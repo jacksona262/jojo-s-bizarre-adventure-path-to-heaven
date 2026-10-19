@@ -56,6 +56,13 @@ export class TimeControl {
     g.vfx.frozen = true;
     if (g.world) g.world.frozen = true;
     g.vfx.timeDome(user.chestWorld(_v.set(0, 0, 0)), kind === 'starPlatinum' ? 0xa0b0ff : 0xd8ffe8, 70, 1.2);
+    // signature: a clock face behind the user whose hands whirl and freeze, a refractive
+    // shockwave, speed lines converging on the user and the menacing ゴゴゴ
+    const c = user.chestWorld(new THREE.Vector3());
+    g.vfx.clockDial(c, kind === 'starPlatinum' ? 0xb8b0ff : kind === 'heaven' ? 0xfff2c8 : 0xffd34d, 1.9, 3.6);
+    g.screen?.shockwave(c, 1.3, 0.75);
+    g.screen?.speedLines(0.85, c, 0.45);
+    g.vfx.menacing(c, 'ゴ', 3, kind === 'starPlatinum' ? '#9f8cff' : '#ffd34d');
     g.camera?.shake(0.4);
     ui.set({ timeStop: { remaining: duration, total: duration, user: user.name, variant: kind } });
     if (opts.onEnd) this.state.onEnd = opts.onEnd;
@@ -92,7 +99,7 @@ export class TimeControl {
       audio.setFrozen(false);
       g.vfx.frozen = false;
       if (g.world) g.world.frozen = false;
-      if (!silent) audio.play('timeResume');
+      if (!silent) { audio.play('timeResume'); if (!s.user.dead) g.screen?.shockwave(s.user.chestWorld(_v), 0.8, 0.55); }
       g.combat?.releaseQueued();
       this.waveT = -0.5;
     } else if (s.kind === 'erase') {
