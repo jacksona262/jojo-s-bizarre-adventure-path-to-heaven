@@ -458,5 +458,6 @@ export class BastetKit extends Kit {
     ];
   }
 
-  dispose() { this.junkMat.dispose(); for (const g of this.junk) g.dispose(); }
+  // (junk geometry/material stay alive: projectiles already in flight still use them)
+  dispose() { super.dispose?.(); }
 }
