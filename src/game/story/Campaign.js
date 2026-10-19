@@ -476,6 +476,12 @@ export class Campaign {
           this.player.pos.copy(center).add(new THREE.Vector3(0, 0.5, 6));
           g.combat.applyHit(this.player, boss, { damage: 20, stun: 0.5, kind: 'special', unblockable: true, noCounter: true });
         }
+        // ...and so does the boss (no free win, no boss lost in the canyon)
+        if (!boss.dead && boss.pos.y < center.y - 8) {
+          boss.pos.copy(center).add(new THREE.Vector3(0, 0.5, -6));
+          boss.vel.set(0, 0, 0);
+          boss.group.visible = true;
+        }
         // Jotaro: final clash at low health (first fight)
         if (key === 'jotaro' && !s.final && !enc.clashDone && boss.hp / boss.hpMax < 0.15 && !g.time.state) this.finalClash();
         if (enc.clash) this.updateClash(dt);

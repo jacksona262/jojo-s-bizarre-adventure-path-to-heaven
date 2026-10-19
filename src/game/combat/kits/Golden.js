@@ -73,11 +73,7 @@ export class KingCrimsonKit extends Kit {
     this.setCool(reposition ? 'repo' : 'erase', reposition ? 8 : (this.phase >= 3 ? 7 : 10));
     f.cancelAction();
     const dur = this.phase >= 3 ? 1.8 : 2.3;
-    const ang = Math.random() * Math.PI * 2;
-    const dest = reposition
-      ? f.pos.clone().add(v3(Math.cos(ang) * 9, 0, Math.sin(ang) * 9))
-      : t.pos.clone().add(v3(Math.cos(ang) * 2.2, 0, Math.sin(ang) * 2.2));
-    dest.y = this.game.world.groundAt(dest.x, dest.z, dest.y + 2);
+    const dest = this._safeSpot(reposition ? f.pos : t.pos, reposition ? 9 : 2.2, t);
     this.vfx.text(f.chestWorld(new THREE.Vector3()).add(v3(0, 1.2, 0)), 'キング・クリムゾン', '#ff2a3a', 1.6, 0.8);
     // (a player using King Crimson still sees their own fighter; the vanishing is for opponents)
     const vanish = (on) => {
@@ -114,6 +110,27 @@ export class KingCrimsonKit extends Kit {
     return true;
   }
 
+  // Somewhere solid to reappear: on the same footing as the fight (never off the edge of the canyon
+  // bridge or inside a wall). Tries random angles around `around`, then just behind the target,
+  // then stays put.
+  _safeSpot(around, radius, t) {
+    const w = this.game.world;
+    const f = this.f;
+    const ok = (p) => {
+      const gy = w.groundAt(p.x, p.z, p.y + 2);
+      if (!Number.isFinite(gy) || Math.abs(gy - f.pos.y) > 1.2) return false;
+      p.y = gy;
+      return !w.collide?.(p.clone(), 0.5, gy);
+    };
+    for (let i = 0; i < 12; i += 1) {
+      const a = Math.random() * Math.PI * 2;
+      const p = around.clone().add(v3(Math.cos(a) * radius, 0, Math.sin(a) * radius));
+      if (ok(p)) return p;
+    }
+    if (t) { const p = t.pos.clone().addScaledVector(t.forward(), -1.6); if (ok(p)) return p; }
+    return f.pos.clone();
+  }
+
   kcStrike(fast = false) {
     const f = this.f;
     this.ensureStand();
@@ -132,6 +149,11 @@ export class KingCrimsonKit extends Kit {
   update(dt) {
     super.update(dt);
     const f = this.f;
+    // never left invisible once an erasure is over, however it ended
+    if (!f.group.visible && !f.isPlayer && !f.dead && !(this.game.time.erasing && this.game.time.state?.user === f)) {
+      f.group.visible = true; f.untargetable = false; this.eye.visible = true;
+      if (this.stand?.group) this.stand.group.visible = this.stand.summoned;
+    }
     const reading = this.clock < this.readUntil;
     this.eye.position.copy(f.jointWorld('head')).addScaledVector(f.forward(), 0.25);
     this.eye.intensity = reading ? 6 + Math.sin(this.clock * 20) * 2 : 0;
