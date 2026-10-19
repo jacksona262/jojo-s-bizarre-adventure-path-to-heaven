@@ -395,7 +395,11 @@ export async function heavenCinematic(game, seq, { player, jotaro, altar, arrowM
   perform(hp, { gesture: nextGesture(hp), talking: true, lookAt: jotaro });
   await sayLines(seq, HEAVEN_SCENE.slice(3, 4));
   // then over the kneeling Jotaro's shoulder, The World Over Heaven looming behind its user
-  const o = clearShot(game, [ots(jotaro, hp, 1, 2.4), ots(jotaro, hp, -1, 2.4), closeUp(hp, jotaro, -1, 2.6)]);
+  // (too far apart to share a frame: a three-quarter close-up from the other side instead)
+  const far = hp.distanceTo(jotaro) > 7.5;
+  const o = clearShot(game, far
+    ? [closeUp(hp, jotaro, -1, 2.8), closeUp(hp, jotaro, 1, 2.2)]
+    : [ots(jotaro, hp, 1, 2.4), ots(jotaro, hp, -1, 2.4), closeUp(hp, jotaro, -1, 2.6)]);
   seq.shot({ from: o.pos, to: o.pos.clone().lerp(o.look, 0.08), look: o.look, dur: 6, fov: 36 });
   perform(hp, { gesture: nextGesture(hp), talking: true, lookAt: jotaro });
   perform(jotaro, { lookAt: hp });
