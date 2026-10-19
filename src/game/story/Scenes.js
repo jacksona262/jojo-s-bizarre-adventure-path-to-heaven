@@ -224,11 +224,12 @@ export async function journalCinematic(game, seq, { player, journalPos }) {
     const toDesk = journalPos.clone().sub(player.pos).setY(0).normalize();
     const page = journalPos.clone().add(V(0, 0.45, 0));
     const cand = [1, -1].map((s) => {
-      const pos = head.clone().addScaledVector(toDesk, -0.8).addScaledVector(V(-toDesk.z, 0, toDesk.x), 0.42 * s).add(V(0, 0.16, 0));
+      // high and wide of his shoulder so the page clears his body
+      const pos = head.clone().addScaledVector(toDesk, -0.9).addScaledVector(V(-toDesk.z, 0, toDesk.x), 1.1 * s).add(V(0, 0.85, 0));
       return { pos, look: page };
     });
     const s = clearShot(game, cand);
-    seq.shot({ from: s.pos, to: s.pos.clone().lerp(s.look, 0.12), look: s.look, dur: 6, fov: 40 });
+    seq.shot({ from: s.pos, to: s.pos.clone().lerp(s.look, 0.12), look: s.look, dur: 6, fov: 42 });
   }
   await sayLines(seq, OPENING.journal.slice(1, 3));
   // time misbehaves: the rain stops mid-air, the lantern flame freezes
