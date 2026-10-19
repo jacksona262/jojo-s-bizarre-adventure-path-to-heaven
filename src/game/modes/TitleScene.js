@@ -10,20 +10,20 @@ import * as Poses from '../anim/Poses';
 
 const _v = new THREE.Vector3();
 const _v2 = new THREE.Vector3();
-const _pole = new THREE.Vector3();
-const _face = new THREE.Vector3();
 
 // Framing and lighting, relative to DIO (he faces -z; +x is his right). Exposed as `title.cfg` so
 // the shot can be adjusted live from the console while developing.
 const CFG = {
-  camX: -0.22, camY: 1.5, dist: 1.5, lookY: 1.47, fov: 40,
-  screenX: 0.3,                     // where DIO sits across the screen on wide displays (0 = left edge)
-  key: { x: -1.8, y: 3.2, z: 2.1, i: 62 },
-  rim: { x: 1.35, y: 2.6, z: -1.8, i: 42 },
-  kick: { x: -1.6, y: 1.4, z: -1.2, i: 10 },
-  fill: 0.05,
+  camX: -0.22, camY: 1.66, dist: 1.08, lookY: 1.64, fov: 40,
+  screenX: 0.37,                    // where DIO sits across the screen on wide displays (0 = left edge)
+  key: { x: -1.8, y: 3.2, z: 2.1, i: 18 },
+  rim: { x: 1.35, y: 2.6, z: -1.8, i: 14 },
+  kick: { x: -1.6, y: 1.4, z: -1.2, i: 4 },
+  fill: 0.04,
+  bloom: { strength: 0.22, threshold: 0.92 },   // only a whisper of glow on the hair, no haze
   pose: { neck: 0.4, head: 0.62, pitch: 0.14, roll: -0.08, chest: 0.12 },
-  hand: { fwd: 0.1, side: 0.03, down: 0.075 },
+  // left arm: upper arm hanging down and out, forearm rising so the fingers rest on his cheek
+  arm: { ua: [0.4, -0.85, 0.3], fa: [-0.3, 0.7, 0.62], hand: [0.4, -0.9, -0.9] },
 };
 
 export class TitleScene {
@@ -74,15 +74,18 @@ export class TitleScene {
     this.kick = new THREE.SpotLight(0xb8c4ff, C.kick.i, 8, 0.6, 0.9, 1.5);
     s.add(this.kick, this.kick.target);
 
-    // render this scene instead of the world while the title is up
+    // render this scene instead of the world while the title is up, with a softer bloom
     this.prevScene = g.engine.renderPass.scene;
     g.engine.renderPass.scene = s;
+    const b = g.engine.bloom;
+    if (b) { this.prevBloom = { strength: b.strength, threshold: b.threshold }; b.strength = C.bloom.strength; b.threshold = C.bloom.threshold; }
     this.ready = true;
   }
 
   dispose() {
     const g = this.game;
     if (this.prevScene) g.engine.renderPass.scene = this.prevScene;
+    if (this.prevBloom && g.engine.bloom) Object.assign(g.engine.bloom, this.prevBloom);
     this.dio?.remove();
     this.scene.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material?.map) o.material.map.dispose(); });
   }
@@ -90,9 +93,10 @@ export class TitleScene {
   setHover(h) { this.hover = h; }
 
   // From behind: shoulders nearly square to the lens, weight on the right leg, chest turned a touch
-  // to his left, head turned left and dipped, the left hand brought up to the jaw (placed by IK).
+  // to his left, head turned left and dipped, the left hand brought up to his cheek.
   _pose(t) {
     const P = this.cfg.pose;
+    const A = this.cfg.arm;
     const p = Poses.idle(t, 'dio');
     const br = Math.sin(t * 1.2);
     const look = Math.sin(t * 0.21) * 0.04;
@@ -102,8 +106,9 @@ export class TitleScene {
     p.chest = [-0.08 + br * 0.012, P.chest, -0.04];
     p.neck = [P.pitch * 0.5, P.neck + look * 0.4, P.roll * 0.5];
     p.head = [P.pitch + Math.sin(t * 0.37) * 0.015, P.head + look, P.roll];
-    p.uaL = [0.55, -0.15, 0.82]; p.faL = [-0.5, 0.75, 0.2];
-    p.handL = [-0.6, -0.35, -0.5];
+    const hb = Math.sin(t * 0.9) * 0.012;   // the hand drifts with his breathing
+    p.uaL = [A.ua[0], A.ua[1] + hb, A.ua[2]]; p.faL = A.fa;
+    p.handL = A.hand;
     p.uaR = [-0.22, -0.95, -0.06]; p.faR = [-0.1, -0.92, 0.25];
     p.thR = [-0.06, -1, 0.04]; p.shR = [-0.04, -1, -0.03];
     p.thL = [0.15, -1, -0.1]; p.shL = [0.08, -1, -0.18];
@@ -126,18 +131,8 @@ export class TitleScene {
     }
     this.dio.update(realDt);
 
-    // hand to the jaw: just ahead of the turned face, on its left side, a little below the head
     const rig = this.dio.rig;
     const head = rig ? rig.jointWorld('head', _v) : _v.set(0, 1.78, 0);
-    if (rig) {
-      const yaw = this.dio.yaw + C.pose.neck + C.pose.head;          // where the face points
-      _face.set(Math.sin(yaw), 0, Math.cos(yaw));
-      const lx = Math.cos(this.dio.yaw); const lz = -Math.sin(this.dio.yaw);   // his left
-      _v2.copy(head).addScaledVector(_face, C.hand.fwd);
-      _v2.x += lx * C.hand.side; _v2.z += lz * C.hand.side;
-      _v2.y -= C.hand.down - Math.sin(t * 0.9) * 0.005;
-      rig.reach('L', 'arm', _v2, 1, _pole.set(0.8, -0.5, -0.15));
-    }
 
     // lights follow DIO (placed relative to him)
     const d = this.dio.pos;
@@ -152,8 +147,8 @@ export class TitleScene {
     // DIO sits on the left of wide screens (the menu is on the right); portrait screens centre him.
     const aspect = g.engine.camera.aspect || 1.6;
     const portrait = aspect < 0.85;
-    const sx = portrait ? 0.5 : aspect < 1.3 ? 0.36 : C.screenX;
-    const dist = C.dist * (aspect < 1.3 ? 1.18 : 1) * (portrait ? 1.25 : 1);
+    const sx = portrait ? 0.5 : aspect < 1.3 ? 0.3 : C.screenX;
+    const dist = C.dist * (aspect < 1.3 ? 1.3 : 1) * (portrait ? 1.3 : 1);
     const fov = C.fov + (this.hover === 'credits' ? 3 * this.hoverK : 0) - (this.hover === 'new' || this.hover === 'continue' ? 1.5 * this.hoverK : 0);
     const halfW = dist * Math.tan(THREE.MathUtils.degToRad(fov / 2)) * aspect;
     const lookX = (0.5 - sx) * 2 * halfW;
