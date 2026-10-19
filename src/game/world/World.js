@@ -578,14 +578,13 @@ export class World {
         if (plant && dMax > vd) {
           // straddling chunk: copy only the plants inside the limit
           const dst = im.instanceMatrix.array; let c = counts[key];
-          const vd2 = vd * vd; const end = Math.min(src.length, (room) * 16 + 0);
+          const vd2 = vd * vd;
           for (let o = 0; o < src.length && c < im.instanceMatrix.count; o += 16) {
             const px = src[o + 12] - cx; const pz = src[o + 14] - cz;
             if (px * px + pz * pz > vd2) { culledPlants += 1; continue; }
             for (let j = 0; j < 16; j += 1) dst[c * 16 + j] = src[o + j];
             c += 1;
           }
-          void end;
           counts[key] = c;
           continue;
         }

@@ -82,6 +82,7 @@ export class Game {
     this.engine.start();
     await new Promise((r) => setTimeout(r, 30));
     this.world = new World(this.engine);
+    this._applyRenderDistance();
     this.weather = new Weather(this.engine);
     this.engine.add({ onQuality: (s) => { this.world.onQuality(s); this.weather.onQuality(s); } });
     this.world.onRegion = (r) => {
@@ -258,6 +259,7 @@ export class Game {
     this.settings = { ...this.settings, ...s };
     const st = this.settings;
     this.engine.setQuality(st.quality);
+    this._applyRenderDistance();
     if (this.screen) this.screen.level = st.screenFx || 'full';
     audio.applyVolumes({ master: st.master, music: st.music, sfx: st.sfx, ambience: st.ambience });
     this.input.sensitivity = st.sensitivity;
@@ -266,6 +268,12 @@ export class Game {
     this.combat.damageMul = { 0: 1, 1: diff[0] };
     this.difficulty = diff[1];
     Save.saveSettings(this.settings);
+  }
+
+  // trees and bushes beyond this are not drawn; everything else stays in sight
+  _applyRenderDistance() {
+    const d = { near: 150, medium: 230, far: 330, max: Infinity }[this.settings.renderDistance] ?? 230;
+    if (this.world) { this.world.vegDistance = d; this.world._vegT = 0; }
   }
 
   setPaused(p, overlay = 'pause') {

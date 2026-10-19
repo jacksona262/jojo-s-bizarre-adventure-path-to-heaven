@@ -68,6 +68,7 @@ export function SettingsPanel() {
       <div className="pth-panel pth-scroll" style={{ padding: '26px 32px', width: 'min(760px, 92vw)', maxHeight: '86vh' }}>
         <div className="pth-h1">Settings</div>
         <Row label="Graphics"><Seg k="quality" opts={['low', 'medium', 'high', 'ultra']} /></Row>
+        <Row label="Render distance"><Seg k="renderDistance" opts={['near', 'medium', 'far', 'max']} /></Row>
         <Row label="Difficulty"><Seg k="difficulty" opts={['story', 'normal', 'hard']} /></Row>
         <Row label="Master volume"><Slider k="master" /></Row>
         <Row label="Music"><Slider k="music" /></Row>
