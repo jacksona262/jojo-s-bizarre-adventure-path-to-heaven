@@ -11,7 +11,7 @@ const MODES = ['rest', 'idle', 'walk', 'run', 'punch', 'rush', 'guard', 'ride', 
 
 export default function AssetLab() {
   const mountRef = useRef(null);
-  const [mode, setMode] = useState('idle');
+  const [mode, setMode] = useState(new URLSearchParams(window.location.search).get('mode') || 'idle');
   const modeRef = useRef(mode);
   const [status, setStatus] = useState('loading…');
   const [only, setOnly] = useState(new URLSearchParams(window.location.search).get('part') || '');
