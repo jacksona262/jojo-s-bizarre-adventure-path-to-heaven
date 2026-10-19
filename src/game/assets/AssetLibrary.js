@@ -4,6 +4,7 @@ import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { FILES, PARTS } from './manifest';
 import { buildAutoHumanoid, buildAutoHorse } from '../anim/AutoRig';
 import { HumanoidRig } from '../anim/HumanoidRig';
+import { rest as restPose } from '../anim/Poses';
 
 // Exact node-name comparison (GLTFLoader sanitises names: whitespace -> '_', strips []:./).
 export const sanitize = (s) => (s || '').replace(/\s/g, '_').replace(/[[\]\.:/]/g, '');
@@ -206,7 +207,12 @@ export async function instantiate(partKey, { ownMaterials = true } = {}) {
     });
   }
   obj.userData.materials = mats;
-  if (info.joints) obj.userData.rig = new HumanoidRig(obj, info.joints);
+  if (info.joints) {
+    const rig = new HumanoidRig(obj, info.joints);
+    if (info.groundY === undefined) info.groundY = rig.calibrateGround(restPose());
+    rig.groundY = info.groundY;
+    obj.userData.rig = rig;
+  }
   return obj;
 }
 
