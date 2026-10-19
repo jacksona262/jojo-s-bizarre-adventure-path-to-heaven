@@ -351,7 +351,7 @@ export class BastetKit extends Kit {
     this.setCool('storm2', this.phase >= 2 ? 5 : 7);
     f.play({ name: 'stormCmd', dur: 0.7, pose: (k) => Poses.castBoth(k, 0.2) });
     this.vfx.text(t.chestWorld(new THREE.Vector3()).add(v3(0, 1.1, 0)), 'ガガガガ', '#8aa8ff', 1.2, 0.7);
-    const n = 4 + mag * 2;
+    const n = 3 + Math.round(mag * 1.6);
     for (let i = 0; i < n; i += 1) {
       this.combat.addHazard(new Timer(0.25 + i * 0.07, () => {
         if (t.dead) return;
@@ -359,7 +359,7 @@ export class BastetKit extends Kit {
         const r = 8 + Math.random() * 4;
         const origin = t.pos.clone().add(v3(Math.cos(a) * r, 0.6 + Math.random() * 3, Math.sin(a) * r));
         this.vfx.sparkBurst(origin, 0x8aa8ff, 4, 3);
-        this._junk(origin, t.chestWorld(new THREE.Vector3()).sub(origin), 16, t, 2.5, 4);
+        this._junk(origin, t.chestWorld(new THREE.Vector3()).sub(origin), 16, t, 2.5, 3);
       }));
     }
     audio.play('click');
@@ -412,7 +412,7 @@ export class BastetKit extends Kit {
         const d = e.pos.clone().sub(a); const ab = b.clone().sub(a);
         const k = Math.max(0, Math.min(1, d.dot(ab) / ab.lengthSq()));
         if (e.pos.distanceTo(a.clone().addScaledVector(ab, k)) < 0.9) {
-          this.combat.applyHit(e, f, { damage: 12, stun: 1.0, knock: 0.5, kind: 'special', color: 0x9ab8ff, noCounter: true });
+          this.combat.applyHit(e, f, { damage: 10, stun: 0.9, knock: 0.5, kind: 'special', color: 0x9ab8ff, noCounter: true });
           this.vfx.text(e.chestWorld(new THREE.Vector3()).add(v3(0, 0.6, 0)), 'ZAP', '#9ab8ff', 0.9, 0.5);
         }
       }
