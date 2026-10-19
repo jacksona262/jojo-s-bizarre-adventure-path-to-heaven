@@ -165,6 +165,8 @@ export async function autoFight(maxS = 120, opts = {}) {
       if (retry && !opts.noRetry) { retry.click(); stats.retries += 1; await sleep(1500); locked = false; continue; }
       break;
     }
+    // the final rush clash: mash
+    if (g.mode.encounter?.clash) { key('keyup', 'KeyW'); await tap('Enter', 40); stats.clashPresses = (stats.clashPresses || 0) + 1; await sleep(45); continue; }
     if (g.inCinematic || g.paused) { key('keyup', 'KeyW'); await sleep(300); continue; }
     if (!locked) { await tap('Tab'); locked = true; }
     const d = pl.distanceTo(b); const dv = b.pos.clone().sub(pl.pos);
