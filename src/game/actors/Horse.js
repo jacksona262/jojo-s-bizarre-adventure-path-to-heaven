@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { instantiate } from '../assets/AssetLibrary';
 import { HorseAnimator } from '../anim/HorseAnimator';
 import { audio } from '../core/Audio';
+import { roadX, roadDir, ROAD_HALF } from '../world/Terrain';
 
 // Slow Dancer: rideable, summonable, with gaits driven by speed.
 
@@ -115,6 +116,24 @@ export class Horse {
       if (c.throttle > 0.1) want = c.gallop && this.stamina > 2 ? GAIT_SPEEDS.gallop : (c.throttle > 0.6 ? GAIT_SPEEDS.canter : c.throttle > 0.3 ? GAIT_SPEEDS.trot : GAIT_SPEEDS.walk);
       if (c.brake) want = this.speed > 0.5 ? 0 : -1.4;
       steer = c.steer;
+      // hard stop from a gallop: Slow Dancer rears up
+      if (c.brake && this.speed > 10 && !(this.rearT > 0)) { this.rearT = 1.1; audio.play('neigh'); this.game.camera?.shake(0.2); }
+      // road-follow assist: with no steering input at speed, ease onto the road ahead
+      if (Math.abs(c.steer) < 0.08 && this.speed > 5 && this.assistRoad !== false) {
+        const rx = roadX(this.pos.z);
+        const off = this.pos.x - rx;
+        if (Math.abs(off) < ROAD_HALF + 7) {
+          const d = roadDir(this.pos.z);
+          let hx = d.x; let hz = d.z;
+          const fx = Math.sin(this.yaw); const fz = Math.cos(this.yaw);
+          if (fx * hx + fz * hz < 0) { hx = -hx; hz = -hz; }
+          if (fx * hx + fz * hz > 0.8) {
+            const want2 = Math.atan2(hx * 14 - off * 0.7, hz * 14);
+            const da = Math.atan2(Math.sin(want2 - this.yaw), Math.cos(want2 - this.yaw));
+            steer = Math.max(-0.5, Math.min(0.5, -da * 1.6));
+          }
+        }
+      }
       if (c.gallop && c.throttle > 0.1 && this.speed > 9) this.stamina = Math.max(0, this.stamina - dt * 9);
       else this.stamina = Math.min(100, this.stamina + dt * 6);
     } else if (this.state === 'summoned' && this.target) {
@@ -159,6 +178,11 @@ export class Horse {
     const actual = Math.hypot(this.pos.x - ox, this.pos.z - oz) / Math.max(dt, 1e-4);
     this.group.rotation.set(0, this.yaw, 0);
     this.model.rotation.x = this.pitch;
+    if (this.rearT > 0) {
+      this.rearT -= dt;
+      this.anim.rear = Math.sin(Math.max(0, 1 - this.rearT / 1.1) * Math.PI) * 0.85;
+      if (this.rearT <= 0) this.anim.rear = 0;
+    }
     this.anim.update(dt, actual, this.turn);
     // carry the rider
     if (this.rider) {
