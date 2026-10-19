@@ -219,7 +219,17 @@ export async function journalCinematic(game, seq, { player, journalPos }) {
   player.override = (t) => { const p = Poses.idle(t, 'dio'); p.head = [0.45, 0, 0]; p.uaR = [-0.3, -0.5, 0.8]; p.faR = [-0.1, -0.2, 1]; return p; };
   await sayLines(seq, OPENING.journal.slice(0, 1));
   // over DIO's shoulder onto the open journal (the look point sits on the page, above the desk)
-  seq.shot({ from: F(3.4, 1.55, -3.0), to: F(3.1, 1.25, -3.3), look: journalPos.clone().add(V(0, 0.3, 0)), dur: 6, fov: 32 });
+  {
+    const head = player.jointWorld('head', new THREE.Vector3());
+    const toDesk = journalPos.clone().sub(player.pos).setY(0).normalize();
+    const page = journalPos.clone().add(V(0, 0.3, 0));
+    const cand = [1, -1].map((s) => {
+      const pos = head.clone().addScaledVector(toDesk, -0.8).addScaledVector(V(-toDesk.z, 0, toDesk.x), 0.42 * s).add(V(0, 0.16, 0));
+      return { pos, look: page };
+    });
+    const s = clearShot(game, cand);
+    seq.shot({ from: s.pos, to: s.pos.clone().lerp(s.look, 0.12), look: s.look, dur: 6, fov: 40 });
+  }
   await sayLines(seq, OPENING.journal.slice(1, 3));
   // time misbehaves: the rain stops mid-air, the lantern flame freezes
   const fx = game.engine.fx;
