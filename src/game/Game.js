@@ -43,6 +43,21 @@ export class Game {
     this.applySettings(this.settings);
     this.engine.add(this);
     window.__game = this;
+    // combo counter for the HUD: consecutive blows the player lands without being hit back
+    this.combo = { n: 0, dmg: 0, t: 0, id: 0 };
+    this.combat.on((ev) => {
+      const pl = this.player;
+      if (!pl || ev.type !== 'hit') return;
+      if (ev.attacker === pl && ev.target !== pl) {
+        const c = this.combo;
+        if (this.clock - c.t > 1.6) { c.n = 0; c.dmg = 0; }
+        c.n += ev.released || 1; c.dmg += ev.hit?.damage || 0; c.t = this.clock; c.id += 1;
+        if (c.n >= 2) ui.set({ combo: { n: c.n, dmg: Math.round(c.dmg), id: c.id } });
+      } else if (ev.target === pl && this.combo.n) {
+        this.combo.n = 0; this.combo.dmg = 0;
+        ui.set({ combo: null });
+      }
+    });
     this._unsubAssets = onAssetProgress((p) => {
       const l = ui.get().loading;
       if (l) ui.set({ loading: { ...l, assets: p } });
@@ -307,6 +322,7 @@ export class Game {
     this.hudT -= realDt;
     if (this.hudT <= 0) {
       this.hudT = 1 / 15;
+      if (this.combo.n && this.clock - this.combo.t > 1.6) { this.combo.n = 0; this.combo.dmg = 0; ui.set({ combo: null }); }
       this.mode?.publishHud?.();
       if (this.settings.showFps) ui.set({ debug: `${this.engine.fps.toFixed(0)} fps` });
     }
