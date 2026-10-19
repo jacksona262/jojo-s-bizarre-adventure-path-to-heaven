@@ -64,6 +64,7 @@ export class VersusMode {
     g.input.setPointerLock(true);
     audio.setMusic('versus', 0.5);
     audio.setWeather(1, 0.8);
+    g.fadeIn(0.8);
     await this.beginRound();
   }
 
