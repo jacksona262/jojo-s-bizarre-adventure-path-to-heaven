@@ -15,6 +15,8 @@ const OFFSETS = {
   overhead: new THREE.Vector3(0, 1.4, -0.4),
 };
 const _want = new THREE.Vector3();
+// fully materialised (not mid-summon)
+const k0 = (s) => Math.min(1, s.summonT / 0.35);
 
 export class Stand extends Character {
   constructor(game, user, opts) {
@@ -145,6 +147,7 @@ export class Stand extends Character {
       this.pos.addScaledVector(this.svel, h);
     }
     if (this.pos.distanceToSquared(_want) > 64) { this.pos.copy(_want); this.svel.set(0, 0, 0); }   // teleports
+    this._trail(dt);
     if (face) this.targetYaw = Math.atan2(face.pos.x - this.pos.x, face.pos.z - this.pos.z);
     else if (!this.action || !this.action.def.ownFacing) this.targetYaw = this.user.yaw;
     if (this.user.dead) this.summon(false, true);
@@ -159,6 +162,27 @@ export class Stand extends Character {
     }
     super.update(dt);
     if (held !== null && this.action === a) a.t = held;
+  }
+
+  // Afterimages: a dash toward a heavy blow leaves a trail of fading copies (with speed lines when
+  // the player is in the fight); any fast lunge leaves a fainter one; a rush blurs into many arms.
+  _trail(dt) {
+    const a = this.action;
+    const vfx = this.game.vfx;
+    if (!a || !vfx || k0(this) < 1) return;
+    const fx = this.user.kit?.fx;
+    const col = fx?.ghost ?? this.auraColor;
+    const sp = this.svel.length();
+    this._ghostT = (this._ghostT ?? 0) - dt;
+    if (a.def.rush) {
+      if (this._ghostT <= 0) { this._ghostT = 0.085; vfx.afterimage(this, col, { life: 0.16, alpha: 0.2 }); }
+    } else if (this.mode === 'strike' && sp > (a.def.dashFx ? 4.5 : 7.5)) {
+      if (this._ghostT <= 0) {
+        this._ghostT = a.def.dashFx ? 0.045 : 0.075;
+        vfx.afterimage(this, col, { life: a.def.dashFx ? 0.24 : 0.18, alpha: a.def.dashFx ? 0.4 : 0.24 });
+      }
+      if (a.def.dashFx && this.user.kit?.onScreen) this.game.screen?.speedLines(0.32, this.chestWorld(_want), 0.08);
+    }
   }
 
   // Stand attacks. def.lunge sends the Stand to the target; otherwise it holds `slot`.
