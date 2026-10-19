@@ -68,7 +68,7 @@ export class TitleScene {
     s.add(this.world.group);
 
     // lighting: gold rim from beyond him, cool soft key on the turned face, faint fill
-    s.add(new THREE.HemisphereLight(0x221c2a, 0x020203, 0.18));
+    s.add(new THREE.HemisphereLight(0x221c2a, 0x020203, 0.1));
     this.rim = new THREE.SpotLight(0xffc066, 95, 14, 0.62, 0.85, 1.4);
     this.rim.position.set(-1.1, 3.4, -2.6);
     s.add(this.rim, this.rim.target);
@@ -138,16 +138,18 @@ export class TitleScene {
     const p = Poses.idle(t, 'dio');
     const br = Math.sin(t * 1.25);
     const look = Math.sin(t * 0.21) * 0.05;
-    p.hips = [0, 0.06, 0.02];
-    p.spine = [-0.05, -0.12, 0.02];
-    p.chest = [-0.1 + br * 0.012, -0.22, 0.03];
-    p.neck = [0.05, -0.55 + look * 0.4, 0.02];
-    p.head = [0.1 + Math.sin(t * 0.37) * 0.02, -0.78 + look, 0.12];
+    // weight on the left leg: hips roll and shift, chest counter-tilts (contrapposto)
+    p.hips = [0, 0.06, -0.07];
+    p.rootOff = [0.035, 0];
+    p.spine = [-0.05, -0.14, 0.06];
+    p.chest = [-0.1 + br * 0.012, -0.26, 0.05];
+    p.neck = [0.08, -0.62 + look * 0.4, 0.02];
+    p.head = [0.16 + Math.sin(t * 0.37) * 0.02, -0.98 + look, 0.16];
     p.uaR = [-0.55, -0.15, 0.82]; p.faR = [0.5, 0.75, 0.2];
     p.handR = [-0.6, 0.35, 0.5];
     p.uaL = [0.32, -0.9, -0.12]; p.faL = [0.12, -0.75, 0.45];
-    p.thL = [0.12, -1, 0.06]; p.shL = [0.08, -1, -0.04];
-    p.thR = [-0.1, -1, -0.08]; p.shR = [-0.07, -1, -0.12];
+    p.thL = [0.06, -1, 0.04]; p.shL = [0.04, -1, -0.03];
+    p.thR = [-0.16, -1, -0.12]; p.shR = [-0.08, -1, -0.2];
     if (this.hover === 'versus') {
       const k = this.hoverK;
       p.chest = [p.chest[0] - 0.06 * k, p.chest[1] - 0.08 * k, p.chest[2]];
@@ -222,9 +224,9 @@ export class TitleScene {
     // DIO sits on the right third on wide screens; on narrow screens he drifts towards centre
     const wide = Math.min(1, Math.max(0, (aspect - 0.75) / 0.85));
     const drift = Math.sin(t * 0.17) * 0.12;
-    let px = 1.35 + drift; let py = 1.82 + Math.sin(t * 0.23) * 0.04; let pz = 2.35;
-    let lx = 0.1 - 0.75 * wide; let ly = 1.5; const lz = -0.2;
-    let fov = 44 - 8 * wide;
+    let px = 1.2 + drift; let py = 1.8 + Math.sin(t * 0.23) * 0.04; let pz = 2.0;
+    let lx = 0.1 - 0.62 * wide; let ly = 1.5; const lz = -0.2;
+    let fov = 44 - 9 * wide;
     const hk = this.hoverK;
     if (this.hover === 'versus') { px += 0.45 * hk; pz += 0.55 * hk; lx -= 0.35 * hk; fov += 4 * hk; }
     else if (this.hover === 'load') { px -= 0.2 * hk; pz -= 0.45 * hk; py += 0.05 * hk; ly += 0.12 * hk; }
