@@ -33,6 +33,7 @@ export class AnimController {
     this.out = Poses.rest();
     this.tmp = Poses.rest();
     this.clipOut = Poses.rest();
+    this.actOut = Poses.rest();
     this.react = { p: 0, r: 0, y: 0, vp: 0, vr: 0, vy: 0 };
     this.reaction = null;       // { clip, t }
     this.state = 'idle';
@@ -141,7 +142,7 @@ export class AnimController {
     if (has) {
       const dur = a.opts.dur || def.dur;
       t01 = min(1, a.t / dur);
-      this._actPose = def.clip ? def.clip.sample(t01, this.clipOut) : (def.rush ? Clips.rushPose(a.t, def.rate || 15, this.clipOut) : def.pose(t01, c, a));
+      this._actPose = def.clip ? def.clip.sample(t01, this.actOut) : (def.rush ? Clips.rushPose(a.t, def.rate || 15, this.actOut) : def.pose(t01, c, a));
       this._actDef = def;
     }
     const out = this.out;
@@ -321,7 +322,6 @@ export class AnimController {
     const rig = this.rig;
     if (out.drop) out.rootY = (out.rootY || 0) - out.drop * max(0, (rig.U?.pelvis.y ?? 1) - 0.14 * this.scale);
     rig.apply(out);
-    if (out.drop) out.rootY = 0;
     // fist / foot reaching the attack target
     const a = c.action;
     const def = a?.def;
