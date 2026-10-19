@@ -73,13 +73,13 @@ export class TitleScene {
     const b = this.balcony;
     const P = (x, y, z) => new THREE.Vector3(b.x + x, b.y + y, b.z + z);
     const keys = [
-      { t: 0, pos: P(0.2, 2.3, 7.5), look: P(0, 1.5, -2) },        // behind DIO, from the doorway
-      { t: 6, pos: P(0.5, 1.9, 3.2), look: P(0, 1.55, -1) },        // pushed in to his back
+      { t: 0, pos: P(0.35, 2.1, 3.85), look: P(0, 1.5, -3) },      // behind DIO, from the doorway
+      { t: 6, pos: P(0.5, 1.9, 2.3), look: P(0, 1.55, -1) },        // pushed in to his back
       { t: 9.5, pos: P(1.6, 1.75, 1.3), look: P(0, 1.65, 0) },       // over the shoulder as he turns
       { t: 11, pos: P(1.9, 1.7, 0.4), look: P(0, 1.7, 0) },          // face, lightning
       { t: 17, pos: P(-2.5, 2.6, 2.2), look: P(-30, 20, -400) },     // reveal the valley and the sanctuary
       { t: 22, pos: P(-1.4, 1.0, -2.6), look: P(0, 1.8, 0) },        // low front angle, imposing
-      { t: LOOP, pos: P(0.2, 2.3, 7.5), look: P(0, 1.5, -2) },
+      { t: LOOP, pos: P(0.35, 2.1, 3.85), look: P(0, 1.5, -3) },
     ];
     let i = 0;
     while (i < keys.length - 2 && t > keys[i + 1].t) i += 1;
