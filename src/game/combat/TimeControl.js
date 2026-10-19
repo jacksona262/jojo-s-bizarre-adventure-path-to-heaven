@@ -43,7 +43,7 @@ export class TimeControl {
   stop(user, duration, opts = {}) {
     if (this.state) this.end(true);
     const kind = opts.variant || 'theWorld';
-    this.state = { kind: 'stop', variant: kind, user, remaining: duration, total: duration, nextTick: 1 };
+    this.state = { kind: 'stop', variant: kind, user, remaining: duration, total: duration, nextTick: 1, cinematic: !!opts.cinematic };
     this.allowed.clear();
     this.allowed.add(user);
     if (user.stand) this.allowed.add(user.stand);
