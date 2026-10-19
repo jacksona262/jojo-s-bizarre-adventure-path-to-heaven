@@ -181,7 +181,7 @@ export class VersusMode {
   publishHud() {
     const f1 = this.p1; const f2 = this.p2;
     if (!f1 || !f2) return;
-    const pack = (f) => ({ name: f.roster.name, stand: f.roster.standName, hp: Math.round(f.hp), hpMax: f.hpMax, energy: Math.round(f.energy), energyMax: f.energyMax, ts: f.tsCharge ?? null, color: f.roster.color, overwritten: !!f.overwritten });
+    const pack = (f) => ({ name: f.roster.name, stand: f.roster.standName, hp: Math.round(f.hp), hpMax: f.hpMax, energy: Math.round(f.energy), energyMax: f.energyMax, ts: f.tsCharge ?? null, color: f.roster.color, overwritten: !!f.overwritten, poise: f.poiseMax ? Math.round((f.poise / f.poiseMax) * 100) : null });
     ui.set({ versus: { p1: pack(f1), p2: pack(f2), round: this.round, wins: [...this.wins], timer: Math.max(0, Math.ceil(this.timer || 0)) }, hud: { hp: Math.round(f1.hp), hpMax: f1.hpMax, energy: Math.round(f1.energy), energyMax: f1.energyMax, stamina: Math.round(f1.stamina), ts: f1.tsCharge ?? null, stand: !!f1.stand?.summoned, versus: true } });
   }
 
