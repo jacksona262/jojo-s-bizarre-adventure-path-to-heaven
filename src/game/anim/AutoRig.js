@@ -155,7 +155,11 @@ export function buildAutoHumanoid(container, bakedMeshes, H) {
       tmp.copy(v).sub(a.S);
       const t = tmp.dot(a.dir);
       const r = tmp.addScaledVector(a.dir, -t).length();
-      let w = ss(-0.02 * H, 0.045 * H, t) * (1 - ss(0.085 * H, 0.13 * H, r)) * ss(shoulderX * 0.55, shoulderX * 1.0, v.x * s);
+      // sleeves: tight capture radius at the shoulder (keeps torso/coat body out), widening along
+      // the arm so wide coat sleeves (Avdol, Jotaro, Kira) follow the arm instead of staying in T-pose
+      const wide = Math.min(1, Math.max(0, (t - 0.05 * H) / (0.1 * H)));
+      const r0 = 0.085 * H + wide * 0.07 * H; const r1 = 0.13 * H + wide * 0.09 * H;
+      let w = ss(-0.02 * H, 0.045 * H, t) * (1 - ss(r0, r1, r)) * ss(shoulderX * 0.55, shoulderX * 1.0, v.x * s);
       if (v.y < 0.25 * H) w = 0;
       if (w <= 0.001) continue;
       w *= remaining;
