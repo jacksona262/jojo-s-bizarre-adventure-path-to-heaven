@@ -763,7 +763,7 @@ export class Campaign {
   }
 
   onRegion(r) {
-    ui.set({ region: { name: r.name, blurb: r.blurb, id: Date.now() } });
+    if (!this.encounter && !this.game.combatActive && !this.game.inCinematic) ui.set({ region: { name: r.name, blurb: r.blurb, id: Date.now() } });
     audio.setMusic(this.encounter ? 'boss' : 'explore');
   }
 
