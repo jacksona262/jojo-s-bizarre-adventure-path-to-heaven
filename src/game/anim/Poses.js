@@ -378,6 +378,65 @@ export function dioPose(t) {
   return p;
 }
 
+// ---------------------------------------------------------------- signature stances
+// Each fighter's body language when idle (and, for Stand users, while their Stand fights).
+const sig = (fn) => (t) => { const p = idle(t); fn(p, sin(t * 1.5), t); return p; };
+export const SIGNATURE = {
+  jotaro: sig((p, b) => { // hands in his coat pockets, chin down
+    p.uaL = [0.22, -1, -0.14]; p.faL = [0.06, -0.72, 0.6]; p.uaR = [-0.22, -1, -0.14]; p.faR = [-0.06, -0.72, 0.6];
+    p.chest = [-0.04 + b * 0.01, 0, 0]; p.head = [0.1, 0.05, 0];
+  }),
+  avdol: sig((p, b) => { // arms folded, upright
+    p.uaL = [0.45, -0.85, 0.35]; p.faL = [-0.95, 0.15, 0.3]; p.uaR = [-0.45, -0.85, 0.4]; p.faR = [0.95, 0.2, 0.25];
+    p.chest = [-0.07 + b * 0.012, 0, 0]; p.head = [-0.05, 0, 0];
+  }),
+  kakyoin: sig((p, b, t) => { // right hand raised before the chest, poised
+    p.uaR = [-0.32, -0.62, 0.55]; p.faR = [0.32, 0.82, 0.45]; p.handR = [-0.3, 0.2, 0];
+    p.uaL = [0.28, -0.95, 0.1]; p.chest = [-0.04 + b * 0.01, 0.1, 0]; p.head = [0, -0.08 + sin(t * 0.4) * 0.04, 0];
+  }),
+  polnareff: sig((p, b) => { // fencer: left hand on hip, right arm forward
+    p.uaL = [0.75, -0.6, -0.2]; p.faL = [-0.4, 0.15, 0.35]; p.uaR = [-0.3, -0.45, 0.85]; p.faR = [-0.05, -0.2, 1];
+    p.chest = [-0.03 + b * 0.01, 0.25, 0]; p.head = [0, -0.25, 0];
+  }),
+  josuke: sig((p, b) => { // relaxed delinquent slouch, hands low
+    p.uaL = [0.28, -1, 0.05]; p.faL = [0.15, -0.85, 0.45]; p.uaR = [-0.3, -1, 0.05]; p.faR = [-0.2, -0.85, 0.4];
+    p.spine = [0.05, 0, 0.04]; p.chest = [0.02 + b * 0.012, 0, 0]; p.head = [-0.06, 0, -0.05];
+  }),
+  kira: sig((p, b) => { // composed office worker: hands folded at the belt
+    p.uaL = [0.3, -0.95, 0.25]; p.faL = [-0.75, -0.2, 0.6]; p.uaR = [-0.3, -0.95, 0.25]; p.faR = [0.75, -0.25, 0.6];
+    p.chest = [-0.02 + b * 0.008, 0, 0]; p.head = [0.04, 0, 0];
+  }),
+  diavolo: sig((p, b) => { // hunched and coiled, arms out
+    p.spine = [0.18, 0, 0]; p.chest = [0.12 + b * 0.015, 0, 0]; p.head = [-0.2, 0, 0];
+    p.uaL = [0.6, -0.75, 0.15]; p.faL = [0.3, -0.5, 0.7]; p.uaR = [-0.6, -0.75, 0.15]; p.faR = [-0.3, -0.5, 0.7];
+  }),
+  giorno: sig((p, b) => { // right hand across the chest, left arm open
+    p.uaR = [-0.35, -0.55, 0.6]; p.faR = [0.85, 0.3, 0.35]; p.handR = [0, 0.3, 0];
+    p.uaL = [0.55, -0.8, 0.15]; p.faL = [0.4, -0.6, 0.4]; p.chest = [-0.08 + b * 0.01, -0.1, 0]; p.head = [-0.05, 0.12, 0];
+  }),
+  valentine: sig((p, b) => { // hand over the heart, presidential
+    p.uaR = [-0.3, -0.7, 0.55]; p.faR = [0.8, 0.45, 0.3]; p.uaL = [0.25, -1, 0.05];
+    p.chest = [-0.1 + b * 0.01, 0, 0]; p.head = [-0.08, 0, 0];
+  }),
+  pucci: sig((p, b) => { // hands clasped before him, priestly
+    p.uaL = [0.28, -0.85, 0.4]; p.faL = [-0.6, 0.1, 0.8]; p.uaR = [-0.28, -0.85, 0.4]; p.faR = [0.6, 0.12, 0.8];
+    p.chest = [-0.03 + b * 0.008, 0, 0]; p.head = [0.12, 0, 0];
+  }),
+  holHorse: sig((p, b) => { // cowboy: thumb in the belt beside the holster
+    p.uaR = [-0.45, -0.9, -0.05]; p.faR = [0.3, -0.6, 0.5]; p.uaL = [0.3, -1, 0]; p.chest = [-0.03 + b * 0.01, -0.12, 0]; p.head = [0, 0.1, 0.05];
+  }),
+  vanillaIce: sig((p, b) => { // head bowed, arms hanging, menacing
+    p.spine = [0.1, 0, 0]; p.chest = [0.06 + b * 0.012, 0, 0]; p.head = [0.35, 0, 0];
+    p.uaL = [0.2, -1, 0.05]; p.faL = [0.1, -1, 0.1]; p.uaR = [-0.2, -1, 0.05]; p.faR = [-0.1, -1, 0.1];
+  }),
+  ndoul: sig((p, b) => { // blind: right hand forward on a cane
+    p.uaR = [-0.25, -0.8, 0.5]; p.faR = [-0.05, -0.9, 0.4]; p.head = [-0.12, 0.2, 0]; p.chest = [0.02 + b * 0.01, 0, 0];
+  }),
+  mariah: sig((p, b) => { // hand on hip, weight on one leg
+    p.uaL = [0.75, -0.6, -0.15]; p.faL = [-0.45, 0.15, 0.3]; p.hips = [0, 0.1, 0.06]; p.chest = [-0.03 + b * 0.01, -0.1, -0.05]; p.head = [0, 0.1, 0.08];
+  }),
+};
+
 export function talk(t, intensity = 1) {
   const p = idle(t);
   const g = sin(t * 2.3) * 0.5 + 0.5;
