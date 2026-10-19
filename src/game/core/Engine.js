@@ -268,9 +268,9 @@ export class Engine {
     if (d.slow > 0.6 && this.pr > min + 0.01) {
       this.resize(Math.max(min, +(this.pr * 0.88).toFixed(3)));
       d.slow = 0; d.cool = 1.2;
-    } else if (d.fast > 3 && this.pr < max - 0.01) {
-      this.resize(Math.min(max, +(this.pr * 1.08).toFixed(3)));
-      d.fast = 0; d.cool = 2;
+    } else if (d.fast > 1.5 && this.pr < max - 0.01) {
+      this.resize(Math.min(max, +(this.pr * 1.1).toFixed(3)));
+      d.fast = 0; d.cool = 1;
     }
   }
 
