@@ -1,5 +1,5 @@
 import { fbm, ridged, simplex, smoothstep, lerp } from './Noise';
-import { REGIONS, SPACING, POIS, regionBlend, SANCTUARY } from './Layout';
+import { REGIONS, SPACING, POIS, regionBlend, SANCTUARY, MANSION } from './Layout';
 
 // Analytic terrain: height, road curve and surface queries shared by rendering, physics and AI.
 
@@ -105,7 +105,10 @@ export function initFlats() {
     for (let o = -g.span; o <= g.span; o += 8) addFlat(xc + o, zc + o * 0.08, g.width, y, 10, 1);
     g.x = xc; g.z = zc; g.deckY = roadY(zc);
   }
-  // the chasm before the sanctuary (collapsing bridge on The Thousand Steps)
+  // title-screen mansion terrace
+  MANSION.x = roadX(MANSION.z) + MANSION.side;
+  MANSION.y = rawHeight(MANSION.x, MANSION.z);
+  addFlat(MANSION.x, MANSION.z - 4, 16, MANSION.y, 10, 1);
 }
 
 export const GULCHES = [
