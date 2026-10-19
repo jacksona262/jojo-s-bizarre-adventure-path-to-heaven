@@ -755,6 +755,17 @@ export class Campaign {
     const jotaro = e.boss;
     jotaro.revive(1); jotaro.dead = true;
     g.combatActive = false;
+    // the last blow throws Jotaro across the forecourt: stage him on his knees a few paces in
+    // front of DIO so the ending frames them together
+    const pl = this.player;
+    const fwd = jotaro.pos.clone().sub(pl.pos).setY(0);
+    if (fwd.lengthSq() < 1e-4) pl.forward(fwd);
+    fwd.normalize();
+    const jp = pl.pos.clone().addScaledVector(fwd, 3.6);
+    jp.y = g.world.groundAt(jp.x, jp.z, pl.pos.y + 3);
+    jotaro.pos.copy(jp); jotaro.vel.set(0, 0, 0); jotaro.knockdown = 0;
+    jotaro.faceTowards(pl.pos, true); pl.faceTowards(jotaro.pos, true);
+    if (pl.stand?.action) pl.stand.cancelAction();
     await g.seq.run((seq) => endingCinematic(g, seq, { player: this.player, jotaro, flags: this.p.flags }), { skippable: true });
     this.p.flags.completed = true;
     this.encounter = null;
