@@ -139,7 +139,7 @@ export class Gait {
       } else {
         const k = (ul - beta) / (1 - beta);
         along = -L / 2 + smooth(k) * L;
-        lift = liftH * sin(PI * Math.pow(k, 0.85));
+        lift = liftH * sin(PI * Math.pow(k, 0.85)) + heel * max(0, 1 - k * 2.5);
       }
       // moving placement (character space)
       const mx = sgn * this.hipW * widthK + this.dir.x * along;
