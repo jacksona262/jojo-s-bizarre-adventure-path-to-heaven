@@ -73,7 +73,7 @@ export default function Hud() {
             </div>
           ))}
           <div style={{ position: 'absolute', top: 22, left: '50%', transform: 'translateX(-50%)', fontFamily: 'Cinzel', fontSize: 30, color: '#fff1cc', textShadow: '0 2px 10px #000' }}>{versus.timer}</div>
-          {hud && <div className="pth-hud-tl" style={{ width: 0 }}><TsRing ts={hud.ts} dur={0} /></div>}
+          {hud && hud.ts != null && <div className="pth-hud-tl" style={{ width: 0 }}><TsRing ts={hud.ts} dur={0} /></div>}
         </>
       )}
       {showHud && boss && !versus && (
