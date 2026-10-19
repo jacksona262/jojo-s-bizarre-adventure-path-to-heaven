@@ -136,7 +136,7 @@ export class BossBrain {
       this.reactCool = 0.3;
     }
     // punish: the player's Stand (or the player) is stuck in recovery after a whiffed or blocked blow
-    const recovering = (sDef?.clip && sAct.t / sDef.dur > sDef.clip.active[1]) || (tDef?.clip && t.action.t / tDef.dur > tDef.clip.active[1]);
+    const recovering = (sDef?.clip?.active && sAct.t / sDef.dur > sDef.clip.active[1]) || (tDef?.clip?.active && t.action.t / tDef.dur > tDef.clip.active[1]);
     if (recovering && d < 4.2 && !(t.invuln > 0.1) && this.punishCool <= 0 && Math.random() < 0.35 * this.difficulty) {
       this.punishCool = 1.6;
       if ((this.phase >= 2 && this.kit.heavy()) || this.kit.light()) { this.think = 0.35; return; }
