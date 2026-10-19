@@ -182,13 +182,15 @@ export class Kit {
     const step = this.combo;
     const clip = [Clips.jabL, Clips.jabR, Clips.hookL, Clips.uppercutR][step];
     const spec = {
-      damage: [5, 5, 6, 8][step] * (withStand ? 1 : 0.6), stun: step === 3 ? 0.5 : 0.3, knock: step === 3 ? 2.5 : 1.1,
+      damage: [5, 5, 6, 8][step] * (withStand ? 1 : 0.6), stun: step === 3 ? 0.5 : 0.3, knock: step === 3 ? 2.5 : 0.55,
       launch: step === 3 ? 4.2 : 0, kind: 'light', fxPower: step === 3 ? 1.35 : 1,
     };
     audio.play('whoosh', { power: 0.6 });
     if (withStand) {
       if (f.action?.def.name === 'command') f.cancelAction();
-      f.play({ name: 'command', dur: 0.26, upper: true, clip: Clips.command, move: () => 0.5 });
+      // DIO steps in behind his Stand when the target is near the edge of its reach
+      const far = t && f.distanceTo(t) > 3.2 ? 2.4 : 0.5;
+      f.play({ name: 'command', dur: 0.26, upper: true, clip: Clips.command, move: () => far });
       this.stand.strike(this.melee(clip, spec, { target: t }), 'front');
     } else {
       if (chain) f.cancelAction();
