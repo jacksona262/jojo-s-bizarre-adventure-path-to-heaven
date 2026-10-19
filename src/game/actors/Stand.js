@@ -15,6 +15,7 @@ const OFFSETS = {
   overhead: new THREE.Vector3(0, 1.4, -0.4),
 };
 const _want = new THREE.Vector3();
+const _chest = new THREE.Vector3();
 // fully materialised (not mid-summon)
 const k0 = (s) => Math.min(1, s.summonT / 0.35);
 
@@ -181,7 +182,7 @@ export class Stand extends Character {
         this._ghostT = a.def.dashFx ? 0.045 : 0.075;
         vfx.afterimage(this, col, { life: a.def.dashFx ? 0.24 : 0.18, alpha: a.def.dashFx ? 0.4 : 0.24 });
       }
-      if (a.def.dashFx && this.user.kit?.onScreen) this.game.screen?.speedLines(0.32, this.chestWorld(_want), 0.08);
+      if (a.def.dashFx && this.user.kit?.onScreen) this.game.screen?.speedLines(0.32, this.chestWorld(_chest), 0.08);
     }
   }
 
