@@ -100,6 +100,7 @@ export class Campaign {
     audio.setWeather(1, 0.8);
     if (this.p.hp) this.player.hp = Math.min(this.player.hpMax, this.p.hp);
     this.enterStep(this.p.step, { fresh });
+    if (STEPS[this.p.step]?.id !== 'prologue') g.fadeIn(1.0);
   }
 
   async loadPlayer(heaven = false) {
