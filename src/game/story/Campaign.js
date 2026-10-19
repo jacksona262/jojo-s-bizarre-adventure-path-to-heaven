@@ -90,6 +90,9 @@ export class Campaign {
     this.horse.yaw = Math.PI;
     g.world.warm(this.player.pos);
     g.camera.setTarget(this.player);
+    g.camera.mode = 'follow';
+    g.camera.blend = 1;
+    g.camera.blendDur = 0;
     // preload the cast of the next two steps
     preload(this.castFor(this.p.step).concat(this.castFor(this.p.step + 1))).catch(() => {});
     ui.set({ loading: { label: 'The road north', progress: 0.9 } });
