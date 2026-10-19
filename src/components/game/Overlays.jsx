@@ -59,7 +59,7 @@ export function SettingsPanel() {
   );
   const Seg = ({ k, opts }) => (
     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-      {opts.map((o) => <button key={o} type="button" className={`pth-btn ${s[k] === o ? 'active' : ''}`} style={{ padding: '5px 10px', fontSize: 11 }} onClick={() => set(k, o)}>{o}</button>)}
+      {opts.map((o) => <button key={o} type="button" className={`pth-btn ${s[k] === o ? 'active' : ''}`} style={{ padding: '5px 10px', fontSize: 11 }} onClick={() => set(k, o)}>{typeof o === 'boolean' ? (o ? 'on' : 'off') : o}</button>)}
     </div>
   );
   const Slider = ({ k, min = 0, max = 1, step = 0.05 }) => <input className="pth-slider" type="range" min={min} max={max} step={step} value={s[k]} onChange={(e) => set(k, Number(e.target.value))} />;
