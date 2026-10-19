@@ -72,6 +72,9 @@ export class BossBrain {
     this.lastHp = f.hp;
     // AI perfect counters are rare (a short window), more common on harder phases/difficulty
     f.counterWindow = 0.04 + 0.02 * difficulty;
+    // poise: how much punishment the boss absorbs before staggering (close-range fighters are sturdier)
+    f.poiseMax = ({ close: 36, medium: 30, skirmish: 26, far: 22 }[this.style] ?? 28) * (0.8 + 0.2 * difficulty);
+    f.poise = f.poiseMax;
   }
 
   get clock() { return this.game.clock; }
@@ -83,6 +86,7 @@ export class BossBrain {
     if (p > this.phase) {
       this.phase = p;
       this.kit.phase = p;
+      this.f.poiseMax += 6;
       if (this.onPhase) this.onPhase(p);
     }
   }
