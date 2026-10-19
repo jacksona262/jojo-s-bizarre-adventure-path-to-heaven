@@ -193,3 +193,88 @@
 .pth-input:focus { border-color: #ffd34d; box-shadow: 0 0 0 1px rgba(255, 211, 77, 0.35); }
 .pth-online .pth-vs-card { min-height: 0; }
 @media (max-width: 640px) { .pth-online { padding: 14px !important; } .pth-online .pth-vs-card div:first-child { font-size: 10px !important; } }
+
+/* ---------------------------------------------------------------- fighting-game character select */
+.fs-root { position: fixed; inset: 0; display: flex; flex-direction: column; color: #f3e6c4; overflow: hidden; pointer-events: auto; }
+.fs-bg { position: absolute; inset: 0; z-index: -1; background:
+  repeating-linear-gradient(-62deg, rgba(255, 255, 255, 0.018) 0 2px, transparent 2px 26px),
+  radial-gradient(ellipse at 22% 55%, rgba(120, 70, 20, 0.35), transparent 55%),
+  radial-gradient(ellipse at 78% 55%, rgba(90, 30, 40, 0.32), transparent 55%),
+  linear-gradient(180deg, rgba(4, 3, 6, 0.86), rgba(2, 2, 4, 0.97)); }
+.fs-top { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; padding: 14px 22px 0; }
+.fs-back, .fs-online { justify-self: start; background: rgba(10, 8, 6, 0.6); border: 1px solid rgba(216, 180, 90, 0.4); color: #e8d8b0; font-family: 'Cinzel', serif; letter-spacing: 0.18em; text-transform: uppercase; font-size: 13px; padding: 8px 14px; cursor: pointer; }
+.fs-back:hover, .fs-online:hover { border-color: #ffd34d; color: #fff; }
+.fs-top-right { justify-self: end; display: flex; gap: 12px; align-items: center; }
+.fs-record { font-family: 'Cinzel', serif; letter-spacing: 0.2em; font-size: 12px; opacity: 0.7; }
+.fs-online { background: linear-gradient(90deg, rgba(120, 80, 10, 0.75), rgba(60, 30, 10, 0.75)); }
+.fs-banner { font-family: 'Cinzel Decorative', 'Cinzel', serif; font-size: clamp(16px, 2.2vw, 28px); letter-spacing: 0.16em; text-transform: uppercase; color: #ffd34d; padding: 6px 34px; transform: skewX(-12deg); background: linear-gradient(90deg, transparent, rgba(80, 50, 10, 0.75) 15%, rgba(80, 50, 10, 0.75) 85%, transparent); text-shadow: 0 2px 0 #000, 0 0 18px rgba(255, 190, 60, 0.45); white-space: nowrap; }
+
+.fs-stage { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: stretch; padding: 0 2vw; }
+.fs-side { position: relative; min-width: 0; display: flex; align-items: flex-end; }
+.fs-l { justify-content: flex-start; }
+.fs-r { justify-content: flex-end; }
+.fs-side-glow { position: absolute; inset: 6% 0 0 0; background: radial-gradient(ellipse at 50% 70%, color-mix(in srgb, var(--c) 34%, transparent), transparent 62%); filter: blur(6px); pointer-events: none; }
+.fs-art { position: relative; height: 100%; max-height: 100%; width: auto; max-width: 100%; object-fit: contain; object-position: bottom; filter: drop-shadow(0 0 22px color-mix(in srgb, var(--c) 45%, transparent)); animation: fs-in 0.28s cubic-bezier(.2, .9, .3, 1); user-select: none; }
+.fs-r .fs-art { transform: scaleX(-1); animation-name: fs-in-r; }
+.fs-art-empty { display: flex; align-items: center; justify-content: center; width: min(26vw, 340px); font-family: 'Cinzel Decorative', 'Cinzel', serif; font-size: 120px; color: color-mix(in srgb, var(--c) 60%, #222); opacity: 0.5; }
+@keyframes fs-in { from { opacity: 0; transform: translateX(-40px); } to { opacity: 1; transform: none; } }
+@keyframes fs-in-r { from { opacity: 0; transform: scaleX(-1) translateX(-40px); } to { opacity: 1; transform: scaleX(-1); } }
+.fs-tag { position: absolute; top: 4%; font-family: 'Cinzel', serif; font-weight: 700; letter-spacing: 0.25em; font-size: 14px; padding: 4px 12px; background: var(--c); color: #120c04; transform: skewX(-12deg); }
+.fs-l .fs-tag { left: 0; }
+.fs-r .fs-tag { right: 0; }
+.fs-side.locked .fs-tag { box-shadow: 0 0 16px var(--c); }
+.fs-nameplate { position: absolute; bottom: 6%; max-width: 92%; padding: 10px 18px 12px; background: linear-gradient(90deg, rgba(6, 4, 2, 0.9), rgba(6, 4, 2, 0.55)); border-left: 4px solid var(--c); transform: skewX(-8deg); }
+.fs-l .fs-nameplate { left: 0; }
+.fs-r .fs-nameplate { right: 0; border-left: 0; border-right: 4px solid var(--c); text-align: right; background: linear-gradient(270deg, rgba(6, 4, 2, 0.9), rgba(6, 4, 2, 0.55)); }
+.fs-nameplate > * { transform: skewX(8deg); }
+.fs-name { font-family: 'Cinzel Decorative', 'Cinzel', serif; font-size: clamp(20px, 2.6vw, 38px); line-height: 1.05; color: var(--c); text-shadow: 0 2px 0 #000; overflow-wrap: anywhere; }
+.fs-stand { font-family: 'Cinzel', serif; letter-spacing: 0.22em; font-size: clamp(11px, 1vw, 14px); margin-top: 2px; opacity: 0.9; }
+.fs-stats { display: grid; gap: 3px; margin-top: 8px; min-width: 190px; }
+.fs-stat { display: grid; grid-template-columns: 64px 1fr; align-items: center; gap: 8px; font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 0.2em; }
+.fs-r .fs-stat { grid-template-columns: 1fr 64px; direction: rtl; }
+.fs-stat i { height: 5px; background: rgba(255, 255, 255, 0.1); display: block; }
+.fs-stat b { display: block; height: 100%; background: linear-gradient(90deg, var(--c), #fff6d8); transition: width 0.25s; }
+.fs-vs { align-self: center; display: flex; gap: 0; font-family: 'Cinzel Decorative', 'Cinzel', serif; font-weight: 900; font-size: clamp(54px, 8vw, 120px); font-style: italic; color: #ffd34d; -webkit-text-stroke: 2px #2a1404; text-shadow: 0 0 30px rgba(255, 160, 40, 0.55), 4px 4px 0 #6a1a08; padding: 0 1vw; }
+.fs-vs span:last-child { transform: translateY(0.18em); }
+
+.fs-grid { display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 76px)); justify-content: center; gap: 6px 4px; padding: 10px 20px 22px; }
+.fs-tile { position: relative; aspect-ratio: 1; padding: 0; border: 2px solid rgba(255, 255, 255, 0.14); background: #0c0a08; transform: skewX(-10deg); overflow: visible; cursor: pointer; transition: transform 0.12s, border-color 0.12s; }
+.fs-tile-in { position: absolute; inset: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--c) 35%, #120e0a), #08070a 75%); }
+.fs-tile-in img { width: 125%; height: 125%; object-fit: cover; transform: skewX(10deg); filter: saturate(1.05); }
+.fs-tile-in em { font-style: normal; font-family: 'Cinzel Decorative', 'Cinzel', serif; font-size: 30px; color: var(--c); transform: skewX(10deg); }
+.fs-tile:hover, .fs-tile.hover-p1, .fs-tile.hover-cpu { transform: skewX(-10deg) translateY(-4px) scale(1.06); z-index: 2; }
+.fs-tile.hover-p1 { border-color: #ffd34d; box-shadow: 0 0 0 2px #ffd34d, 0 0 18px rgba(255, 211, 77, 0.6); }
+.fs-tile.hover-cpu { border-color: #ff5a4a; box-shadow: 0 0 0 2px #ff5a4a, 0 0 18px rgba(255, 90, 74, 0.6); }
+.fs-tile.is-p1 { border-color: #ffd34d; }
+.fs-chip { position: absolute; top: -9px; left: -4px; font-style: normal; font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 0.1em; padding: 1px 5px; color: #120c04; background: #ffd34d; transform: skewX(10deg); }
+.fs-chip.cpu { background: #ff5a4a; left: auto; right: -4px; color: #fff; }
+
+.fs-stagesel { padding: 8px 20px 22px; display: grid; gap: 12px; }
+.fs-arenas { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; max-width: 1100px; width: 100%; margin: 0 auto; }
+.fs-arena { position: relative; height: 92px; border: 2px solid rgba(255, 255, 255, 0.14); background: #0c0a08; transform: skewX(-10deg); overflow: hidden; cursor: pointer; padding: 0; color: inherit; }
+.fs-arena-art { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 30%, rgba(0, 0, 0, 0.85)), radial-gradient(ellipse at 50% 120%, color-mix(in srgb, var(--c) 70%, transparent), transparent 70%), repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 18px); }
+.fs-arena-name { position: absolute; left: 10px; right: 10px; bottom: 8px; transform: skewX(10deg); font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: 0.08em; text-align: left; line-height: 1.2; }
+.fs-arena.active { border-color: var(--c); box-shadow: 0 0 0 2px var(--c), 0 0 22px color-mix(in srgb, var(--c) 60%, transparent); }
+.fs-stage-bottom { display: flex; gap: 16px; align-items: center; justify-content: center; flex-wrap: wrap; }
+.fs-diff { display: flex; align-items: center; gap: 6px; font-family: 'Cinzel', serif; letter-spacing: 0.2em; font-size: 12px; }
+.fs-diff button { background: rgba(10, 8, 6, 0.6); border: 1px solid rgba(216, 180, 90, 0.35); color: #d8c8a0; font-family: 'Cinzel', serif; text-transform: uppercase; letter-spacing: 0.16em; font-size: 12px; padding: 7px 12px; cursor: pointer; transform: skewX(-10deg); }
+.fs-diff button.active { background: #ffd34d; color: #120c04; border-color: #ffd34d; }
+.fs-rules { font-size: 14px; opacity: 0.65; }
+.fs-fight { font-family: 'Cinzel Decorative', 'Cinzel', serif; font-size: 26px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; padding: 10px 40px; color: #120c04; background: linear-gradient(180deg, #ffe58a, #e0a020); border: 0; transform: skewX(-12deg); cursor: pointer; box-shadow: 0 0 24px rgba(255, 190, 60, 0.55); animation: fs-pulse 1.4s ease-in-out infinite; }
+@keyframes fs-pulse { 50% { box-shadow: 0 0 40px rgba(255, 190, 60, 0.9); } }
+
+@media (max-width: 700px) {
+  .fs-top { grid-template-columns: auto 1fr; padding: 10px 12px 0; }
+  .fs-banner { grid-column: 1 / -1; grid-row: 2; justify-self: center; font-size: 15px; padding: 4px 18px; }
+  .fs-record { display: none; }
+  .fs-stage { padding: 0 6px; }
+  .fs-vs { font-size: 44px; }
+  .fs-nameplate { padding: 6px 10px; bottom: 2%; }
+  .fs-stats { display: none; }
+  .fs-name { font-size: 16px; }
+  .fs-grid { grid-template-columns: repeat(var(--cols), minmax(0, 64px)); padding: 8px 12px 14px; }
+  .fs-arenas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fs-arena { height: 62px; }
+  .fs-rules { display: none; }
+  .fs-fight { font-size: 20px; padding: 8px 28px; }
+}
