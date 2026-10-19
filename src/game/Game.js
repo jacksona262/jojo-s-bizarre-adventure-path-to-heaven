@@ -64,6 +64,19 @@ export class Game {
     await preload(['dioHome', 'theWorld']);
     ui.set({ loading: { label: 'DIO awaits', progress: 0.8 } });
     await this.toTitle(true);
+    // QA: ?step=<story step id> starts the campaign at that beat with a fresh profile
+    const qs = new URLSearchParams(window.location.search);
+    const stepId = qs.get('step');
+    if (stepId) {
+      const { STEPS } = await import('./story/Campaign');
+      const i = STEPS.findIndex((s) => s.id === stepId);
+      if (i >= 0) {
+        this.progress = newProgress();
+        this.progress.step = i;
+        if (qs.get('upgrades')) this.progress.upgrades = { ...this.progress.upgrades, tsDuration: 2, tsCooldown: 2, knives: true, tsAwareness: true };
+        await this._startCampaign(false);
+      }
+    }
   }
 
   async toTitle(first = false) {
