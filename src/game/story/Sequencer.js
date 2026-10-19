@@ -104,18 +104,21 @@ export class Sequencer {
 
   lightning(at = null, big = false) { this.game.weather?.strike(at, big); }
 
-  // Move an actor along the ground to a point over time (walk/run animation follows from speed).
+  // Walk an actor to a mark: the pace eases in and out (so the gait starts, carries and settles
+  // with weight), the actor faces the way they walk and looks where they are going.
   async moveTo(actor, to, dur, faceMove = true) {
     const from = actor.pos.clone();
     if (faceMove) actor.faceTowards(to, true);
     const target = to.clone();
+    if (actor.anim && !actor.anim.lookAt) { actor.anim.lookAt = target.clone().setY(target.y + 1.6); actor._walkLook = true; }
     await this.tween(dur, (k) => {
       const x = from.x + (target.x - from.x) * k;
       const z = from.z + (target.z - from.z) * k;
       actor.cinePos = new THREE.Vector3(x, this.game.world ? this.game.world.groundAt(x, z, actor.pos.y + 1) : target.y, z);
       actor.pos.copy(actor.cinePos);
-    }, 'linear');
+    }, 'inOut');
     actor.cinePos = null;
+    if (actor._walkLook && actor.anim) { actor.anim.lookAt = null; actor._walkLook = false; }
   }
 
   place(actor, pos, yaw = null) {
