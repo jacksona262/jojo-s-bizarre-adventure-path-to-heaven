@@ -82,6 +82,8 @@ export class BossBrain {
     f.poiseMax = ({ close: 36, medium: 30, skirmish: 26, far: 22 }[this.style] ?? 28) * (0.8 + 0.2 * difficulty) * poiseScale;
     f.poise = f.poiseMax;
     this.poiseBase = f.poiseMax;
+    // Diavolo as an opponent hits 35% harder (his blows are meant to be the most punishing in the game)
+    if (f.rosterKey === 'diavolo') f.damageBonus = 1.35;
     // every AI opponent (bosses, quest duels, Versus CPU) fights with 40 extra health
     f.hpMax += 40;
     f.hp = Math.min(f.hpMax, f.hp + 40);

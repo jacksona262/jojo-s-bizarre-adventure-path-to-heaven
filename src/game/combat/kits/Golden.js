@@ -55,15 +55,16 @@ export class KingCrimsonKit extends Kit {
     this.ensureStand();
     this.stand.slot = 'front';
     this.combat.addHazard(new Timer(0.12, () => {
-      this.hit({ damage: 22, stun: 0.9, knock: 9, launch: 3, kind: 'heavy', unblockable: true, noCounter: true, range: 2.8, arc: 1.6 });
+      this.hit({ damage: 28, stun: 0.9, knock: 9, launch: 3, kind: 'heavy', unblockable: true, noCounter: true, range: 2.8, arc: 1.6 });
       this.stand.strike({ name: 'pc', dur: 0.4, pose: (k) => Poses.heavy(Math.min(1, 0.4 + k)) });
     }));
     this.vfx.text(f.chestWorld(new THREE.Vector3()).add(v3(0, 1, 0)), '予知', '#ff2a3a', 1, 0.7);
     this.combat.emit({ type: 'predicted', user: f, attacker });
   }
 
-  // Time erasure: Diavolo becomes untouchable for the skipped interval, a marker shows his
-  // destination, and he strikes the instant time resumes.
+  // Time erasure: Diavolo vanishes for the skipped interval: no body, no Stand, no trail, no
+  // destination marker and nothing to lock on to. He reappears wherever he chose and strikes the
+  // instant time resumes; the only tell is the short warning circle of that strike.
   erase(reposition = false) {
     const f = this.f;
     const tc = this.game.time;
@@ -78,10 +79,21 @@ export class KingCrimsonKit extends Kit {
       : t.pos.clone().add(v3(Math.cos(ang) * 2.2, 0, Math.sin(ang) * 2.2));
     dest.y = this.game.world.groundAt(dest.x, dest.z, dest.y + 2);
     this.vfx.text(f.chestWorld(new THREE.Vector3()).add(v3(0, 1.2, 0)), 'キング・クリムゾン', '#ff2a3a', 1.6, 0.8);
+    const vanish = (on) => {
+      f.group.visible = !on;
+      if (this.stand?.group) this.stand.group.visible = !on && this.stand.summoned;
+      f.untargetable = on;
+      this.eye.visible = !on;
+    };
+    // a last flicker where he stood, then nothing
+    this.vfx.burst(f.chestWorld(new THREE.Vector3()), 0xff2a3a, 16, 4, 0.35, 0.35);
+    vanish(true);
     tc.erase(f, dur, { dest, onEnd: () => {
       if (this.marker) { this.marker.removeFromParent(); this.marker = null; }
       f.pos.copy(dest);
       f.vel.set(0, 0, 0);
+      vanish(false);
+      this.vfx.burst(f.chestWorld(new THREE.Vector3()), 0xff2a3a, 22, 6, 0.4, 0.35);
       if (!reposition && !f.dead) {
         f.faceTowards(t.pos, true);
         this.kcStrike(true);
@@ -90,16 +102,11 @@ export class KingCrimsonKit extends Kit {
     // the victim's actions in the erased interval do not land
     t.actionsVoid = true;
     this.combat.addHazard(new Timer(dur, () => { t.actionsVoid = false; }));
-    // destination marker becomes visible part-way through (readable post-erasure position)
-    this.combat.addHazard(new Timer(dur * 0.45, () => {
-      this.marker = this.vfx.warn(dest, 1.6, dur * 0.55, 0xff2030);
-    }));
-    // during the erasure Diavolo glides (afterimages)
+    // during the erasure Diavolo moves unseen; if the erasure is cut short he still reappears
     this.combat.addHazard({ t: 0, update: (dt, realDt) => {
       this.t += realDt;
-      if (!tc.erasing) return true;
+      if (!tc.erasing) { if (!f.group.visible && !f.dead) vanish(false); return true; }
       f.pos.lerp(dest, Math.min(1, realDt * 1.5));
-      if (Math.random() < 0.5) this.vfx.glow.emit(f.chestWorld(new THREE.Vector3()), v3(0, 0.5, 0), new THREE.Color(0xff2030), 0.4, 0.8, 0.2, 0.5);
       return false;
     } });
     return true;
@@ -114,7 +121,7 @@ export class KingCrimsonKit extends Kit {
     this.vfx.warn(p, 1.8, tele, 0xff2030);
     f.play({ name: 'kcCmd', dur: tele + 0.35, upper: true, pose: (k) => Poses.point('R', k), force: true });
     this.stand.strike({ name: 'chop', dur: tele + 0.35, pose: (k) => Poses.heavy(k), events: [{ t: tele / (tele + 0.35), fn: () => {
-      this.hit({ damage: 26, stun: 0.9, knock: 10, launch: 4, kind: 'heavy', guardBreak: true, range: 2.8, arc: 1.0, noCounter: !fast });
+      this.hit({ damage: 32, stun: 0.9, knock: 10, launch: 4, kind: 'heavy', guardBreak: true, range: 2.8, arc: 1.0, noCounter: !fast });
       this.vfx.ring(p.clone().add(v3(0, 1, 0)), 0xff2030, 0.3, 2.6, 0.35, { vertical: true, face: this.game.engine.camera.position });
     } }] });
     return true;
