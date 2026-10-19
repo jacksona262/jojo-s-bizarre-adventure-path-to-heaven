@@ -109,6 +109,7 @@ export class Kit {
     const p = this.limbPoint(striker, limb, _fist);
     const prev = a.data.prevLimb || p;
     const r = (opts.radius ?? (striker.floating ? 0.26 : 0.2)) * (striker.height / 1.9);
+    if (this.game.devHitboxes) this.game.debugDraw?.sphere(p, r, 0x44ff66, 0.06);
     for (const t of this.combat.enemiesOf(f)) {
       if (hitSet.has(t)) continue;
       _capA.set(t.pos.x, t.pos.y + 0.25, t.pos.z);
@@ -116,6 +117,7 @@ export class Kit {
       if (segmentDistance(prev, p, _capA, _capB) > t.radius + r) continue;
       if (this.game.world?.segmentBlocked?.(f.chestWorld(new THREE.Vector3()), t.chestWorld(new THREE.Vector3()))) continue;
       hitSet.add(t);
+      if (this.game.devHitboxes) this.game.debugDraw?.sphere(p, r * 1.4, 0xff3030, 0.25);
       const res = this.combat.applyHit(t, f, { color: this.color, ...spec, at: p.clone() });
       opts.onContact?.(t, res, p);
       this.onContact?.(t, res, spec);
