@@ -110,7 +110,28 @@ export function buildSanctuaryImpostor() {
   mtn.position.set(0, 120, -420);
   mtn.renderOrder = -6;
   group.add(mtn);
+  // the Arrow's light: a pale halo and a thin pillar rising into the clouds
+  const c = document.createElement('canvas');
+  c.width = 128; c.height = 128;
+  const x = c.getContext('2d');
+  const grd = x.createRadialGradient(64, 64, 2, 64, 64, 64);
+  grd.addColorStop(0, 'rgba(255,240,200,0.9)'); grd.addColorStop(0.25, 'rgba(255,210,140,0.35)'); grd.addColorStop(1, 'rgba(255,200,120,0)');
+  x.fillStyle = grd; x.fillRect(0, 0, 128, 128);
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), blending: THREE.AdditiveBlending, depthWrite: false, fog: false, transparent: true }));
+  halo.scale.set(260, 260, 1);
+  halo.position.set(0, 150, -60);
+  halo.renderOrder = -4;
+  group.add(halo);
+  const pillar = new THREE.Mesh(new THREE.CylinderGeometry(3, 9, 900, 12, 1, true), new THREE.MeshBasicMaterial({ color: 0xffe2a8, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, side: THREE.DoubleSide }));
+  pillar.position.set(0, 600, -60);
+  pillar.renderOrder = -4;
+  group.add(pillar);
+  group.userData.halo = halo;
+  group.userData.pillar = pillar;
   group.userData.setVisibility = (v, flash) => {
+    const t = performance.now() * 0.001;
+    halo.material.opacity = 0.55 + 0.25 * Math.sin(t * 0.7) + flash * 0.4;
+    pillar.material.opacity = 0.08 + 0.04 * Math.sin(t * 0.5) + flash * 0.1;
     const c = 0.03 + flash * 0.25;
     silhouette.color.setRGB(c * 0.9 + 0.02, c + 0.025, c * 1.25 + 0.04);
     group.traverse((o) => { if (o.isMesh && o.material !== silhouette) { o.material.transparent = true; o.material.opacity = 0.35 + v * 0.65; } });
