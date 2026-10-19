@@ -227,7 +227,12 @@ export default function AnimLab() {
             c.dead = cyc < 3; if (cyc < 0.02) c.anim.deathT = 0;
           }
         }
-        if (!(name === 'jump' || name === 'launch')) c.pos.y = c.floating ? 0.4 : fn(c.pos.x, c.pos.z);
+        if (!(name === 'jump' || name === 'launch')) {
+          // Stands strike from the same hover height the game uses (shoulders just above the target chest)
+          const sh = c.rig?.U?.shoulderR?.y ?? c.height * 0.82;
+          const hover = c.action?.def ? Math.min(Math.max(1.9 * 0.68 + 0.25 - sh, -0.32), 0.35) : 0.4;
+          c.pos.y = c.floating ? fn(c.pos.x, c.pos.z) + hover : fn(c.pos.x, c.pos.z);
+        }
         c.yaw = yaw; c.group.rotation.y = yaw;
         c.t += dt;
         c.anim.update(dt || 1e-6);
@@ -237,7 +242,8 @@ export default function AnimLab() {
         const def = c.action?.def;
         const clip = def?.clip;
         target.visible = !!def;
-        fakeTarget.pos.set(c.pos.x + Math.sin(yaw) * 1.55, c.pos.y, c.pos.z + Math.cos(yaw) * 1.55);
+        const reachD = c.floating ? 0.87 : 0.42 + 0.42;
+        fakeTarget.pos.set(c.pos.x + Math.sin(yaw) * reachD, fn(c.pos.x, c.pos.z), c.pos.z + Math.cos(yaw) * reachD);
         target.position.set(fakeTarget.pos.x, fakeTarget.pos.y + 0.95, fakeTarget.pos.z);
         hitSphere.visible = !!clip?.limb;
         if (clip?.limb) {
