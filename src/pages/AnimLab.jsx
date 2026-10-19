@@ -206,6 +206,7 @@ export default function AnimLab() {
           const tt = S.current.paused ? S.current.scrub * dur : animT % (dur + 0.35);
           if (!c.action || c.action.def.name !== name) c.action = { def: clip ? { name, clip, dur } : { name, rush: true, rate: 15, dur: 99 }, t: 0, opts: {}, data: { target: fakeTarget, aim: new THREE.Vector3(), aimL: new THREE.Vector3(), aimR: new THREE.Vector3() } };
           c.action.t = Math.min(tt, dur);
+          c.action.data.aim = c.action.data.aim || new THREE.Vector3();
           fakeTarget.chestWorld(c.action.data.aim);
           fakeTarget.chestWorld(c.action.data.aimL).add(new THREE.Vector3(0.15, Math.sin(animT * 7) * 0.2, 0));
           fakeTarget.chestWorld(c.action.data.aimR).add(new THREE.Vector3(-0.15, Math.cos(animT * 6) * 0.2, 0));
