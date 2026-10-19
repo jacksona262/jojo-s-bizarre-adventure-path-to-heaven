@@ -144,6 +144,26 @@ export class Character {
     this.recentHits = (this.recentHits || []).filter((t) => now - t < 1.2);
     this.recentHits.push(now);
     if (this.recentHits.length > 6 && hit.kind !== 'heavy' && hit.kind !== 'rush' && dmg < 6) hit = { ...hit, stun: 0, knock: Math.min(hit.knock || 0, 0.5) };
+    // Poise (bosses): blows chip it away without interrupting; emptying it staggers hard (the
+    // punish window); right after a stagger it cannot break again, so nothing stun-locks a boss.
+    if (this.poiseMax) {
+      const cost = dmg + (hit.stun || 0) * 8 + (hit.kind === 'heavy' ? 10 : 0);
+      if (this.poise === undefined) this.poise = this.poiseMax;
+      this.poise -= cost;
+      this.poiseHitT = now;
+      const canBreak = now - (this.poiseBreakT ?? -99) > 3.2;
+      if (this.poise > 0 || !canBreak) {
+        if (!canBreak) this.poise = Math.max(this.poise, 1);
+        hit = { ...hit, stun: hit.kind === 'heavy' ? Math.min(hit.stun || 0, 0.2) : 0, knock: Math.min(hit.knock || 0, 1.5), launch: 0 };
+      } else {
+        this.poise = this.poiseMax;
+        this.poiseBreakT = now;
+        hit = { ...hit, stun: Math.max(hit.stun || 0, 1.2) };
+        this.anim?.guardBroken();
+        this.game.vfx?.text(this.chestWorld(new THREE.Vector3()).add(new THREE.Vector3(0, 0.7, 0)), 'STAGGER', '#ffd060', 1.1, 0.7);
+        this.game.combat?.emit({ type: 'poiseBreak', target: this, attacker });
+      }
+    }
     if (hit.stun > 0) {
       this.cancelAction();
       this.stun = Math.max(this.stun, hit.stun);
@@ -228,6 +248,7 @@ export class Character {
       }
     }
     if (this.stun > 0) this.stun -= dt;
+    if (this.poiseMax && this.poise < this.poiseMax && this.game.clock - (this.poiseHitT || 0) > 1.6) this.poise = Math.min(this.poiseMax, this.poise + this.poiseMax * 0.3 * dt);
     if (this.knockdown > 0 && !this.dead) {
       this.knockdown -= dt;
       // rising from the ground cannot be punished (no off-the-ground loops)
