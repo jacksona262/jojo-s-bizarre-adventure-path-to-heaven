@@ -6,6 +6,7 @@ import { roadX, heightAt } from '../world/Terrain';
 import { SANCTUARY } from '../world/Layout';
 import * as Poses from '../anim/Poses';
 import { OPENING, SPEAKERS, HEAVEN_SCENE, ENDING, ENDING_VARIANTS } from './Script';
+import { perform, stopPerform, nextGesture } from './Acting';
 
 // Directed cinematics. Every scene leaves actors in a defined end state, so skipping is safe.
 
@@ -43,21 +44,41 @@ export function closeUp(speaker, listener, side = 1, dist = 2.5) {
   return { pos, look: head.clone().add(V(0, -0.08, 0)) };
 }
 
+// Side-on two-shot framing both characters.
+export function twoShot(a, b, side = 1) {
+  const ca = a.chestWorld(new THREE.Vector3()); const cb = b.chestWorld(new THREE.Vector3());
+  const mid = ca.clone().lerp(cb, 0.5);
+  const dir = cb.clone().sub(ca).setY(0);
+  const sep = Math.max(1.5, dir.length());
+  dir.normalize();
+  const perp = V(-dir.z, 0, dir.x).multiplyScalar(side);
+  return { pos: mid.clone().addScaledVector(perp, 2.6 + sep * 0.9).add(V(0, 0.25, 0)), look: mid.clone().add(V(0, 0.05, 0)) };
+}
+
+// Dialogue staging: an establishing two-shot, then over-the-shoulder shots on the speaker
+// alternating with front close-ups. The speaker gestures in character, talks (jaw where the rig
+// has one) and looks at the listener; the listener watches and nods. Stands step aside so they
+// never block a shot, and every actor returns to the pose the scene had given them.
 export async function conversation(seq, a, b, lines) {
-  // a = DIO usually; close-ups alternate sides line by line
+  const hidden = [];
+  for (const c of [a, b]) if (c.stand?.summoned) { c.stand.summon(false, true); hidden.push(c.stand); }
   let n = 0;
   for (const [who, text] of lines) {
     const sp = SPEAKERS[who] || { name: who, color: '#fff' };
     const speakerIsA = who === 'DIO' || who === 'HEAVEN';
-    const s = speakerIsA ? closeUp(a, b, n % 2 ? 1 : -1) : closeUp(b, a, n % 2 ? -1 : 1);
+    const S = speakerIsA ? a : b; const L = speakerIsA ? b : a;
+    const dur = Math.min(7, 2 + text.length * 0.045);
+    let s; let fov = 34;
+    if (n === 0) { s = twoShot(a, b, 1); fov = 40; } else if (n % 2 === 1) s = ots(L, S, n % 4 === 1 ? 1 : -1, 1.9);
+    else s = closeUp(S, L, n % 4 === 2 ? 1 : -1, 2.4);
+    seq.shot({ from: s.pos, to: s.pos.clone().lerp(s.look, 0.05), look: s.look, dur, fov, ease: 'linear' });
+    perform(S, { gesture: n < 2 || text.length > 28 ? nextGesture(S) : null, talking: true, lookAt: L });
+    perform(L, { lookAt: S, nod: true });
     n += 1;
-    seq.shot({ from: s.pos, to: s.pos.clone().lerp(s.look, 0.06), look: s.look, dur: Math.min(7, 2 + text.length * 0.045), fov: 36, ease: 'linear' });
-    const target = speakerIsA ? a : b;
-    const prev = target.override;
-    target.override = (t) => Poses.talk(t, 1);
     await seq.say(sp.name, text, null, sp.color);
-    target.override = prev;
   }
+  stopPerform(a); stopPerform(b);
+  for (const st of hidden) st.summon(true, true);
 }
 
 // ------------------------------------------------------------------------------- opening
@@ -226,8 +247,9 @@ export async function bossIntro(game, seq, { player, boss, center, data, rk }) {
   await seq.wait(1.4);
   seq.lightning(center.clone().add(V(-150, 0, -200)), true);
   await seq.wait(2.2);
-  // reveal the boss
-  boss.override = (t) => Poses.idle(t, 'boss');
+  // reveal the boss: their own stance, eyes on DIO, an entrance gesture
+  perform(boss, { gesture: nextGesture(boss), lookAt: player });
+  perform(player, { lookAt: boss });
   seq.shot({ from: bc.clone().addScaledVector(boss.forward(), 4.2).add(V(1.2, -0.6, 0)), to: bc.clone().addScaledVector(boss.forward(), 3.0).add(V(0.8, -0.3, 0)), look: bc.clone().add(V(0, 0.25, 0)), dur: 2.8, fov: 36 });
   ui.set({ bossCard: { name: rk.name, stand: rk.standName, color: rk.color } });
   audio.play('stinger');
@@ -241,7 +263,7 @@ export async function bossIntro(game, seq, { player, boss, center, data, rk }) {
   }
   await seq.wait(2.0);
   ui.set({ bossCard: null });
-  boss.override = null;
+  stopPerform(boss); stopPerform(player);
   await conversation(seq, player, boss, data.intro);
   // swing behind DIO into gameplay
   const behind = player.pos.clone().addScaledVector(player.forward(), -4).add(V(0.6, 2, 0));
@@ -256,14 +278,16 @@ export async function bossVictory(game, seq, { player, boss, data }) {
   boss.t = 0;
   if (boss.stand) boss.stand.summon(false);
   player.override = (t) => Poses.idle(t, 'dio');
-  // face each other
+  // face each other; DIO looks down on the beaten foe
   player.faceTowards(boss.pos, true);
+  if (player.anim) player.anim.lookAt = boss;
   const mid = player.pos.clone().lerp(boss.pos, 0.5);
   const side = V(boss.pos.z - player.pos.z, 0, player.pos.x - boss.pos.x).normalize();
   seq.cut(mid.clone().addScaledVector(side, 4.5).add(V(0, 1.6, 0)), mid.clone().add(V(0, 1.1, 0)), 40);
   await seq.wait(1.2);
   await conversation(seq, player, boss, data.defeat);
   player.override = null;
+  if (player.anim) player.anim.lookAt = null;
 }
 
 // ------------------------------------------------------------------------------- heaven
