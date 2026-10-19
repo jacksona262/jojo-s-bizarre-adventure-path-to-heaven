@@ -303,6 +303,7 @@ export class Game {
         } else if (this.paused && this.mode?.name === 'campaign') {
           if (input.pressed('journal') && ui.get().overlay === 'journal') this.setPaused(false);
           if (input.pressed('map') && ui.get().overlay === 'map') this.setPaused(false);
+          if (input.pressed('upgrades') && ui.get().overlay === 'upgrades') this.setPaused(false);
         }
       }
     }
