@@ -147,7 +147,7 @@ const FinalShader = {
         float h1 = hash(vec2(lane, floor(uTime * 16.0)));
         float h2 = hash(vec2(lane * 1.7, 3.1));
         float thin = smoothstep(0.06 + 0.2 * h2, 0.0, abs(fract(ang * 180.0) - 0.5));
-        float inner = 0.24 + h1 * 0.3;
+        float inner = 0.1 + h2 * 0.22;
         float streak = step(0.62, h1) * thin * smoothstep(inner, inner + 0.3, sr);
         col = mix(col, vec3(1.0), streak * uSpeed * 0.7);
       }
