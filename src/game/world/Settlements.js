@@ -315,36 +315,36 @@ function redstone(ctx) {
 function hollow(ctx) {
   const { b, rng } = ctx;
   // Enya's cabin with a lantern path
-  ctx.clear(380, -30, 22);
-  cabin(b, ctx.frame(380, -34, 'road'), { w: 7, d: 6, lit: true });
-  for (let i = 0; i < 5; i += 1) lampPost(b, ctx.frame(380, -8 - i * 4.5, 'north'), 0.6, 0);
+  ctx.clear(-420, -30, 22);
+  cabin(b, ctx.frame(-420, -34, 'road'), { w: 7, d: 6, lit: true });
+  for (let i = 0; i < 5; i += 1) lampPost(b, ctx.frame(-420, -8 - i * 4.5, 'north'), 0.6, 0);
   // more cabins along the trail
-  for (const [dz, s] of [[520, 24], [220, -28], [120, 30], [-60, -26], [-420, 28]]) cabin(b, ctx.frame(dz, s, 'road'), { lit: rng() < 0.4 });
+  for (const [dz, s] of [[520, 24], [380, -28], [-60, -26], [-260, 30], [-560, 28]]) cabin(b, ctx.frame(dz, s, 'road'), { lit: rng() < 0.4 });
   // The splintered hamlet (Josuke): half-ruined houses ring the clearing
-  ctx.clear(-240, 0, 44);
-  const ring = [[-14, 20], [16, 18], [-20, -6], [22, -10], [-12, -24], [14, -24]];
+  ctx.clear(160, 0, 44);
+  const ring = [[-16, 20], [17, 18], [-21, -6], [23, -10], [-14, -24], [15, -24]];
   ring.forEach(([s, dzo], i) => {
-    const f = ctx.frame(-240 + dzo, s, 'road');
+    const f = ctx.frame(160 + dzo, s, 'road');
     if (i % 2 === 0) house(b, f, { w: 7, d: 6, lit: false, rng });
     else { ruinWall(b, f, { w: 7, h: 3.2, mat: 'woodGrey', rng }); }
   });
-  for (let i = 0; i < 4; i += 1) wagon(b, ctx.frame(-240 + (rng() - 0.5) * 30, (rng() - 0.5) * 24, 'north'), 0, 0, rng() * 6, rng() < 0.5);
-  forestGrove(ctx, -240, 0, 80, 60, 'pine');
+  forestGrove(ctx, 160, 0, 90, 60, 'pine');
+  forestGrove(ctx, -420, -40, 60, 50, 'pine');
   signPost(b, ctx.frame(600, 6, 'south'), 0, 0, 'HOLLOW PINES');
 }
 
 function iron(ctx) {
   const { b, rng } = ctx;
-  ctx.clear(0, 0, 160);
-  ctx.clear(360, 34, 40);
-  warehouse(b, ctx.frame(360, 42, 'road'), { w: 12, d: 18, sign: 'ASSAY HALL', lit: true });
+  ctx.clear(250, 0, 200);
+  ctx.clear(-300, 34, 40);
+  warehouse(b, ctx.frame(-300, 42, 'road'), { w: 12, d: 18, sign: 'ASSAY HALL', lit: true });
   warehouse(b, ctx.frame(300, -40, 'road'), { w: 12, d: 24, sign: 'IRON VALE MINING CO.' });
-  warehouse(b, ctx.frame(80, 38, 'road'), { w: 10, d: 20 });
-  warehouse(b, ctx.frame(-60, -36, 'road'), { w: 11, d: 22 });
-  for (const [dz, s, o] of [[230, -18, { sign: 'SALOON', twoStory: true, balcony: true, lit: true }], [200, 18, { sign: 'COMPANY STORE', lit: true }], [170, -18, { sign: 'BUNKHOUSE' }], [140, 18, { sign: 'DOCTOR', lit: true }]]) {
+  warehouse(b, ctx.frame(80, 44, 'road'), { w: 10, d: 20 });
+  warehouse(b, ctx.frame(220, 44, 'road'), { w: 11, d: 22 });
+  for (const [dz, s, o] of [[400, -18, { sign: 'SALOON', twoStory: true, balcony: true, lit: true }], [372, 18, { sign: 'COMPANY STORE', lit: true }], [344, -18, { sign: 'BUNKHOUSE' }], [316, 18, { sign: 'DOCTOR', lit: true }]]) {
     storefront(b, ctx.frame(dz, s + Math.sign(s) * 5, 'road'), { w: 8, d: 10, wall: 'woodGrey', rng, ...o });
   }
-  waterTower(b, ctx.frame(110, -30, 'road'));
+  waterTower(b, ctx.frame(260, -30, 'road'));
   // mine entrance cut into the west wall
   const mf = ctx.frame(40, -70, 'road');
   b.box('woodDark', mf, -2.4, 2.5, 0, 0.5, 5, 0.5);
@@ -355,13 +355,12 @@ function iron(ctx) {
   b.collider(mf, 0, -2, 7, 3, 10);
   trackAlong(ctx, 40, -200, -18);
   trackAlong(ctx, 300, -120, 22);
-  // Kira's yard: crates and barrels around the open lot
-  ctx.clear(-150, 0, 46);
+  // Kira's yard: crates and barrels ring the open lot (the arena interior stays clear)
   for (let i = 0; i < 14; i += 1) {
-    const f = ctx.frame(-150 + (rng() - 0.5) * 60, (rng() < 0.5 ? -1 : 1) * (14 + rng() * 16), 'road');
+    const f = ctx.frame(150 + (rng() - 0.5) * 70, (rng() < 0.5 ? -1 : 1) * (26 + rng() * 12), 'road');
     if (rng() < 0.5) crate(b, f, 0, 0, 1 + rng() * 0.4, 0, rng()); else barrel(b, f, 0, 0);
   }
-  streetDressing(ctx, 240, 120, 9);
+  streetDressing(ctx, 420, 300, 9);
   // Diavolo's canyon rail bridge
   const g = GULCHES.find((q) => q.id === 'diavoloCanyon');
   const t = tangent(g.z);
