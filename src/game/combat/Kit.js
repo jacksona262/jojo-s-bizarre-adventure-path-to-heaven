@@ -76,7 +76,16 @@ export class Kit {
         if (tgt && !tgt.dead) {
           a.data.aim = a.data.aim || new THREE.Vector3();
           tgt.chestWorld(a.data.aim);
-          if (!self.floating) self.faceTowards(tgt.pos);
+          if (!self.floating) {
+            self.faceTowards(tgt.pos);
+            // a fighter punching with their own fists closes the last gap during startup
+            const gap = self.distanceTo(tgt) - tgt.radius - self.radius - 0.3;
+            if (t01 < clip.active[0] && gap > 0.05 && gap < 2.2) {
+              const sp = Math.min(5.5, gap * 9);
+              const dx = tgt.pos.x - self.pos.x; const dz = tgt.pos.z - self.pos.z; const d = Math.hypot(dx, dz) || 1;
+              self.vel.x = dx / d * sp; self.vel.z = dz / d * sp;
+            }
+          }
         }
         if (t01 >= clip.active[0] && t01 <= clip.active[1]) kit._contact(self, clip.limb, spec, hitSet, a, opts);
         else a.data.prevLimb = null;
