@@ -5,9 +5,10 @@ import { audio } from '@/game/core/Audio';
 import { ui } from '@/game/core/Store';
 
 const ITEMS = [
-  { id: 'continue', label: 'Continue', hover: 'new' },
+  { id: 'continue', label: 'Continue', hover: 'continue' },
   { id: 'new', label: 'New Game', hover: 'new' },
   { id: 'versus', label: 'Versus', hover: 'versus' },
+  { id: 'load', label: 'Load Game', hover: 'load' },
   { id: 'settings', label: 'Settings', hover: 'settings' },
   { id: 'credits', label: 'Credits', hover: 'credits' },
 ];
@@ -25,6 +26,7 @@ export default function TitleMenu({ game }) {
       if (hasSave && !confirmNew) { setConfirmNew(true); audio.play('uiHover'); return; }
       setLeaving(true); game.newGame();
     } else if (it.id === 'versus') game.openVersusSelect();
+    else if (it.id === 'load') { if (!hasSave) return; audio.play('uiSelect'); ui.set({ overlay: 'saves', savesMode: 'load', savesFrom: 'title' }); }
     else if (it.id === 'settings') { audio.play('uiSelect'); ui.set({ overlay: 'settings' }); }
     else if (it.id === 'credits') { audio.play('uiSelect'); ui.set({ screen: 'credits', creditsFrom: 'title' }); }
   };
@@ -43,7 +45,7 @@ export default function TitleMenu({ game }) {
         <div className="pth-logo-rule" />
         <div className="pth-menu">
           {ITEMS.map((it, i) => {
-            const disabled = it.id === 'continue' && !hasSave;
+            const disabled = (it.id === 'continue' || it.id === 'load') && !hasSave;
             const label = it.id === 'new' && confirmNew ? 'New Game · overwrite journey?' : it.label;
             return (
               <button
@@ -61,6 +63,7 @@ export default function TitleMenu({ game }) {
           })}
         </div>
         <div className="pth-menu-hint">Mouse, keyboard (W/S, Enter) or controller (D-Pad, A). Headphones recommended.</div>
+        <div className="pth-title-foot">A fan-made tribute · All characters belong to Hirohiko Araki</div>
       </div>
     </>
   );
