@@ -21,6 +21,13 @@
 .pth-menu-hint { margin-top: 30px; font-size: 14px; color: rgba(239,228,204,0.45); letter-spacing: 0.08em; }
 .pth-title-foot { position: absolute; bottom: 24px; left: 0; font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 0.16em; color: rgba(216,180,90,0.38); }
 .pth-vignette-left { position: absolute; inset: 0; background: linear-gradient(270deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 30%, rgba(0,0,0,0) 50%); pointer-events: none; }
+/* portrait screens: DIO fills the top half, the menu sits on a dark fade below him */
+@media (max-aspect-ratio: 4/5) {
+  .pth-title-wrap { justify-content: flex-end; padding-bottom: 64px; }
+  .pth-vignette-left { background: linear-gradient(0deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.82) 40%, rgba(0,0,0,0) 62%); }
+  .pth-menu-hint { display: none; }
+  .pth-logo-rule { margin-bottom: 18px; }
+}
 
 /* ---------- panels ---------- */
 .pth-panel { background: linear-gradient(180deg, rgba(14,11,8,0.94), rgba(6,6,9,0.96)); border: 1px solid rgba(216,180,90,0.45); box-shadow: 0 0 0 1px rgba(0,0,0,0.8) inset, 0 20px 60px rgba(0,0,0,0.6); position: relative; }
