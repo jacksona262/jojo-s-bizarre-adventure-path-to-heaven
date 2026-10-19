@@ -283,7 +283,7 @@ function redstone(ctx) {
   // trestle over Hol Horse's gulch
   const g = GULCHES.find((q) => q.id === 'holGulch');
   const f = new Frame(g.x, g.deckY - 0.3, g.z, Math.atan2(tangent(g.z).x, tangent(g.z).z));
-  trestle(b, f, 40, 0, 7);
+  trestle(b, f, 40, 0, 7, 0, 30);
   ctx.platform({ x: g.x, z: g.z, hw: 3.5, hd: 20, rot: f.rotY, y: g.deckY - 0.05 });
   for (const sx of [-3.6, 3.6]) {
     const p = f.pt(sx, 0, 0);
@@ -366,7 +366,7 @@ function iron(ctx) {
   const g = GULCHES.find((q) => q.id === 'diavoloCanyon');
   const t = tangent(g.z);
   const bf = new Frame(g.x, g.deckY - 0.3, g.z, Math.atan2(t.x, t.z));
-  trestle(b, bf, 96, 0, 12);
+  trestle(b, bf, 96, 0, 12, 0, 54);
   ctx.platform({ x: g.x, z: g.z, hw: 6, hd: 48, rot: bf.rotY, y: g.deckY - 0.05 });
   railTrack(b, bf, 3, -48, 3, 48, 0.1, 0.1, false);
   for (const sx of [-6.1, 6.1]) {
