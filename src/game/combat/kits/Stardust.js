@@ -515,6 +515,43 @@ export class SilverChariotKit extends Kit {
   afterimage() {
     const p = this.f.chestWorld(new THREE.Vector3());
     for (let i = 0; i < 14; i += 1) this.vfx.glow.emit(p.clone().add(v3((Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 1.6, (Math.random() - 0.5) * 0.6)), v3(), new THREE.Color(0xcfe0ff), 0.6, 0.5, 0.1, 0.4);
+    this.vfx.afterimage(this.f, 0xcfe0ff, { life: 0.35, alpha: 0.5 });
+  }
+
+  // the blade's point, in world space
+  tip(len = 1.25) {
+    const d = v3(0, 0, 1).applyQuaternion(this.blade.quaternion);
+    return this.blade.position.clone().addScaledVector(d, len);
+  }
+
+  // A rapier thrust too fast to see: a white streak along the line of the blade, a gleam at the
+  // point and a ring where the air is pierced.
+  streak(len = 3, spread = 0, width = 0.035) {
+    const f = this.f;
+    const fwd = f.forward();
+    const from = f.jointWorld('handR').clone().addScaledVector(fwd, 0.25);
+    const dir = fwd.clone();
+    if (spread) dir.add(v3((Math.random() - 0.5) * spread, (Math.random() - 0.5) * spread * 0.8, (Math.random() - 0.5) * spread)).normalize();
+    const to = from.clone().addScaledVector(dir, len);
+    this.vfx.beam(from, to, 0xeef4ff, width, 0.12, 0.85);
+    this.vfx.hitSpark(to, 0xffffff, 0.55, 0.08);
+    if (!spread) this.vfx.ring(to, SILVER, 0.08, 0.7, 0.2, { vertical: true, face: from, alpha: 0.7 });
+    return to;
+  }
+
+  gleam() { this.vfx.hitSpark(this.tip(), 0xffffff, 1.1, 0.22); }
+
+  // a rematch: armour back on, blade back in hand
+  resetFight() {
+    if (this.armorOff) {
+      this.armorOff = false;
+      if (this._speedBefore) this.f.moveSpeed = this._speedBefore;
+      this.f.damageTakenMul = 1;
+    }
+    this.disarmedUntil = 0;
+    this.stanceUntil = 0;
+    this.bladeState = 'guard';
+    this.blade.visible = true;
   }
 
   hasBlade() { return this.clock >= this.disarmedUntil; }
@@ -528,6 +565,8 @@ export class SilverChariotKit extends Kit {
     const tele = riposte ? 0.08 : 0.25;
     f.play({ name: 'thrust', dur: tele + 0.45, pose: (k) => Poses.punch('R', Math.min(1, k * 1.3)), move: (k) => (k > tele / (tele + 0.45) && k < 0.8 ? 11 : 0), events: [{ t: (tele + 0.05) / (tele + 0.45), fn: () => {
       this.bladeState = 'thrust'; this.bladeT = 0;
+      this.streak(riposte ? 3.6 : 3, 0, riposte ? 0.05 : 0.035);
+      if (riposte) this.vfx.text(f.chestWorld(new THREE.Vector3()).add(v3(0, 0.9, 0)), 'シュバッ', '#e8f0ff', 0.9, 0.6);
       this.hit({ damage: riposte ? 13 : 9, stun: 0.45, knock: 3, kind: riposte ? 'heavy' : 'light', range: 3.2, arc: 0.35, sfx: 'sword', color: 0xe8f0ff });
     } }] });
     return true;
@@ -540,9 +579,13 @@ export class SilverChariotKit extends Kit {
     this.faceTarget(true);
     const n = 6;
     const events = [];
+    // "Hora hora hora!": a storm of thrusts, each one leaving several blurred blade-streaks
+    this.vfx.text(f.chestWorld(new THREE.Vector3()).add(v3(0, 1.1, 0)), 'ホラホラホラ', '#e8f0ff', 1.2, 0.75);
     for (let i = 0; i < n; i += 1) {
       events.push({ t: 0.12 + i * 0.13, fn: () => {
         this.bladeState = 'thrust'; this.bladeT = 0;
+        for (let s = 0; s < (i === n - 1 ? 1 : 4); s += 1) this.streak(2.6 + Math.random() * 0.6, i === n - 1 ? 0 : 0.5, 0.022);
+        if (i === n - 1) { this.vfx.sparkBurst(this.tip(2.6), SILVER, 18, 12, f.forward()); this.game.camera.shake(0.15); }
         this.hit({ damage: i === n - 1 ? 7 : 2.4, stun: 0.3, knock: i === n - 1 ? 5 : 0.5, kind: i === n - 1 ? 'heavy' : 'rush', range: 2.8, arc: 0.6, sfx: 'sword', color: 0xe8f0ff, noCounter: i !== n - 1 });
         audio.play('sword');
       } });
@@ -557,21 +600,63 @@ export class SilverChariotKit extends Kit {
     this.setCool('stance', 6);
     this.stanceUntil = this.clock + 1.7;
     this.bladeState = 'stance';
+    setTimeout(() => this.gleam(), 120);
     f.play({ name: 'stance', dur: 1.7, pose: () => { const p = Poses.guardStance(); p.uaR = [-0.2, -0.1, 1]; p.faR = [-0.05, 0.3, 1]; return p; } });
     this.vfx.text(f.chestWorld(new THREE.Vector3()).add(v3(0, 1, 0)), '構え', '#cfe0ff', 1.4, 0.6);
     return true;
   }
 
+  // Armour Take Off: Chariot sheds its plate armour (the pieces burst off and clatter away) and
+  // becomes so fast it leaves a ring of afterimages — the illusion of seven Chariots at once.
   armorRelease() {
     if (this.armorOff) return false;
+    const f = this.f;
     this.armorOff = true;
-    this.f.moveSpeed *= 1.6;
-    this.f.damageTakenMul = 1.3;
-    this.vfx.burst(this.f.chestWorld(new THREE.Vector3()), 0xcfe0ff, 60, 9, 0.5, 0.8);
-    this.vfx.text(this.f.chestWorld(new THREE.Vector3()).add(v3(0, 1.2, 0)), 'アーマーテイクオフ', '#cfe0ff', 1.8, 0.7);
+    this._speedBefore = f.moveSpeed;
+    f.moveSpeed *= 1.6;
+    f.damageTakenMul = 1.3;
+    const chest = f.chestWorld(new THREE.Vector3());
+    this.vfx.burst(chest, 0xcfe0ff, 60, 9, 0.5, 0.8);
+    this.vfx.hitSpark(chest, 0xffffff, 2.6, 0.2);
+    this.vfx.ring(f.pos.clone().add(v3(0, 0.1, 0)), SILVER, 0.5, 7, 0.6);
+    this.vfx.ring(chest, SILVER, 0.3, 3.5, 0.45, { vertical: true, face: this.vfx.cameraPos });
+    this.vfx.smokePuff(f.pos.clone().add(v3(0, 0.3, 0)), 0x9aa4b4, 8, 1.2, 1.2, 0.6);
+    this.vfx.text(chest.clone().add(v3(0, 1.2, 0)), 'アーマーテイクオフ', '#cfe0ff', 1.8, 0.7);
+    this.shedArmor(chest);
+    this.vfx.afterimages.prepare(f, 10);
+    for (let i = 0; i < 6; i += 1) {
+      const a = (i / 6) * Math.PI * 2;
+      setTimeout(() => {
+        if (f.dead) return;
+        this.vfx.afterimage(f, 0xcfe0ff, { life: 1.1, alpha: 0.55, offset: v3(Math.cos(a) * 1.9, 0, Math.sin(a) * 1.9) });
+      }, 60 + i * 55);
+    }
     audio.play('explosion', { power: 0.4 });
     this.game.camera.shake(0.4);
     return true;
+  }
+
+  shedArmor(at) {
+    const mat = new THREE.MeshStandardMaterial({ color: 0xc8ccd6, metalness: 1, roughness: 0.22, emissive: 0x30384a, emissiveIntensity: 0.4 });
+    const ground = this.game.world.groundAt(at.x, at.z, at.y) + 0.05;
+    for (let i = 0; i < 10; i += 1) {
+      const geo = i % 3 === 0 ? new THREE.SphereGeometry(0.16, 8, 6, 0, Math.PI) : new THREE.BoxGeometry(0.28 + Math.random() * 0.15, 0.05, 0.2 + Math.random() * 0.15);
+      const m = new THREE.Mesh(geo, mat);
+      m.castShadow = true;
+      m.position.copy(at).add(v3((Math.random() - 0.5) * 0.5, (Math.random() - 0.3) * 0.8, (Math.random() - 0.5) * 0.5));
+      const vel = v3((Math.random() - 0.5) * 9, 3 + Math.random() * 5, (Math.random() - 0.5) * 9);
+      const spin = v3(Math.random() * 14, Math.random() * 14, Math.random() * 14);
+      this.vfx.addMesh(m, 2.6, (e, k, dt) => {
+        if (m.position.y > ground) {
+          vel.y -= 18 * dt;
+          m.position.addScaledVector(vel, dt);
+          m.rotation.x += spin.x * dt; m.rotation.y += spin.y * dt; m.rotation.z += spin.z * dt;
+          if (m.position.y <= ground) { m.position.y = ground; this.vfx.sparkBurst(m.position, SILVER, 3, 3); }
+        }
+        if (k > 0.8) m.scale.setScalar(Math.max(0.01, (1 - k) / 0.2));
+        if (k >= 0.999) geo.dispose();
+      });
+    }
   }
 
   swordShot() {
@@ -581,14 +666,18 @@ export class SilverChariotKit extends Kit {
     this.setCool('shot', 10);
     this.faceTarget(true);
     this.bladeState = 'aim';
-    f.play({ name: 'shotAim', dur: 1.15, pose: (k) => Poses.cast('R', k, 0.05), events: [{ t: 0.2, fn: () => { this.vfx.burst(this.blade.position, 0xffffff, 4, 0.5, 0.9, 0.7, { shape: 3 }); audio.play('epitaph'); } }, { t: 0.72, fn: () => {
+    f.play({ name: 'shotAim', dur: 1.15, pose: (k) => Poses.cast('R', k, 0.05), events: [{ t: 0.2, fn: () => { this.vfx.burst(this.blade.position, 0xffffff, 4, 0.5, 0.9, 0.7, { shape: 3 }); this.gleam(); audio.play('epitaph'); } }, { t: 0.5, fn: () => this.gleam() }, { t: 0.72, fn: () => {
+      // the blade itself is fired off the hilt like a bullet
       const origin = this.blade.position.clone();
       const aim = t.chestWorld(new THREE.Vector3()).sub(origin).normalize();
       this.bladeState = 'gone';
       this.disarmedUntil = this.clock + 3.2;
       this.blade.visible = false;
       const mesh = rapierMesh();
-      this.combat.spawnProjectile({ owner: f, pos: origin, vel: aim.multiplyScalar(42), radius: 0.3, damage: 22, stun: 0.8, knock: 6, life: 1.2, mesh, color: 0xe8f0ff, kind: 'heavy', trail: (p, vfx) => vfx.sparks.emit(p.pos, v3(), new THREE.Color(0xcfe0ff), 0.2, 0.02) });
+      this.vfx.hitSpark(origin, 0xffffff, 1.8, 0.14);
+      this.vfx.ring(origin, SILVER, 0.1, 1.4, 0.3, { vertical: true, face: origin.clone().add(aim), alpha: 0.9 });
+      this.vfx.beam(origin, origin.clone().addScaledVector(aim, 10), 0xeef4ff, 0.03, 0.25, 0.7);
+      this.combat.spawnProjectile({ owner: f, pos: origin, vel: aim.multiplyScalar(42), radius: 0.3, damage: 22, stun: 0.8, knock: 6, life: 1.2, mesh, color: 0xe8f0ff, kind: 'heavy', trail: (p, vfx) => { vfx.sparks.emit(p.pos, p.vel.clone().multiplyScalar(-0.2), SILVER, 0.18, 0.08); vfx.glow.emit(p.pos, v3(), SILVER, 0.5, 0.25, 0.05, 0.2); }, onExpire: (p) => { this.vfx.sparkBurst(p.pos, SILVER, 14, 9); this.vfx.hitSpark(p.pos, 0xffffff, 1.2, 0.12); } });
       audio.play('sword');
       this.vfx.text(origin.clone().add(v3(0, 0.6, 0)), '!!', '#cfe0ff', 0.8, 0.8);
       this.combat.emit({ type: 'disarmed', target: f });
