@@ -241,6 +241,8 @@ export default function AnimLab() {
           // dev: inspect one joint up close, e.g. window.__animlabFocus = { joint: 'head', off: [0.1, 0.05, 0.7] }
           const fj = c.jointWorld(window.__animlabFocus.joint, new THREE.Vector3());
           const o = window.__animlabFocus.off || [0.1, 0.05, 0.7];
+          const to = window.__animlabFocus.toff || [0, 0, 0];
+          fj.x += to[0]; fj.y += to[1]; fj.z += to[2];
           cam.clearViewOffset();
           controls.target.copy(fj);
           cam.position.set(fj.x + o[0], fj.y + o[1], fj.z + o[2]);
