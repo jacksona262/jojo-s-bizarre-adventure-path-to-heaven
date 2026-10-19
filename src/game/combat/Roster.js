@@ -50,7 +50,7 @@ export async function createFighter(game, key, { team = 1, versus = false, hp = 
 
 // ------------------------------------------------------------------------------------- brain
 export class BossBrain {
-  constructor(game, f, { difficulty = 1, phases = null, onPhase = null, style = null, keep = null } = {}) {
+  constructor(game, f, { difficulty = 1, phases = null, onPhase = null, style = null, keep = null, poiseScale = 1 } = {}) {
     this.game = game;
     this.f = f;
     this.kit = f.kit;
@@ -73,7 +73,7 @@ export class BossBrain {
     // AI perfect counters are rare (a short window), more common on harder phases/difficulty
     f.counterWindow = 0.04 + 0.02 * difficulty;
     // poise: how much punishment the boss absorbs before staggering (close-range fighters are sturdier)
-    f.poiseMax = ({ close: 36, medium: 30, skirmish: 26, far: 22 }[this.style] ?? 28) * (0.8 + 0.2 * difficulty);
+    f.poiseMax = ({ close: 36, medium: 30, skirmish: 26, far: 22 }[this.style] ?? 28) * (0.8 + 0.2 * difficulty) * poiseScale;
     f.poise = f.poiseMax;
   }
 
