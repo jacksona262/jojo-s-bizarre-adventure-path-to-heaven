@@ -25,7 +25,7 @@ export function installFoeFX(game) {
     const now = performance.now();
     if (now - lastLight < 90) return;
     lastLight = now;
-    game.world?.flash(p.x, p.y, p.z, color, intensity, life, range);
+    game.world?.lightBurst?.(p.x, p.y, p.z, color, intensity, life, range);
   };
 
   const windup = (f, move) => {

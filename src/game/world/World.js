@@ -674,10 +674,10 @@ export class World {
 
   // A brief burst of real light (impacts, blasts): borrows the last pool slots for a moment, so it
   // lights the surroundings without adding a light to any shader.
-  flash(x, y, z, color = 0xffffff, intensity = 2, life = 0.18, range = 10) {
-    this.flashes = this.flashes || [];
-    if (this.flashes.length >= 2) this.flashes.shift();
-    this.flashes.push({ x, y, z, color, intensity, life, t: 0, range });
+  lightBurst(x, y, z, color = 0xffffff, intensity = 2, life = 0.18, range = 10) {
+    this.bursts = this.bursts || [];
+    if (this.bursts.length >= 2) this.bursts.shift();
+    this.bursts.push({ x, y, z, color, intensity, life, t: 0, range });
   }
 
   _updateLights(dt, focus) {
@@ -692,7 +692,7 @@ export class World {
       this.active = sorted.map((o) => o.l);
     }
     const act = this.active || [];
-    const bursts = this.flashes || [];
+    const bursts = this.bursts || [];
     for (let i = bursts.length - 1; i >= 0; i -= 1) { bursts[i].t += dt; if (bursts[i].t >= bursts[i].life) bursts.splice(i, 1); }
     for (let i = 0; i < this.pool.length; i += 1) {
       const pl = this.pool[i];
