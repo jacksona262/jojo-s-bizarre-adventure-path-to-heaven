@@ -148,6 +148,9 @@ export class Game {
     this.engine.timeScale = 1;
     this.camera.lock = null;
     if (this.horse) { this.horse.group.removeFromParent(); this.horse = null; }
+    // nothing on screen belongs to the mode being left (a stale "Dismount" prompt from riding in
+    // the story used to follow the player into Versus)
+    ui.set({ prompt: null, subtitle: null, choice: null, boss: null, objective: null, timeStop: null, region: null, letterbox: false, noise: null, combo: null, bossCard: null });
   }
 
   async newGame() {
