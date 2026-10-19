@@ -52,6 +52,8 @@ export async function createFighter(game, key, { team = 1, versus = false, hp = 
 }
 
 // ------------------------------------------------------------------------------------- brain
+const _pv = new THREE.Vector3();
+
 export class BossBrain {
   constructor(game, f, { difficulty = 1, phases = null, onPhase = null, style = null, keep = null, poiseScale = 1 } = {}) {
     this.game = game;
@@ -79,6 +81,14 @@ export class BossBrain {
     f.poiseMax = ({ close: 36, medium: 30, skirmish: 26, far: 22 }[this.style] ?? 28) * (0.8 + 0.2 * difficulty) * poiseScale;
     f.poise = f.poiseMax;
     this.poiseBase = f.poiseMax;
+    // every AI opponent (bosses, quest duels, Versus CPU) fights with 40 extra health
+    f.hpMax += 40;
+    f.hp = Math.min(f.hpMax, f.hp + 40);
+    this.lastHp = f.hp;
+    // what the AI has learned about the player this fight
+    this.read = { guards: 0, attacks: 0, dodges: 0, lastSeen: null };
+    this.projCool = 0;
+    this.comboN = 0;
   }
 
   // back to the opening of the fight (used by a rematch after the player dies)
@@ -93,9 +103,51 @@ export class BossBrain {
     this.punishCool = 0;
     this.guardT = 0;
     this.lastHp = this.f.hp;
+    this.read = { guards: 0, attacks: 0, dodges: 0, lastSeen: null };
+    this.comboN = 0;
   }
 
-  get clock() { return this.game.clock; }
+  // Track the player's habits (decaying counts): how often they guard, attack and dodge, so the AI
+  // can answer a turtle with guard breaks, an aggressive player with guards/counters and a
+  // dodger with delayed strikes.
+  _observe(t, dt) {
+    const r = this.read;
+    const k = Math.exp(-dt / 6);
+    r.guards *= k; r.attacks *= k; r.dodges *= k;
+    const name = t.action?.def.name || null;
+    if (t.guarding) r.guards += dt;
+    if (name && name !== r.lastSeen) {
+      if (name === 'dodge') r.dodges += 1;
+      else if (/jab|punch|heavy|kb|rush|thrust|command|hook|upper|kick|knockback/.test(name)) r.attacks += 1;
+    }
+    r.lastSeen = name;
+  }
+
+  // Sidestep projectiles about to hit (knives, emeralds, bullets...), perpendicular to their flight.
+  _evadeProjectiles() {
+    if (this.projCool > 0) return false;
+    const f = this.f;
+    for (const p of this.game.combat.projectiles) {
+      if (p.team === f.team || p.life <= 0) continue;
+      const rel = _pv.copy(f.pos).sub(p.pos); rel.y = 0;
+      const dist = rel.length();
+      const sp = Math.hypot(p.vel.x, p.vel.z);
+      if (dist > 9 || sp < 4) continue;
+      // closing in, and the line of flight passes within reach
+      const along = (rel.x * p.vel.x + rel.z * p.vel.z) / sp;
+      if (along <= 0 || along / sp > 0.5) continue;
+      const miss = Math.abs(rel.x * p.vel.z - rel.z * p.vel.x) / sp;
+      if (miss > 1.1 + (p.radius || 0.3)) continue;
+      this.projCool = 0.9;
+      if (Math.random() > 0.45 + 0.3 * this.difficulty) return false;
+      const side = _pv.set(-p.vel.z, 0, p.vel.x).normalize();
+      if (side.dot(rel) < 0) side.negate();
+      if (this.kit.dodge(side.clone())) return true;
+      if (!this.kit.rushing) { this.kit.guard(true); this.guardT = 0.35; return true; }
+    }
+    return false;
+  }
+ { return this.game.clock; }
 
   setPhaseFromHp() {
     const frac = this.f.hp / this.f.hpMax;
@@ -117,6 +169,8 @@ export class BossBrain {
     const t = this.kit.target();
     if (!t) { f.steer(0, 0, dt); return; }
     const d = f.distanceTo(t);
+    this._observe(t, dt);
+    this.projCool -= dt;
     // sustained rush
     if (this.kit.rushing) {
       this.kit.aiRushT = (this.kit.aiRushT || 0) - dt;
@@ -130,6 +184,7 @@ export class BossBrain {
       if (this.guardT <= 0 || f.stun > 0) { this.guardT = 0; this.kit.guard(false); } else { f.faceTowards(t.pos); f.steer(0, 0, dt); return; }
     }
     if (f.busy()) { if (!f.action?.def.move && !f.action?.def.tick) f.steer(0, 0, dt); return; }
+    if (this._evadeProjectiles()) return;
 
     // reactions to the player's offence (their own strike or their Stand's): dodge or guard
     this.reactCool -= dt;
@@ -139,8 +194,14 @@ export class BossBrain {
     const threat = (tDef && (tDef.clip?.active || /jab|punch|heavy|kb|rush|thrust|rb|ovr|command|knockback/.test(tDef.name)))
       || (sDef && (sDef.clip?.active || sDef.rush));
     if (threat && d < 5 && this.reactCool <= 0 && !f.rootedUntil) {
-      const dodgeP = (0.06 + 0.04 * this.phase) * this.difficulty * (this.style === 'far' ? 1.7 : 1);
-      const guardP = ({ close: 0.24, medium: 0.17, skirmish: 0.12, far: 0.06 }[this.style] ?? 0.14) * this.difficulty * (0.75 + 0.15 * this.phase);
+      // reads: an aggressive player gets blocked more; a guard-breaking blow is dodged, not blocked;
+      // when hurt the AI plays safer
+      const aggro = Math.min(1, this.read.attacks / 6);
+      const hurt = f.hp / f.hpMax < 0.35 ? 1.35 : 1;
+      const breaker = !!(tDef && (/heavy|kb|knockback|command/.test(tDef.name))) || t.action?.opts?.guardBreak;
+      let dodgeP = (0.1 + 0.05 * this.phase) * this.difficulty * (this.style === 'far' ? 1.6 : 1) * hurt;
+      let guardP = ({ close: 0.3, medium: 0.23, skirmish: 0.17, far: 0.1 }[this.style] ?? 0.2) * this.difficulty * (0.75 + 0.15 * this.phase) * (1 + aggro * 0.6) * hurt;
+      if (breaker) { dodgeP += guardP * 0.7; guardP *= 0.3; }
       const r = Math.random();
       if (r < dodgeP) {
         const side = f.forward().applyAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2).multiplyScalar(Math.random() < 0.5 ? 1 : -1);
@@ -159,8 +220,9 @@ export class BossBrain {
     }
     // punish: the player's Stand (or the player) is stuck in recovery after a whiffed or blocked blow
     const recovering = (sDef?.clip?.active && sAct.t / sDef.dur > sDef.clip.active[1]) || (tDef?.clip?.active && t.action.t / tDef.dur > tDef.clip.active[1]);
-    if (recovering && d < 4.2 && !(t.invuln > 0.1) && this.punishCool <= 0 && Math.random() < 0.35 * this.difficulty) {
-      this.punishCool = 1.6;
+    const whiffed = recovering || (t.action?.def.name === 'dodge' && t.action.t > 0.25);
+    if (whiffed && d < 4.2 && !(t.invuln > 0.1) && this.punishCool <= 0 && Math.random() < 0.55 * this.difficulty) {
+      this.punishCool = 1.2;
       if ((this.phase >= 2 && this.kit.heavy()) || this.kit.light()) { this.think = 0.35; return; }
     }
 
@@ -173,9 +235,21 @@ export class BossBrain {
     if (this.strafeT <= 0) { this.strafeT = 1.5 + Math.random() * 2.5; this.strafeDir = Math.random() < 0.5 ? -1 : 1; }
     let vx = 0; let vz = 0;
     const sp = f.moveSpeed * (f.slowUntil > this.clock ? 0.5 : 1);
-    if (d > hi) { vx = toT.x * sp; vz = toT.z * sp; } else if (d < lo) { vx = -toT.x * sp * 0.85; vz = -toT.z * sp * 0.85; }
-    vx += side.x * sp * 0.45 * this.strafeDir;
-    vz += side.z * sp * 0.45 * this.strafeDir;
+    let [bandLo, bandHi] = [lo, hi];
+    // hurt and being pressed: give ground; the player hurt: close in for the kill
+    if (f.hp / f.hpMax < 0.3 && this.read.attacks > 3) { bandLo += 1.5; bandHi += 2; }
+    if (t.hp / t.hpMax < 0.25) { bandLo = Math.max(0.8, bandLo - 1); bandHi = Math.max(bandLo + 1, bandHi - 2); }
+    if (d > bandHi) { vx = toT.x * sp; vz = toT.z * sp; } else if (d < bandLo) { vx = -toT.x * sp * 0.85; vz = -toT.z * sp * 0.85; }
+    // circle toward the player's back while they are committed to an action
+    let strafe = 0.45;
+    if (t.busy?.() && d < 6) {
+      const tf = t.forward();
+      const behind = side.dot(tf) > 0 ? -1 : 1;
+      this.strafeDir = behind;
+      strafe = 0.75;
+    }
+    vx += side.x * sp * strafe * this.strafeDir;
+    vz += side.z * sp * strafe * this.strafeDir;
     if (f.rootedUntil > this.clock) { vx = 0; vz = 0; }
     f.steer(vx, vz, dt, 10);
 
@@ -195,14 +269,28 @@ export class BossBrain {
         && (!chaining || a.name === 'light' || a.name === 'heavy');
     });
     if (!opts.length) return;
+    // a blocking player is cracked open with heavies / specials, not fed light jabs; a player
+    // who dodges a lot is waited out (strike slightly later); a staggered player gets the finisher
+    const turtling = t.guarding || this.read.guards > 1.5;
+    const weightOf = (a) => {
+      let w = a.weight;
+      const light = a.name === 'light';
+      const big = /heavy|kb|knock|precision|prec|conc|shot|fence|splash|crossfire/.test(a.name);
+      if (turtling) { if (light) w *= 0.25; if (big) w *= 2.4; }
+      if (chaining && this.comboN >= 2 && a.name === 'heavy') w *= 3;
+      if (t.stun > 0.4 && big) w *= 1.6;
+      return w;
+    };
+    if (!chaining) this.comboN = 0;
+    if (this.read.dodges > 2 && !chaining && Math.random() < 0.3) { this.think = 0.25; return; }
     let total = 0;
-    for (const a of opts) total += a.weight;
+    for (const a of opts) total += weightOf(a);
     let r = Math.random() * total;
     for (const a of opts) {
-      r -= a.weight;
+      r -= weightOf(a);
       if (r <= 0) {
         const ok = a.fn();
-        if (ok) this.used[a.name] = this.clock + a.cool / Math.max(0.5, this.difficulty);
+        if (ok) { this.used[a.name] = this.clock + a.cool / Math.max(0.5, this.difficulty); this.comboN += 1; }
         break;
       }
     }
