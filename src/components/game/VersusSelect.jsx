@@ -54,16 +54,16 @@ export default function VersusSelect({ game }) {
   const show = stage === 'opts' ? null : ROSTER[focusKey];
   return (
     <div className="pth-overlay" style={{ background: 'radial-gradient(ellipse at 70% 40%, rgba(40,20,10,0.45), rgba(2,2,4,0.9))' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.3fr) minmax(0,1fr)', gap: 30, width: 'min(1180px, 95vw)' }}>
-        <div className="pth-panel" style={{ padding: 22 }}>
+      <div className="pth-vs">
+        <div className="pth-panel" style={{ padding: 22, minWidth: 0 }}>
           <div className="pth-h1">Versus</div>
           <div style={{ fontFamily: 'Cinzel', letterSpacing: '0.2em', color: '#d8b45a', marginTop: 4 }}>{stage === 'p1' ? 'CHOOSE YOUR FIGHTER' : stage === 'cpu' ? 'CHOOSE THE CPU OPPONENT' : 'MATCH SETTINGS'} · RECORD {rec.wins}W {rec.losses}L</div>
-          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${COLS}, 1fr)`, gap: 8, marginTop: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))`, gap: 8, marginTop: 16 }}>
             {VERSUS_ROSTER.map((k, i) => {
               const r = ROSTER[k];
               const chosen = k === p1 || k === cpu;
               return (
-                <button key={k} type="button" className={`pth-btn ${cursor === i && stage !== 'opts' ? 'active' : ''}`} style={{ padding: '10px 8px', textAlign: 'left', borderColor: chosen ? r.color : undefined, opacity: stage === 'opts' && !chosen ? 0.4 : 1 }} onMouseEnter={() => stage !== 'opts' && setCursor(i)} onClick={() => stage !== 'opts' && pick(i)}>
+                <button key={k} type="button" className={`pth-btn pth-vs-card ${cursor === i && stage !== 'opts' ? 'active' : ''}`} style={{ borderColor: chosen ? r.color : undefined, opacity: stage === 'opts' && !chosen ? 0.4 : 1 }} onMouseEnter={() => stage !== 'opts' && setCursor(i)} onClick={() => stage !== 'opts' && pick(i)}>
                   <div style={{ color: r.color, fontSize: 12 }}>{r.name}</div>
                   <div style={{ fontFamily: 'Cormorant Garamond', textTransform: 'none', letterSpacing: 0, fontSize: 14, opacity: 0.8 }}>{r.standName}</div>
                   {k === p1 && <div style={{ fontSize: 10, color: '#ffd34d' }}>P1</div>}
@@ -73,10 +73,10 @@ export default function VersusSelect({ game }) {
             })}
           </div>
         </div>
-        <div className="pth-panel" style={{ padding: 24, display: 'flex', flexDirection: 'column' }}>
+        <div className="pth-panel pth-vs-info" style={{ padding: 24, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           {show ? (
             <>
-              <div style={{ fontFamily: 'Cinzel Decorative, Cinzel', fontSize: 34, color: show.color }}>{show.name}</div>
+              <div className="pth-vs-name" style={{ fontFamily: 'Cinzel Decorative, Cinzel', color: show.color }}>{show.name}</div>
               <div style={{ fontFamily: 'Cinzel', letterSpacing: '0.3em', marginTop: 4 }}>「{show.standName}」</div>
               <div style={{ marginTop: 18, fontSize: 18, lineHeight: 1.5 }}>
                 <div>Health {show.vhp} · Power {show.power} · Speed {show.speed}</div>
