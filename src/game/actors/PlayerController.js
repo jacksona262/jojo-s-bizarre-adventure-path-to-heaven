@@ -135,7 +135,8 @@ export class PlayerController {
     if (this.allowInteract && g.world) {
       let it = null;
       const horse = this.allowHorse ? g.horse : null;
-      if (horse && horse.group.parent && !horse.rider && horse.pos.distanceTo(f.pos) < 2.8 && !g.combatActive) {
+      // the mount radius covers where Slow Dancer pulls up after a whistle (she stops ~3 m away)
+      if (horse && horse.group.parent && !horse.rider && horse.pos.distanceTo(f.pos) < 3.6 && !g.combatActive) {
         it = { label: 'Mount Slow Dancer', onInteract: () => horse.mount(f) };
       }
       const near = g.world.nearestInteractable(f.pos, 2.4);
