@@ -181,6 +181,8 @@ export class Horse {
     }
     if (this.leaving) {
       const L = this.leaving;
+      // a script took over (cinematic, encounter start) or the rider climbed back on: stop driving them
+      if (L.r.mounted || this.game.inCinematic) { L.r.pinned = false; L.r.mountK = L.r.mounted ? L.r.mountK : 0; this.leaving = null; return; }
       L.t += dt;
       const k = Math.min(1, L.t / 0.45);
       const e = k * k * (3 - 2 * k);
