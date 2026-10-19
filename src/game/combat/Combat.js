@@ -78,12 +78,14 @@ export class Combat {
       const r = this.applyHit(t, attacker, spec);
       hits.push({ target: t, result: r });
     }
-    // punch reflectable projectiles back
+    // punch reflectable projectiles back, smash destructible ones
     if (spec.reflect !== false) {
       for (const p of this.projectiles) {
-        if (!p.reflectable || p.team === attacker.team) continue;
+        if (p.team === attacker.team || (!p.reflectable && !p.destructible)) continue;
         const d = Math.hypot(p.pos.x - origin.x, p.pos.z - origin.z);
-        if (d < range + 0.6) this.reflect(p, attacker);
+        if (d > range + 0.6 || Math.abs(p.pos.y - origin.y - 1) > 2) continue;
+        if (p.reflectable) this.reflect(p, attacker);
+        else { p.life = 0; p.smashed = true; this.game.vfx?.burst(p.pos, p.color, 10, 4, 0.35, 0.3); }
       }
     }
     return hits;
@@ -161,6 +163,9 @@ export class Combat {
       }
     }
     if (attacker.counterUntil && game.clock < attacker.counterUntil) { hit.damage *= attacker.counterBonus || 1.5; attacker.counterUntil = 0; }
+    if (attacker.overwritten) hit.damage *= 0.25;
+    if (target.kit?.interceptHit && target.kit.interceptHit(hit, attacker)) return 'rewritten';
+    if (target.damageTakenMul) hit.damage *= target.damageTakenMul;
     const res = target.takeHit(hit, attacker);
     const p = target.chestWorld(new THREE.Vector3());
     const dir = tmp.copy(target.pos).sub(attacker.pos).setY(0).normalize();
@@ -203,7 +208,7 @@ export class Combat {
       mesh: o.mesh || null, stun: o.stun ?? 0.3, knock: o.knock ?? 2, launch: o.launch ?? 0, kind: o.kind || 'projectile',
       homing: o.homing || null, onHit: o.onHit, onExpire: o.onExpire, onTick: o.onTick, reflectable: !!o.reflectable,
       unblockable: !!o.unblockable, color: o.color ?? 0xffffff, trail: o.trail ?? null, pierce: !!o.pierce, hitSet: new Set(),
-      ground: o.ground !== false, curve: o.curve || null, spin: o.spin || 0, data: o.data || {},
+      ground: o.ground !== false, curve: o.curve || null, spin: o.spin || 0, data: o.data || {}, destructible: !!o.destructible,
     };
     if (p.mesh) { p.mesh.position.copy(p.pos); this.game.engine.scene.add(p.mesh); }
     this.projectiles.push(p);
