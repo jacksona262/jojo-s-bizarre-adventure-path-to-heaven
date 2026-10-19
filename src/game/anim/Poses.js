@@ -58,6 +58,26 @@ function lerpRoot(a, b, t, out) {
   if (a.drop || b.drop) out.drop = (a.drop || 0) + ((b.drop || 0) - (a.drop || 0)) * t; else delete out.drop;
 }
 
+// Copy without allocating (reuses the destination's arrays).
+export function assignPose(a, out) {
+  for (const k of LIMBS) {
+    const s = a[k]; const o = out[k] || (out[k] = [0, 0, 0]);
+    o[0] = s[0]; o[1] = s[1]; o[2] = s[2];
+  }
+  for (const k of EULERS) {
+    const s = a[k];
+    if (!s) { delete out[k]; continue; }
+    const o = out[k] || (out[k] = [0, 0, 0]);
+    o[0] = s[0]; o[1] = s[1]; o[2] = s[2];
+  }
+  out.rootY = a.rootY || 0;
+  if (a.rootRot) { const o = out.rootRot || (out.rootRot = [0, 0, 0]); o[0] = a.rootRot[0]; o[1] = a.rootRot[1]; o[2] = a.rootRot[2]; } else delete out.rootRot;
+  if (a.rootOff) out.rootOff = [a.rootOff[0], a.rootOff[1]]; else delete out.rootOff;
+  if (a.rootPivot !== undefined) out.rootPivot = a.rootPivot; else delete out.rootPivot;
+  if (a.drop) out.drop = a.drop; else delete out.drop;
+  return out;
+}
+
 export function copyPose(a, out = rest()) {
   for (const k of LIMBS) out[k] = [a[k][0], a[k][1], a[k][2]];
   for (const k of EULERS) { if (a[k]) out[k] = [a[k][0], a[k][1], a[k][2]]; else delete out[k]; }
