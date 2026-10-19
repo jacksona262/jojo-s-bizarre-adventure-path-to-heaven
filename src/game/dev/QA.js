@@ -135,8 +135,69 @@ export async function meleeQA({ presses = 6, key = 0 } = {}) {
   return res;
 }
 
+// A scripted player for whole fights: closes distance, locks on, strings lights into heavies,
+// rushes, uses time stop once the foe is hurt, sidesteps telegraphed blows and projectiles, and
+// presses Retry after a defeat. Returns what happened (damage, staggers, deaths, the foe's moves,
+// frame rate). opts: { foe: () => fighter, done: () => bool, noRetry }
+export async function autoFight(maxS = 120, opts = {}) {
+  const g = window.__game;
+  const stats = { ts: 0, rush: 0, heavy: 0, light: 0, dodge: 0, deaths: 0, retries: 0, phases: [], dealt: 0, taken: 0, events: {}, foeMoves: [], minFps: 999 };
+  const fps = [];
+  const un = g.combat.on((ev) => {
+    stats.events[ev.type] = (stats.events[ev.type] || 0) + 1;
+    if (ev.type !== 'hit') return;
+    if (ev.attacker === g.player) stats.dealt += ev.hit?.damage || 0; else if (ev.target === g.player) stats.taken += ev.hit?.damage || 0;
+  });
+  const foe = () => (opts.foe ? opts.foe() : (g.mode.encounter?.boss || g.mode.p2));
+  const t0 = performance.now();
+  let locked = false; let i = 0;
+  while (performance.now() - t0 < maxS * 1000) {
+    const pl = g.player; const b = foe();
+    fps.push(g.engine.fps); stats.minFps = Math.min(stats.minFps, g.engine.fps);
+    if (!b || b.dead || opts.done?.()) break;
+    if (b.action && !stats.foeMoves.includes(b.action.def.name)) stats.foeMoves.push(b.action.def.name);
+    if (b.stand?.action && !stats.foeMoves.includes(`stand:${b.stand.action.def.name}`)) stats.foeMoves.push(`stand:${b.stand.action.def.name}`);
+    const ph = g.mode.encounter?.brain?.phase;
+    if (ph && !stats.phases.includes(ph)) stats.phases.push(ph);
+    if (pl.dead) {
+      stats.deaths += 1; key('keyup', 'KeyW'); await sleep(2600);
+      const retry = [...document.querySelectorAll('button')].find((x) => /retry/i.test(x.textContent));
+      if (retry && !opts.noRetry) { retry.click(); stats.retries += 1; await sleep(1500); locked = false; continue; }
+      break;
+    }
+    if (g.inCinematic || g.paused) { key('keyup', 'KeyW'); await sleep(300); continue; }
+    if (!locked) { await tap('Tab'); locked = true; }
+    const d = pl.distanceTo(b); const dv = b.pos.clone().sub(pl.pos);
+    g.camera.yaw = Math.atan2(-dv.x, -dv.z);
+    if (d > 3.2) { key('keydown', 'KeyW'); key(d > 9 ? 'keydown' : 'keyup', 'ShiftLeft'); await sleep(120); continue; }
+    key('keyup', 'KeyW'); key('keyup', 'ShiftLeft');
+    const a = b.action;
+    const threat = (a?.def.clip?.active && a.t / a.def.dur < a.def.clip.active[0]) || g.combat.projectiles.some((p) => p.team !== pl.team && p.pos.distanceTo(pl.pos) < 4);
+    if (threat && pl.stamina > 25 && Math.random() < 0.55) {
+      const side = Math.random() < 0.5 ? 'KeyA' : 'KeyD';
+      key('keydown', side); await tap('Space'); key('keyup', side); stats.dodge += 1; await sleep(350); continue;
+    }
+    if (pl.tsCharge >= 1 && !g.time.state && !g.lockTimeStop && b.hp / b.hpMax < 0.9) {
+      await tap('KeyR'); stats.ts += 1; await sleep(900);
+      for (let k = 0; k < 4; k += 1) { await click(0); stats.light += 1; await sleep(260); }
+      continue;
+    }
+    if (pl.energy > 55 && i % 5 === 4) { key('keydown', 'KeyF'); await sleep(900); key('keyup', 'KeyF'); stats.rush += 1; await sleep(700); i += 1; continue; }
+    if (i % 4 === 3 && pl.energy > 12) { await click(2); stats.heavy += 1; await sleep(650); } else { await click(0); stats.light += 1; await sleep(290); }
+    i += 1;
+  }
+  key('keyup', 'KeyW'); key('keyup', 'ShiftLeft');
+  un();
+  const b = foe();
+  return {
+    timeS: Math.round((performance.now() - t0) / 1000), foeHp: b ? `${Math.round(b.hp)}/${b.hpMax}` : 'gone', foeDead: !!b?.dead,
+    playerHp: Math.round(g.player.hp), ...stats, minFps: Math.round(stats.minFps), avgFps: Math.round(fps.reduce((x, y) => x + y, 0) / Math.max(1, fps.length)),
+    dealt: Math.round(stats.dealt), taken: Math.round(stats.taken),
+  };
+}
+
 export function attachQA() {
-  window.__qa = { bossQA, meleeQA, startEncounter, tap, click, sleep };
+  window.__qa = { bossQA, meleeQA, startEncounter, autoFight, tap, click, sleep };
   // Background/embedded pages may receive no requestAnimationFrame callbacks; keep the
   // simulation stepping from a timer in that case so automated checks still run.
   const eng = window.__game?.engine;
