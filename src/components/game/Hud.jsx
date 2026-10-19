@@ -147,15 +147,21 @@ export default function Hud() {
       {showHud && versus && (
         <>
           {[versus.p1, versus.p2].map((p, i) => (
-            <div key={i} style={{ position: 'absolute', top: 24, [i === 0 ? 'left' : 'right']: 26, width: 'min(40vw, 460px)', textAlign: i === 0 ? 'left' : 'right' }}>
-              <div><span className="pth-name" style={{ color: p.color }}>{p.name}</span><span className="pth-stand-name">{p.stand}</span></div>
-              <Bar cls="hp" value={p.hp} max={p.hpMax} />
-              <Bar cls="en" value={p.energy} max={p.energyMax} />
-              <div style={{ marginTop: 4, fontFamily: 'Cinzel', color: '#f1c862', letterSpacing: '0.3em' }}>{'✦'.repeat(versus.wins[i])}{p.overwritten ? '  OVERWRITTEN' : ''}</div>
+            <div key={i} className={`pth-fg ${i === 0 ? 'pth-fg-p1' : 'pth-fg-p2'}`}>
+              <div className={`pth-fg-head ${i ? 'mirror' : ''}`}>
+                <div className="pth-fg-emblem" style={{ borderColor: p.color }}><span style={{ color: p.color }}>{(p.name || '?').trim()[0]}</span></div>
+                <div className="pth-fg-names">
+                  <div className="pth-fg-name" style={{ color: p.color }}>{p.name}</div>
+                  <div className="pth-fg-stand">{p.stand}{p.overwritten ? ' · OVERWRITTEN' : ''}</div>
+                </div>
+                {i === 0 && hud && hud.ts != null && <TsRing ts={hud.ts} dur={0} />}
+              </div>
+              <FgBar cls={i ? 'boss' : 'hp'} value={p.hp} max={p.hpMax} mirror={i === 1} />
+              <FgBar cls="en" value={p.energy} max={p.energyMax} ticks={4} mirror={i === 1} />
+              <div className={`pth-fg-wins ${i ? 'mirror' : ''}`}>{[...Array(2)].map((_, k) => <span key={k} className={k < versus.wins[i] ? 'on' : ''}>✦</span>)}</div>
             </div>
           ))}
-          <div style={{ position: 'absolute', top: 22, left: '50%', transform: 'translateX(-50%)', fontFamily: 'Cinzel', fontSize: 30, color: '#fff1cc', textShadow: '0 2px 10px #000' }}>{versus.timer}</div>
-          {hud && hud.ts != null && <div className="pth-hud-tl" style={{ width: 0 }}><TsRing ts={hud.ts} dur={0} /></div>}
+          <div className="pth-fg-timer">{versus.timer}</div>
         </>
       )}
       {showHud && boss && !versus && <BossPanel boss={boss} />}
