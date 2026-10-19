@@ -20,6 +20,7 @@
 .pth-menu-item.active::before, .pth-menu-item:hover::before { width: 28px; background: #f1c862; box-shadow: 0 0 8px #f1c862; }
 .pth-menu-item.disabled { opacity: 0.32; cursor: default; }
 .pth-menu-hint { margin-top: 30px; font-size: 14px; color: rgba(239,228,204,0.45); letter-spacing: 0.08em; }
+.pth-title-foot { position: absolute; bottom: 24px; left: 0; font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 0.16em; color: rgba(216,180,90,0.38); }
 .pth-vignette-left { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(2,3,6,0.78) 0%, rgba(2,3,6,0.35) 34%, rgba(2,3,6,0) 55%); pointer-events: none; }
 
 /* ---------- panels ---------- */
