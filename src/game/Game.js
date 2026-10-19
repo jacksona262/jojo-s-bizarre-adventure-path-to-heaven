@@ -175,6 +175,17 @@ export class Game {
       console.error('[campaign start]', e);
       toast('Failed to start the campaign: ' + e.message, 'error', 6000);
     }
+    this.prewarm();
+  }
+
+  // Compile every shader the mode can use up front (including hidden Stands and pooled effects),
+  // so the first summon, hit flash or time stop never stalls a frame on shader compilation.
+  prewarm() {
+    const scene = this.engine.scene;
+    const hidden = [];
+    scene.traverse((o) => { if (!o.visible && (o.isMesh || o.isPoints || o.isGroup || o.isSprite)) { hidden.push(o); o.visible = true; } });
+    try { this.engine.renderer.compile(scene, this.engine.camera); } catch (e) { console.warn('[prewarm]', e); }
+    for (const o of hidden) o.visible = false;
   }
 
   async startVersus(sel) {
@@ -185,6 +196,7 @@ export class Game {
     const vs = new VersusMode(this);
     this.mode = vs;
     await vs.start(sel);
+    this.prewarm();
   }
 
   openVersusSelect() {
