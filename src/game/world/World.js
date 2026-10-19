@@ -276,7 +276,7 @@ export class World {
     for (let j = 0; j < nz; j += 1) {
       for (let i = 0; i < nx; i += 1) {
         const a = j * (nx + 1) + i; const b = a + 1; const d = a + nx + 1; const e = d + 1;
-        idx.push(a, d, b, b, d, e);
+        idx.push(a, b, d, b, e, d);
       }
     }
     const g = new THREE.BufferGeometry();
