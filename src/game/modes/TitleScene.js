@@ -72,11 +72,11 @@ export class TitleScene {
     this.rim = new THREE.SpotLight(0xffc066, 95, 14, 0.62, 0.85, 1.4);
     this.rim.position.set(-1.1, 3.4, -2.6);
     s.add(this.rim, this.rim.target);
-    this.rim2 = new THREE.SpotLight(0xffb050, 40, 12, 0.5, 0.9, 1.4);
+    this.rim2 = new THREE.SpotLight(0xffb050, 16, 12, 0.5, 0.9, 1.4);
     this.rim2.position.set(2.2, 2.2, -2.0);
     s.add(this.rim2, this.rim2.target);
-    this.face = new THREE.SpotLight(0xd8e0ff, 11, 10, 0.22, 0.85, 1.5);
-    this.face.position.set(1.5, 2.1, 0.9);
+    this.face = new THREE.SpotLight(0xd8e0ff, 20, 10, 0.2, 0.85, 1.5);
+    this.face.position.set(0.7, 2.25, 1.5);
     s.add(this.face, this.face.target);
     this.hairGlow = new THREE.PointLight(0xffd27a, 2.2, 2.2, 2);
     s.add(this.hairGlow);
@@ -233,6 +233,7 @@ export class TitleScene {
     else if (this.hover === 'credits') { pz += 0.9 * hk; py += 0.3 * hk; fov += 3 * hk; }
     else if (this.hover === 'settings') { px += 0.15 * hk; }
     else if (this.hover === 'new' || this.hover === 'continue') { pz -= 0.25 * hk; }
+    if (this.debugShot) { g.camera.setCinematic(this.debugShot.pos, this.debugShot.look, this.debugShot.fov); return; }
     g.camera.setCinematic(_v.set(px, py, pz), _v2.set(lx, ly, lz), fov);
   }
 }
