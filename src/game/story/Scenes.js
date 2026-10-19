@@ -79,7 +79,8 @@ export async function conversation(seq, a, b, lines) {
     const S = speakerIsA ? a : b; const L = speakerIsA ? b : a;
     const dur = Math.min(7, 2 + text.length * 0.045);
     let s; let fov = 34;
-    if (n === 0) { s = clearShot(g, [twoShot(a, b, 1), twoShot(a, b, -1), ots(L, S, 1, 2.2)]); fov = 40; } else if (n % 2 === 1) {
+    const apart = a.distanceTo(b) > 7.5;   // too far apart to share a frame: single-character shots only
+    if (n === 0 && !apart) { s = clearShot(g, [twoShot(a, b, 1), twoShot(a, b, -1), ots(L, S, 1, 2.2)]); fov = 40; } else if (n % 2 === 1 || (n === 0 && apart)) {
       const sd = n % 4 === 1 ? 1 : -1;
       s = clearShot(g, [ots(L, S, sd, 1.9), ots(L, S, -sd, 1.9), closeUp(S, L, sd, 2.2)]);
     } else {
@@ -304,14 +305,20 @@ export async function bossVictory(game, seq, { player, boss, data }) {
   boss.override = (t) => Poses.defeated(Math.min(1, t * 1.5));
   boss.t = 0;
   if (boss.stand) boss.stand.summon(false);
-  player.override = (t) => Poses.idle(t, 'dio');
-  // face each other; DIO looks down on the beaten foe
-  player.faceTowards(boss.pos, true);
+  // DIO walks up to the beaten foe (from no more than 6 m), then looks down on them
+  const toB = boss.pos.clone().sub(player.pos).setY(0);
+  const far = toB.length();
+  toB.normalize();
+  if (far > 6) seq.place(player, boss.pos.clone().addScaledVector(toB, -6), Math.atan2(toB.x, toB.z));
   if (player.anim) player.anim.lookAt = boss;
-  const mid = player.pos.clone().lerp(boss.pos, 0.5);
-  const side = V(boss.pos.z - player.pos.z, 0, player.pos.x - boss.pos.x).normalize();
-  seq.cut(mid.clone().addScaledVector(side, 4.5).add(V(0, 1.6, 0)), mid.clone().add(V(0, 1.1, 0)), 40);
-  await seq.wait(1.2);
+  const side = V(toB.z, 0, -toB.x);
+  const mark = boss.pos.clone().addScaledVector(toB, -3.2);
+  const mid = player.pos.clone().lerp(mark, 0.5).lerp(boss.pos, 0.35);
+  seq.cut(mid.clone().addScaledVector(side, 5).add(V(0, 1.6, 0)), mid.clone().add(V(0, 1.0, 0)), 40);
+  if (player.pos.distanceTo(mark) > 0.5) await seq.moveTo(player, mark, 1.8);
+  player.faceTowards(boss.pos, true);
+  player.override = (t) => Poses.idle(t, 'dio');
+  await seq.wait(0.6);
   await conversation(seq, player, boss, data.defeat);
   player.override = null;
   if (player.anim) player.anim.lookAt = null;
