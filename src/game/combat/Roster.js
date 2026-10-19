@@ -53,6 +53,7 @@ export async function createFighter(game, key, { team = 1, versus = false, hp = 
 
 // ------------------------------------------------------------------------------------- brain
 const _pv = new THREE.Vector3();
+const _ps = new THREE.Vector3();
 
 export class BossBrain {
   constructor(game, f, { difficulty = 1, phases = null, onPhase = null, style = null, keep = null, poiseScale = 1 } = {}) {
@@ -140,14 +141,15 @@ export class BossBrain {
       if (miss > 1.1 + (p.radius || 0.3)) continue;
       this.projCool = 0.9;
       if (Math.random() > 0.45 + 0.3 * this.difficulty) return false;
-      const side = _pv.set(-p.vel.z, 0, p.vel.x).normalize();
+      const side = _ps.set(-p.vel.z, 0, p.vel.x).normalize();
       if (side.dot(rel) < 0) side.negate();
       if (this.kit.dodge(side.clone())) return true;
       if (!this.kit.rushing) { this.kit.guard(true); this.guardT = 0.35; return true; }
     }
     return false;
   }
- { return this.game.clock; }
+
+  get clock() { return this.game.clock; }
 
   setPhaseFromHp() {
     const frac = this.f.hp / this.f.hpMax;
