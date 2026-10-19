@@ -169,6 +169,24 @@ async function buildTemplate(partKey) {
     info.joints = joints;
     const missing = Object.keys(spec.rig.map).filter((j) => !joints[j]);
     if (missing.length) console.warn(`[assets] ${partKey} missing joints:`, missing.join(','));
+    // Rigs bound in crouched/action poses were measured too short: re-measure upright.
+    if (spec.height) {
+      const rig = new HumanoidRig(container, joints);
+      rig.apply(restPose());
+      const b = measure(container);
+      const h = b.max.y - b.min.y;
+      for (const [j, bone] of Object.entries(rig.bones)) bone.quaternion.copy(rig.bind[j].local);
+      container.position.y = 0;
+      if (h > 0 && Math.abs(h - spec.height) / spec.height > 0.04) {
+        inner.scale.multiplyScalar(spec.height / h);
+        const b2 = measure(container);
+        const c2 = b2.getCenter(new THREE.Vector3());
+        inner.position.x -= c2.x;
+        inner.position.z -= c2.z;
+        inner.position.y -= b2.min.y;
+        container.updateMatrixWorld(true);
+      }
+    }
   }
   container.userData.info = info;
   return container;
