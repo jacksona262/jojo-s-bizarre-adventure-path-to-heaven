@@ -127,9 +127,10 @@ export class CameraRig {
       if (w && !this.cine.noCollide && this.game.title == null) {
         const d = cam.position.distanceTo(this.look);
         if (d > 0.4 && d < 26) {
-          const frac = w.occlusion(this.look, cam.position, true);
           // a look point resting on (or inside) a prop such as a desk is not a wall in the way:
-          // only pull in when, seen from the lens, the blocker sits clearly before the subject
+          // the march starts once it has left that prop, and the blocker must sit clearly before
+          // the subject as seen from the lens
+          const frac = w.occlusion(this.look, cam.position, true, true);
           if (frac < 0.999 && w.occlusion(cam.position, this.look, true) < 0.88) cam.position.lerpVectors(this.look, cam.position, Math.max(0.18, frac - 0.04));
         }
       }
