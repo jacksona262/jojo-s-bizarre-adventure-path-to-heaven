@@ -388,10 +388,19 @@ export async function heavenCinematic(game, seq, { player, jotaro, altar, arrowM
   hp.group.rotation.y = hp.yaw;
   hp.stand.summon(true);
   game.vfx.aura(hp.chestWorld(new THREE.Vector3()), 0xfff2c8, 2.5, true);
+  // the reveal: a low close-up rising on the new DIO, who savours it and speaks with his hands
   const cu = closeUp(hp, jotaro, 1, 3.2);
-  seq.shot({ from: cu.pos.clone().add(V(0, -0.5, 0)), to: cu.pos, look: cu.look, dur: 4, fov: 38 });
+  seq.shot({ from: cu.pos.clone().add(V(0, -0.5, 0)), to: cu.pos, look: cu.look, dur: 6.5, fov: 38 });
   hp.override = (t) => Poses.dioPose(t);
-  await sayLines(seq, HEAVEN_SCENE.slice(3));
+  perform(hp, { gesture: nextGesture(hp), talking: true, lookAt: jotaro });
+  await sayLines(seq, HEAVEN_SCENE.slice(3, 4));
+  // then over the kneeling Jotaro's shoulder, The World Over Heaven looming behind its user
+  const o = clearShot(game, [ots(jotaro, hp, 1, 2.4), ots(jotaro, hp, -1, 2.4), closeUp(hp, jotaro, -1, 2.6)]);
+  seq.shot({ from: o.pos, to: o.pos.clone().lerp(o.look, 0.08), look: o.look, dur: 6, fov: 36 });
+  perform(hp, { gesture: nextGesture(hp), talking: true, lookAt: jotaro });
+  perform(jotaro, { lookAt: hp });
+  await sayLines(seq, HEAVEN_SCENE.slice(4));
+  stopPerform(hp); stopPerform(jotaro);
   hp.override = null;
   jotaro.override = null;
   game.weather.strikeRate = 2;
