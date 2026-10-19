@@ -57,7 +57,9 @@ export function buildSanctuary(world) {
   b.box('gothic', af, 0, -0.5, 0, 64, 1.2, 64, 0, 0, 0, 3);
   world.addPlatform({ x: af.x, z: af.z, hw: 32, hd: 32, rot: 0, y: y + 0.1 });
   for (let i = 0; i < 6; i += 1) b.box('gothic', af, 0, 0.2 + i * 0.45, -33 - i * 1.4, 26, 0.45, 1.4);
-  world.addPlatform({ x: af.x, z: af.z - 37, hw: 13, hd: 4.5, rot: 0, y: y + 0.1, y1: y + 2.8 });
+  // steps rise toward the altar (north): low edge at the south (+lz), high edge at the north
+  world.addPlatform({ x: af.x, z: af.z - 37, hw: 13, hd: 4.5, rot: 0, y: y + 2.8, y1: y + 0.1 });
+  world.addPlatform({ x: af.x, z: af.z - 42, hw: 3.2, hd: 2.2, rot: 0, y: y + 3.6 });
   b.box('gothic', af, 0, 2.8, -42, 6, 1.6, 4);
   b.cyl('gothic', af, 0, 4.2, -42, 0.8, 1.1, 1.4, 12);
   for (const x of [-28, -14, 14, 28]) {
