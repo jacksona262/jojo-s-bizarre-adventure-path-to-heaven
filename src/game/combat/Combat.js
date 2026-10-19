@@ -149,13 +149,15 @@ export class Combat {
         const chip = hit.damage * 0.12;
         target.hp = Math.max(1, target.hp - chip);
         target.stamina -= hit.damage * 1.6 + (hit.guardDamage || 0);
-        game.vfx?.sparkBurst(target.chestWorld(new THREE.Vector3()), 0x9fc8ff, 10, 6, toA.negate());
+        game.vfx?.sparkBurst(hit.at ? hit.at.clone() : target.chestWorld(new THREE.Vector3()), 0x9fc8ff, 10, 6, toA.negate());
         audio.play('block');
+        target.anim?.blocked();
         if (hit.knock) { target.vel.x -= toA.x * hit.knock * 0.4; target.vel.z -= toA.z * hit.knock * 0.4; }
         if (target.stamina <= 0 || hit.guardBreak) {
           target.stamina = target.staminaMax * 0.3;
           target.guarding = false;
           target.stun = 1.2; target.stunTotal = 1.2;
+          target.anim?.guardBroken();
           game.vfx?.text(target.chestWorld(new THREE.Vector3()).add(new THREE.Vector3(0, 0.6, 0)), 'GUARD BREAK', '#ffd060', 1, 0.6);
           this.emit({ type: 'guardBreak', target, attacker, hit });
           return 'guardBroken';
@@ -169,7 +171,7 @@ export class Combat {
     if (target.kit?.interceptHit && target.kit.interceptHit(hit, attacker)) return 'rewritten';
     if (target.damageTakenMul) hit.damage *= target.damageTakenMul;
     const res = target.takeHit(hit, attacker);
-    const p = target.chestWorld(new THREE.Vector3());
+    const p = hit.at ? hit.at.clone() : target.chestWorld(new THREE.Vector3());
     const dir = tmp.copy(target.pos).sub(attacker.pos).setY(0).normalize();
     game.vfx?.impact(p, hit.color ?? 0xffe0a0, hit.fxPower ?? (hit.kind === 'heavy' ? 1.6 : 1), dir);
     audio.play(hit.kind === 'heavy' || hit.knock > 7 ? 'heavyHit' : hit.sfx || 'hit', { power: hit.kind === 'rush' ? 0.55 : 1 });
