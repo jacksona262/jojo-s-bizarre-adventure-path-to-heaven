@@ -558,6 +558,49 @@ export class VFX {
     }
   }
 
+  // Stand summon: a pillar of light erupts from the user, rings blast out along the ground, motes
+  // spiral up around the Stand as it materialises, and the menacing glyphs rise.
+  standSummon(userPos, standPos, color, kana = 'ゴ', cssColor = '#ffd34d') {
+    const c = new THREE.Color(color);
+    const white = _col2.set(0xffffff);
+    const foot = userPos.clone(); foot.y -= 1.2;
+    // pillar: a thin bright core inside a wider coloured sheath, both collapsing inwards
+    this.beam(foot.clone(), foot.clone().add(_q.set(0, 4.5, 0)), 0xffffff, 0.12, 0.35);
+    this.beam(foot.clone(), foot.clone().add(_q.set(0, 4, 0)), c, 0.55, 0.55);
+    // ground shockwaves and a ring facing the lens
+    this.ring(foot.clone().add(_q.set(0, 0.05, 0)), c, 0.3, 3.4, 0.55, { soft: 0.4 });
+    this.ring(foot.clone().add(_q.set(0, 0.05, 0)), white, 0.2, 2.2, 0.35, { soft: 0.2, alpha: 0.8 });
+    this.ring(standPos.clone(), c, 0.3, 2.6, 0.45, { vertical: true, face: this.cameraPos, alpha: 0.85 });
+    this.hitSpark(standPos.clone(), c, 2.6, 0.22);
+    // spiralling motes that sweep up around the Stand
+    for (let i = 0; i < 46; i += 1) {
+      const a = (i / 46) * Math.PI * 6 + Math.random() * 0.4;
+      const r = 0.9 + Math.random() * 0.4;
+      this._p.set(standPos.x + Math.cos(a) * r, foot.y + (i / 46) * 3 + Math.random() * 0.2, standPos.z + Math.sin(a) * r);
+      this._v.set(-Math.sin(a) * 2.6 - Math.cos(a) * 0.6, 1.8 + Math.random() * 1.6, Math.cos(a) * 2.6 - Math.sin(a) * 0.6);
+      this.glow.emit(this._p, this._v, i % 4 === 0 ? white : c, 0.95, 0.3, 0.05, 0.6 + Math.random() * 0.5, { drag: 1.2 });
+    }
+    // sparks shooting up out of the pillar
+    for (let i = 0; i < 26; i += 1) {
+      this._v.set(this.rnd(2.5), 7 + Math.random() * 6, this.rnd(2.5));
+      this.sparks.emit(foot, this._v, i % 3 ? c : white, 0.35 + Math.random() * 0.3, 0.05);
+    }
+    this.burst(standPos.clone(), c, 18, 3.5, 0.45, 0.5, { up: 0.6 });
+    this.smokePuff(foot.clone().add(_q.set(0, 0.1, 0)), 0x1a1612, 5, 1.4, 1.1, 0.6);
+    this.menacing(standPos.clone().add(_q.set(0, 0.6, 0)), kana, 3, cssColor);
+  }
+
+  // Dismiss: the Stand breaks up into motes that drift up and fade.
+  standDismiss(standPos, color) {
+    const c = new THREE.Color(color);
+    for (let i = 0; i < 30; i += 1) {
+      this._p.set(standPos.x + this.rnd(0.4), standPos.y - 0.8 + Math.random() * 2, standPos.z + this.rnd(0.4));
+      this._v.set(this.rnd(1.2), 1 + Math.random() * 1.5, this.rnd(1.2));
+      this.glow.emit(this._p, this._v, c, 0.8, 0.25, 0.02, 0.5 + Math.random() * 0.3, { drag: 1.5 });
+    }
+    this.ring(standPos.clone(), c, 0.6, 0.1, 0.3, { vertical: true, face: this.cameraPos, alpha: 0.6 });
+  }
+
   aura(p, color, power = 1, free = false) {
     const c = new THREE.Color(color);
     for (let i = 0; i < 30 * power; i += 1) {
