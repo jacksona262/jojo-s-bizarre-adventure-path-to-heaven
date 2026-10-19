@@ -241,6 +241,39 @@ export class VFX {
     return mesh;
   }
 
+  // Ground telegraph: a disc that fills up until the attack lands. Returns the mesh.
+  warn(p, radius, dur, color = 0xff3020, free = false) {
+    const m = new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+      uniforms: { uK: { value: 0 }, uC: { value: new THREE.Color(color) } },
+      vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+      fragmentShader: `uniform float uK; uniform vec3 uC; varying vec2 vUv;
+        void main(){ vec2 p = vUv*2.0-1.0; float d = length(p); if (d > 1.0) discard;
+          float edge = smoothstep(0.9, 1.0, d) * 0.9;
+          float fill = step(d, uK) * 0.28 + smoothstep(uK - 0.04, uK, d) * step(d, uK) * 0.5;
+          gl_FragColor = vec4(uC, edge + fill); }`,
+    });
+    const mesh = new THREE.Mesh(this.ringGeo, m);
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.position.copy(p);
+    mesh.position.y += 0.06;
+    mesh.scale.set(radius * 2, radius * 2, 1);
+    mesh.renderOrder = 4;
+    return this.addMesh(mesh, dur, (e, k) => { m.uniforms.uK.value = k; }, free);
+  }
+
+  // Line telegraph between two ground points.
+  warnLine(a, b, width, dur, color = 0xff3020) {
+    const len = a.distanceTo(b);
+    const m = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(width, len), m);
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.rotation.z = -Math.atan2(b.x - a.x, b.z - a.z) + Math.PI;
+    mesh.position.copy(a).add(b).multiplyScalar(0.5);
+    mesh.position.y += 0.07;
+    return this.addMesh(mesh, dur, (e, k) => { m.opacity = 0.15 + 0.45 * k + Math.sin(k * 40) * 0.05; });
+  }
+
   // Afterimage fists for Stand rushes.
   fist(from, dir, color, life = 0.16, scale = 1) {
     const m = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false });
