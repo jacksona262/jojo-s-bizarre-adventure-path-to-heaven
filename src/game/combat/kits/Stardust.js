@@ -150,8 +150,8 @@ export class HierophantKit extends Kit {
     this.exposedUntil = 0;
   }
 
-  gem(origin, dir, speed, dmg = 3) {
-    return this.combat.spawnProjectile({ owner: this.f, pos: origin, vel: dir.clone().normalize().multiplyScalar(speed), radius: 0.22, damage: dmg, stun: 0.22, knock: 0.8, life: 2.2, mesh: this.vfx.gem(0x30ff80), color: 0x40ff90, destructible: true, trail: (p, vfx) => { if (Math.random() < 0.4) vfx.glow.emit(p.pos, v3(), new THREE.Color(0x30ff80), 0.6, 0.25, 0.05, 0.25); } });
+  gem(origin, dir, speed, dmg = 2) {
+    return this.combat.spawnProjectile({ owner: this.f, pos: origin, vel: dir.clone().normalize().multiplyScalar(speed), radius: 0.22, damage: dmg, stun: 0.12, knock: 0.6, life: 2.2, mesh: this.vfx.gem(0x30ff80), color: 0x40ff90, destructible: true, trail: (p, vfx) => { if (Math.random() < 0.4) vfx.glow.emit(p.pos, v3(), new THREE.Color(0x30ff80), 0.6, 0.25, 0.05, 0.25); } });
   }
 
   splash() {
@@ -164,8 +164,8 @@ export class HierophantKit extends Kit {
     this.stand.strike({ name: 'splash', dur: 0.7, pose: (k) => Poses.castBoth(k, 0.1), events: [{ t: 0.5, fn: () => {
       const origin = this.stand.chestWorld(new THREE.Vector3());
       const aim = (t ? t.chestWorld(new THREE.Vector3()) : origin.clone().addScaledVector(f.forward(), 10)).sub(origin);
-      const n = 10 + this.phase * 3;
-      for (let i = 0; i < n; i += 1) this.gem(origin, aim.clone().applyAxisAngle(UP, (Math.random() - 0.5) * 0.7).add(v3(0, (Math.random() - 0.5) * 2, 0)), 20 + Math.random() * 6);
+      const n = 8 + this.phase * 3;
+      for (let i = 0; i < n; i += 1) this.gem(origin, aim.clone().applyAxisAngle(UP, (Math.random() - 0.5) * 0.9).add(v3(0, (Math.random() - 0.5) * 2.4, 0)), 18 + Math.random() * 6);
       audio.play('emerald');
       this.vfx.text(origin.clone().add(v3(0, 1, 0)), 'エメラルドスプラッシュ', '#3cff8a', 1.3, 0.7);
     } }] });
@@ -181,11 +181,11 @@ export class HierophantKit extends Kit {
     this.vfx.aura(this.stand.chestWorld(new THREE.Vector3()), 0x30ff80, 0.8);
     let shots = 0;
     f.play({ name: 'concCmd', dur: 1.9, pose: (k) => Poses.castBoth(Math.min(1, k * 2)), uninterruptible: false, tick: (self, k) => {
-      if (k > 0.5 && shots < 30 && Math.random() < 0.9) {
+      if (k > 0.5 && shots < 20 && Math.random() < 0.7) {
         shots += 1;
         const origin = this.stand.chestWorld(new THREE.Vector3());
         const aim = (t ? t.chestWorld(new THREE.Vector3()) : origin.clone().addScaledVector(f.forward(), 10)).sub(origin);
-        this.gem(origin, aim.applyAxisAngle(UP, (Math.random() - 0.5) * 0.08), 30, 3.5);
+        this.gem(origin, aim.applyAxisAngle(UP, (Math.random() - 0.5) * 0.08), 30, 2.2);
         if (shots % 4 === 0) audio.play('emerald');
       }
     }, onEnd: () => { this.exposedUntil = this.clock + 1.6; f.stun = 1.2; f.stunTotal = 1.2; } });
