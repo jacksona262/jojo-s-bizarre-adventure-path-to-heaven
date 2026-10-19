@@ -265,7 +265,12 @@ export default function AnimLab() {
   return (
     <div style={{ position: 'fixed', inset: 0, background: '#111' }}>
       <div ref={mountRef} style={{ position: 'absolute', inset: 0 }} />
-      <div style={{ position: 'absolute', top: 8, left: 8, color: '#fff', font: '12px sans-serif', background: 'rgba(0,0,0,.72)', padding: 8, width: 360, maxHeight: '94vh', overflow: 'auto' }}>
+      {strip && (
+        <div style={{ position: 'absolute', top: 6, left: 6, color: '#ffd780', font: '12px sans-serif', background: 'rgba(0,0,0,.6)', padding: '3px 6px' }}>
+          {part} · {anim} · {terrain} <button type="button" style={btn(true)} onClick={() => setStrip(false)}>close filmstrip</button>
+        </div>
+      )}
+      <div style={{ display: strip ? 'none' : 'block', position: 'absolute', top: 8, left: 8, color: '#fff', font: '12px sans-serif', background: 'rgba(0,0,0,.72)', padding: 8, width: 360, maxHeight: '94vh', overflow: 'auto' }}>
         <div style={{ fontWeight: 600, marginBottom: 4 }}>Animation Viewer (dev)</div>
         <select value={part} onChange={(e) => setPart(e.target.value)} style={{ color: '#000', width: '100%' }}>
           {HUMANS.map((k) => <option key={k} value={k}>{PARTS[k].label} ({k})</option>)}
