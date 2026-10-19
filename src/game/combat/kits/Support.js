@@ -333,7 +333,7 @@ export class BastetKit extends Kit {
       for (let i = 0; i < 5 + mag; i += 1) {
         const origin = f.jointWorld('handR');
         const dir = t.chestWorld(new THREE.Vector3()).sub(origin).normalize().applyAxisAngle(v3(0, 1, 0), (Math.random() - 0.5) * 1.1);
-        this._junk(origin, dir, 19, t, 1.2 + mag * 1.5, 4);
+        this._junk(origin, dir, 19, t, 1.2 + mag * 1.5, 3);
       }
       audio.play('whoosh');
     } }] });
