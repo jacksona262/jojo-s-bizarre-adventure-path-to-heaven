@@ -75,6 +75,15 @@ function upgradeMaterial(m) {
   }
   if (m.isMeshStandardMaterial) {
     if (m.roughness < 0.35 && !m.metalnessMap) m.roughness = 0.45;
+    // Several exports fake an unlit look with white emissive (+ emissive_strength). At night under
+    // bloom that turns characters into light bulbs; keep only a faint self-illumination fill.
+    if (m.emissive) {
+      const lum = m.emissive.r * 0.3 + m.emissive.g * 0.59 + m.emissive.b * 0.11;
+      if (lum > 0.4) {
+        if (m.emissiveMap) m.emissiveIntensity = Math.min(m.emissiveIntensity, 0.12);
+        else m.emissive.setScalar(0.03);
+      }
+    }
     if (m.transparent && m.map && m.opacity >= 0.99) {
       m.transparent = false;
       m.alphaTest = Math.max(m.alphaTest, 0.4);
