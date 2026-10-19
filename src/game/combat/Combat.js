@@ -221,7 +221,8 @@ export class Combat {
     for (const [target, list] of byTarget) {
       let total = 0; let knock = 0; let att = null;
       for (const e of list) { total += e.hit.damage; knock = Math.max(knock, e.hit.knock || 0); att = e.attacker; }
-      const bonus = 1 + Math.min(0.6, list.length * 0.04);
+      // defensive multipliers (Hierophant's barrier, dev invincibility) apply to stored blows too
+      const bonus = (1 + Math.min(0.6, list.length * 0.04)) * (typeof target.damageTakenMul === 'number' ? target.damageTakenMul : 1);
       const r = target.takeHit({ damage: total * bonus, stun: 0.9, knock: Math.max(knock, 6 + list.length * 0.4), launch: list.length > 4 ? 6 : 2, kind: 'heavy' }, att);
       const p = target.chestWorld(new THREE.Vector3());
       this.game.vfx?.impact(p, 0xfff0c0, 2.2, null);
