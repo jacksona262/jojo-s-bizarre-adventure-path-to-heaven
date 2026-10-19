@@ -164,19 +164,19 @@ export class CameraRig {
     const back = new THREE.Vector3(Math.sin(this.yaw) * cp, -sp, Math.cos(this.yaw) * cp);
     const right = new THREE.Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
     const shoulder = mounted ? 0.35 : this.shoulder;
-    const origin = this.smoothPivot.clone().addScaledVector(right, -shoulder * 0.0);
-    const desired = this.smoothPivot.clone().addScaledVector(back, this.dist).addScaledVector(right, -shoulder);
+    const origin = this.smoothPivot.clone().addScaledVector(right, shoulder * 0.0);
+    const desired = this.smoothPivot.clone().addScaledVector(back, this.dist).addScaledVector(right, shoulder);
     // collision: pull in when occluded
     let frac = 1;
     if (this.game.world) frac = this.game.world.occlusion(origin, desired);
     const wantDist = Math.max(0.6, this.dist * frac);
     if (wantDist < this.curDist) this.curDist = wantDist; else this.curDist += (wantDist - this.curDist) * Math.min(1, realDt * 2.5);
-    const pos = this.smoothPivot.clone().addScaledVector(back, this.curDist).addScaledVector(right, -shoulder * Math.min(1, this.curDist / this.dist));
+    const pos = this.smoothPivot.clone().addScaledVector(back, this.curDist).addScaledVector(right, shoulder * Math.min(1, this.curDist / this.dist));
     if (this.game.world) {
       const g = this.game.world.groundAt(pos.x, pos.z, pos.y) + 0.4;
       if (pos.y < g) pos.y = g;
     }
-    const look = this.smoothPivot.clone().addScaledVector(right, -shoulder * 0.55);
+    const look = this.smoothPivot.clone().addScaledVector(right, shoulder * 0.55);
     if (this.lock && !this.lock.dead) look.lerp(this.lock.chestWorld(new THREE.Vector3()), 0.25);
     look.addScaledVector(back, -2);
     // fov
