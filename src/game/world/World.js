@@ -226,13 +226,13 @@ export class World {
   }
 
   // Camera occlusion: march from a to b, return the safe fraction.
-  occlusion(a, b) {
+  occlusion(a, b, ignoreTerrain = false) {
     const steps = 14;
     const p = new THREE.Vector3();
     for (let i = 1; i <= steps; i += 1) {
       const t = i / steps;
       p.lerpVectors(a, b, t);
-      if (p.y < heightAt(p.x, p.z) + 0.35) return Math.max(0, (i - 1) / steps);
+      if (!ignoreTerrain && p.y < heightAt(p.x, p.z) + 0.35) return Math.max(0, (i - 1) / steps);
       const key = `${Math.floor(p.x / CELL)},${Math.floor(p.z / CELL)}`;
       const list = this.colliderGrid.get(key);
       if (!list) continue;
