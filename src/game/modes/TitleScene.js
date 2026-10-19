@@ -48,7 +48,8 @@ export class TitleScene {
     // DIO: a real Character so he gets the animation controller (hair springs, blinking)
     this.dio = new Character(g, { partKey: 'dioHome', name: 'DIO', style: 'dio', height: 1.95 });
     await this.dio.load();
-    this.dio.yaw = Math.PI + 0.55;
+    // three-quarter back view: the camera sits at his back-right (135 degrees from his facing)
+    this.dio.yaw = 2.88;
     this.dio.group.rotation.y = this.dio.yaw;
     this.dio.override = (t) => this._pose(t);
     s.add(this.dio.group);
@@ -67,15 +68,15 @@ export class TitleScene {
     s.add(this.world.group);
 
     // lighting: gold rim from beyond him, cool soft key on the turned face, faint fill
-    s.add(new THREE.HemisphereLight(0x2a2232, 0x020203, 0.35));
+    s.add(new THREE.HemisphereLight(0x221c2a, 0x020203, 0.18));
     this.rim = new THREE.SpotLight(0xffc066, 95, 14, 0.62, 0.85, 1.4);
     this.rim.position.set(-1.1, 3.4, -2.6);
     s.add(this.rim, this.rim.target);
     this.rim2 = new THREE.SpotLight(0xffb050, 40, 12, 0.5, 0.9, 1.4);
     this.rim2.position.set(2.2, 2.2, -2.0);
     s.add(this.rim2, this.rim2.target);
-    this.face = new THREE.SpotLight(0xd8e0ff, 16, 10, 0.42, 0.9, 1.5);
-    this.face.position.set(1.9, 2.3, 1.7);
+    this.face = new THREE.SpotLight(0xd8e0ff, 11, 10, 0.22, 0.85, 1.5);
+    this.face.position.set(1.5, 2.1, 0.9);
     s.add(this.face, this.face.target);
     this.hairGlow = new THREE.PointLight(0xffd27a, 2.2, 2.2, 2);
     s.add(this.hairGlow);
@@ -137,11 +138,11 @@ export class TitleScene {
     const p = Poses.idle(t, 'dio');
     const br = Math.sin(t * 1.25);
     const look = Math.sin(t * 0.21) * 0.05;
-    p.hips = [0, 0.08, 0.02];
+    p.hips = [0, 0.06, 0.02];
     p.spine = [-0.05, -0.12, 0.02];
-    p.chest = [-0.09 + br * 0.012, -0.24, 0.03];
-    p.neck = [0.06, -0.42 + look * 0.4, 0.02];
-    p.head = [0.12 + Math.sin(t * 0.37) * 0.02, -0.62 + look, 0.1];
+    p.chest = [-0.1 + br * 0.012, -0.22, 0.03];
+    p.neck = [0.05, -0.55 + look * 0.4, 0.02];
+    p.head = [0.1 + Math.sin(t * 0.37) * 0.02, -0.78 + look, 0.12];
     p.uaR = [-0.55, -0.15, 0.82]; p.faR = [0.5, 0.75, 0.2];
     p.handR = [-0.6, 0.35, 0.5];
     p.uaL = [0.32, -0.9, -0.12]; p.faL = [0.12, -0.75, 0.45];
@@ -218,11 +219,12 @@ export class TitleScene {
 
     // camera: behind his right shoulder, DIO on the right third, breathing drift; hovers nudge it
     const aspect = g.engine.camera.aspect || 1.6;
-    const portrait = aspect < 1;
+    // DIO sits on the right third on wide screens; on narrow screens he drifts towards centre
+    const wide = Math.min(1, Math.max(0, (aspect - 0.75) / 0.85));
     const drift = Math.sin(t * 0.17) * 0.12;
     let px = 1.35 + drift; let py = 1.82 + Math.sin(t * 0.23) * 0.04; let pz = 2.35;
-    let lx = portrait ? 0.05 : -0.62; let ly = 1.52; const lz = -0.2;
-    let fov = portrait ? 46 : 36;
+    let lx = 0.1 - 0.75 * wide; let ly = 1.5; const lz = -0.2;
+    let fov = 44 - 8 * wide;
     const hk = this.hoverK;
     if (this.hover === 'versus') { px += 0.45 * hk; pz += 0.55 * hk; lx -= 0.35 * hk; fov += 4 * hk; }
     else if (this.hover === 'load') { px -= 0.2 * hk; pz -= 0.45 * hk; py += 0.05 * hk; ly += 0.12 * hk; }
