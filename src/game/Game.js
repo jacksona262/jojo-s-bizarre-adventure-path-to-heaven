@@ -67,6 +67,7 @@ export class Game {
     // QA: ?step=<story step id> starts the campaign at that beat with a fresh profile
     const qs = new URLSearchParams(window.location.search);
     const stepId = qs.get('step');
+    if (stepId || qs.has('qa')) import('./dev/QA').then((m) => m.attachQA());
     if (stepId) {
       const { STEPS } = await import('./story/Campaign');
       const i = STEPS.findIndex((s) => s.id === stepId);
