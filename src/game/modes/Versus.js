@@ -54,7 +54,8 @@ export class VersusMode {
     this.p1.isPlayer = true;
     g.player = this.p1;
     this.ctrl = new PlayerController(g, this.p1, { allowHorse: false, allowInteract: false });
-    this.brain = new BossBrain(g, this.p2, { difficulty: DIFFICULTIES[sel.difficulty] || 1, phases: [0.5] });
+    // a duelist, not a boss: lighter poise so combos still reward the player
+    this.brain = new BossBrain(g, this.p2, { difficulty: DIFFICULTIES[sel.difficulty] || 1, phases: [0.5], poiseScale: 0.55 });
     for (const f of [this.p1, this.p2]) if (f.kit.setupArena) f.kit.setupArena(this.center);
     if (this.p1.kit.onFinisher === undefined && this.p1.rosterKey === 'dioHeaven') this.p1.kit.onFinisher = null;
     this.p1.onDeath = () => this.onKO(1);
