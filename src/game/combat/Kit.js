@@ -253,13 +253,13 @@ export class Kit {
           for (const s of ['L', 'R']) {
             const ext = rr[s] > 0.72;
             if (!ext && a.data[`ext${s}`]) { a.data[`ext${s}`] = false; hits[s].clear(); a.data[`jit${s}`] = null; }
-            // each new punch throws a spray of afterimage fists along its line (the "hundred fists")
-            if (ext && !a.data[`ext${s}`]) kit.vfx.rushFists(kit.limbPoint(self, `hand${s}`, _fore.clone()), a.data[`aim${s}`], kit.color, 2);
             if (tg && !tg.dead) {
               if (!a.data[`jit${s}`]) a.data[`jit${s}`] = v3((Math.random() - 0.5) * 0.34, (Math.random() - 0.35) * 0.4, (Math.random() - 0.5) * 0.2);
               tg.chestWorld(a.data[`aim${s}`]).add(a.data[`jit${s}`]);
             } else self.chestWorld(a.data[`aim${s}`]).addScaledVector(self.forward(), 1.6);
             if (ext) {
+              // each new punch throws a spray of afterimage fists along its line (the "hundred fists")
+              if (!a.data[`ext${s}`]) kit.vfx.rushFists(kit.limbPoint(self, `hand${s}`, new THREE.Vector3()), a.data[`aim${s}`], kit.color, 2);
               a.data[`ext${s}`] = true;
               const before = hits[s].size;
               a.data.prevLimb = a.data[`prev${s}`] || null;
