@@ -33,6 +33,13 @@ const FinalShader = {
     uFade: { value: 0 },
     uDamage: { value: 0 },
     uSaturation: { value: 1 },
+    // JoJo screen language: impact frame (colour inversion), radial speed lines, shockwave ripple
+    uInvert: { value: 0 },
+    uSpeed: { value: 0 },
+    uSpeedCenter: { value: new THREE.Vector2(0.5, 0.5) },
+    uShockCenter: { value: new THREE.Vector2(0.5, 0.5) },
+    uShockR: { value: 0 },
+    uShockA: { value: 0 },
   },
   vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
   fragmentShader: `
@@ -40,6 +47,8 @@ const FinalShader = {
     uniform float uVignette, uGrain, uFlash, uTimeStop, uTsWave, uErase, uDim, uHeaven, uGravity, uFade, uDamage, uSaturation;
     uniform vec3 uFlashColor, uTsTint; uniform vec2 uTsCenter;
     uniform float uExposure;
+    uniform float uInvert, uSpeed, uShockR, uShockA;
+    uniform vec2 uSpeedCenter, uShockCenter;
     varying vec2 vUv;
     // three.js ACESFilmicToneMapping + sRGB transfer, identical to OutputPass
     vec3 pthRRT(vec3 v){ vec3 a = v * (v + 0.0245786) - 0.000090537; vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081; return a / b; }
@@ -60,6 +69,12 @@ const FinalShader = {
     void main(){
       vec2 uv = vUv;
       vec2 asp = vec2(uRes.x/uRes.y, 1.0);
+      // shockwave: a refractive ring expanding from an impact
+      if (uShockA > 0.001) {
+        vec2 d = (uv - uShockCenter) * asp; float r = length(d);
+        float band = smoothstep(0.08, 0.0, abs(r - uShockR));
+        uv -= normalize(d + 1e-5) / asp * band * 0.03 * uShockA;
+      }
       // gravity lensing
       if (uGravity > 0.001) {
         vec2 d = (uv-0.5)*asp; float r = length(d);
@@ -123,6 +138,18 @@ const FinalShader = {
         col = mix(col, col*vec3(1.15,1.08,0.9) + vec3(0.08,0.07,0.03), uHeaven*0.5);
         col += cracks * uHeaven * vec3(1.0,0.92,0.7);
       }
+      // anime speed lines: radial streaks converging on the action (rush, dash, sprint)
+      if (uSpeed > 0.001) {
+        vec2 sp = (vUv - uSpeedCenter) * asp;
+        float sr = length(sp);
+        float ang = atan(sp.y, sp.x);
+        float lane = floor(ang * 54.0);
+        float h1 = hash(vec2(lane, floor(uTime * 18.0)));
+        float streak = step(0.72, h1) * smoothstep(0.18 + h1 * 0.25, 0.75, sr);
+        col = mix(col, vec3(1.0), streak * uSpeed * 0.55);
+      }
+      // impact frame: a flash of inverted colour on the heaviest blows
+      if (uInvert > 0.001) col = mix(col, vec3(1.0) - col, uInvert);
       // grading: cool night with warm highlights
       col = mix(col, col*vec3(0.92,0.98,1.08), 0.35);
       col += vec3(0.012,0.008,0.0) * smoothstep(0.5, 1.0, lum);
