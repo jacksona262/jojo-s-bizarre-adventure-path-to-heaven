@@ -153,7 +153,7 @@ export default function Hud() {
                 <div className="pth-fg-emblem" style={{ borderColor: p.color }}><span style={{ color: p.color }}>{(p.name || '?').trim()[0]}</span></div>
                 <div className="pth-fg-names">
                   <div className="pth-fg-name" style={{ color: p.color }}>{p.name}</div>
-                  <div className="pth-fg-stand">{p.stand}{p.overwritten ? ' · OVERWRITTEN' : ''}</div>
+                  <div className="pth-fg-stand">{p.player ? `${p.player} · ` : ''}{p.stand}{p.overwritten ? ' · OVERWRITTEN' : ''}</div>
                 </div>
               </div>
               <FgBar cls={i ? 'boss' : 'hp'} value={p.hp} max={p.hpMax} mirror={i === 1} />
@@ -162,7 +162,7 @@ export default function Hud() {
               <div className={`pth-fg-wins ${i ? 'mirror' : ''}`}>{[...Array(2)].map((_, k) => <span key={k} className={k < versus.wins[i] ? 'on' : ''}>✦</span>)}</div>
             </div>
           ))}
-          <div className="pth-fg-timer">{versus.timer}</div>
+          <div className="pth-fg-timer">{versus.timer}{versus.online && versus.ping != null && <div style={{ fontSize: 11, letterSpacing: '0.1em', opacity: 0.65 }}>{versus.ping} ms</div>}</div>
         </>
       )}
       {showHud && boss && !versus && <BossPanel boss={boss} />}
