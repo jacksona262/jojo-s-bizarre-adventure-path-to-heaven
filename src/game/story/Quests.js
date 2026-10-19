@@ -10,6 +10,7 @@ import { Restorable } from '../combat/kits/Diamond';
 import { railTrack, Batch, Frame } from '../world/Architecture';
 import { Timer } from '../combat/Hazards';
 import * as Poses from '../anim/Poses';
+import { READ_PACE } from './Sequencer';
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 
@@ -428,7 +429,7 @@ async function q4(c) {
       if (near && sub.stage !== 'done') g.weather.fogTarget = sub.stage === 'go' ? 0.02 : 0.03 - n * 0.006;
       if (sub.stage === 'lanterns' && near) {
         whisperT -= dt;
-        if (whisperT <= 0) { whisperT = 9 + Math.random() * 6; ui.set({ subtitle: { speaker: 'Fog', text: Q.whispers[Math.floor(Math.random() * Q.whispers.length)], color: '#c8a0ff' } }); setTimeout(() => ui.set({ subtitle: null }), 3000); }
+        if (whisperT <= 0) { whisperT = 9 + Math.random() * 6; ui.set({ subtitle: { speaker: 'Fog', text: Q.whispers[Math.floor(Math.random() * Q.whispers.length)], color: '#c8a0ff' } }); setTimeout(() => ui.set({ subtitle: null }), 3000 * READ_PACE); }
       }
     },
     dispose() {

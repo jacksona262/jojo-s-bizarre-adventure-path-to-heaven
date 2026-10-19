@@ -6,6 +6,9 @@ import { ease } from '../camera/CameraRig';
 // Async cinematic scripting. Scripts are `async (seq) => { ... }` and use seq.* helpers.
 // Skipping resolves every wait instantly, so a skipped scene still reaches its exact end state.
 
+// how much longer than the original pacing each spoken line stays on screen
+export const READ_PACE = 1.5;
+
 export class Sequencer {
   constructor(game) {
     this.game = game;
@@ -69,10 +72,11 @@ export class Sequencer {
 
   cut(pos, look, fov = 42, roll = 0) { this.game.camera.setCinematic(pos, look, fov, roll); }
 
-  // Subtitled line. Duration scales with text length unless given.
+  // Subtitled line. Duration scales with text length unless given; every line is held READ_PACE
+  // times as long so there is time to read it (scenes without dialogue keep their pace).
   async say(speaker, text, dur = null, color = null) {
     if (this.skipping) return;
-    const d = dur ?? Math.min(7.5, 1.8 + text.length * 0.045);
+    const d = (dur ?? Math.min(7.5, 1.8 + text.length * 0.045)) * READ_PACE;
     ui.set({ subtitle: { speaker, text, color } });
     await this.wait(d);
     if (!this.skipping && ui.get().subtitle?.text === text) ui.set({ subtitle: null });

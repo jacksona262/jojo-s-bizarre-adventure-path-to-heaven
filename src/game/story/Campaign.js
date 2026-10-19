@@ -14,6 +14,7 @@ import { QUEST_HANDLERS } from './Quests';
 import { Beacon } from '../vfx/Beacon';
 import * as Poses from '../anim/Poses';
 import { Restorable } from '../combat/kits/Diamond';
+import { READ_PACE } from './Sequencer';
 
 export const STEPS = [
   { id: 'prologue', chapter: 'Prologue: The Last Night' },
@@ -493,7 +494,7 @@ export class Campaign {
       const [who, text] = lines[0];
       const sp = SPEAKERS[who];
       ui.set({ subtitle: { speaker: sp.name, text, color: sp.color } });
-      setTimeout(() => { if (ui.get().subtitle?.text === text) ui.set({ subtitle: null }); }, 4200);
+      setTimeout(() => { if (ui.get().subtitle?.text === text) ui.set({ subtitle: null }); }, 4200 * READ_PACE);
     }
     e.boss.invuln = 0.8;
     g.vfx.aura(e.boss.chestWorld(new THREE.Vector3()), ROSTER[e.key].aura, 1.6);

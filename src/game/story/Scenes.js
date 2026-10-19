@@ -7,6 +7,7 @@ import { SANCTUARY } from '../world/Layout';
 import * as Poses from '../anim/Poses';
 import { OPENING, COLD_OPEN, SPEAKERS, HEAVEN_SCENE, ENDING, ENDING_VARIANTS } from './Script';
 import { perform, stopPerform, nextGesture } from './Acting';
+import { READ_PACE } from './Sequencer';
 
 // Directed cinematics. Every scene leaves actors in a defined end state, so skipping is safe.
 
@@ -77,7 +78,7 @@ export async function conversation(seq, a, b, lines) {
     const sp = SPEAKERS[who] || { name: who, color: '#fff' };
     const speakerIsA = who === 'DIO' || who === 'HEAVEN';
     const S = speakerIsA ? a : b; const L = speakerIsA ? b : a;
-    const dur = Math.min(7, 2 + text.length * 0.045);
+    const dur = Math.min(7, 2 + text.length * 0.045) * READ_PACE;
     let s; let fov = 34;
     const apart = a.distanceTo(b) > 7.5;   // too far apart to share a frame: single-character shots only
     if (n === 0 && !apart) { s = clearShot(g, [twoShot(a, b, 1), twoShot(a, b, -1), ots(L, S, 1, 2.2)]); fov = 40; } else if (n % 2 === 1 || (n === 0 && apart)) {
@@ -306,8 +307,8 @@ export async function openingCinematic(game, seq, { player, horse, pucci, symbol
     horse.yaw = Math.atan2(ahead, -2);
     horse.speed = Math.abs(z1 - z0) / dur;
   }, 'linear');
-  seq.shot({ follow: () => horse.pos.clone().add(V(0, 1.6, 0)), from: R(212, 5, 1.0), to: R(184, 4.5, 1.2), look: R(205, 0, 1.5), dur: 5, fov: 40 });
-  await Promise.all([ride(215, 180, 5), seq.say('DIO', OPENING.ride[2][1], 4.8, SPEAKERS.DIO.color)]);
+  seq.shot({ follow: () => horse.pos.clone().add(V(0, 1.6, 0)), from: R(212, 5, 1.0), to: R(184, 4.5, 1.2), look: R(205, 0, 1.5), dur: 5 * READ_PACE, fov: 40 });
+  await Promise.all([ride(215, 180, 5 * READ_PACE), seq.say('DIO', OPENING.ride[2][1], 4.8, SPEAKERS.DIO.color)]);
   // hooves close-up
   seq.shot({ follow: () => horse.pos.clone().add(V(0, 0.4, 0)), from: R(178, 1.6, 0.25), to: R(170, 1.5, 0.3), look: R(176, 0, 0.3), dur: 2.4, fov: 34 });
   await ride(180, 168, 2.4);
