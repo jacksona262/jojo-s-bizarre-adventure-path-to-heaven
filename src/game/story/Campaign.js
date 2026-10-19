@@ -71,6 +71,12 @@ export class Campaign {
   // ---------------------------------------------------------------- startup
   async start(fresh) {
     const g = this.game;
+    // a save made before chapters were added or reordered still resumes at the right beat
+    if (this.p.stepId && STEPS[this.p.step]?.id !== this.p.stepId) {
+      const i = STEPS.findIndex((s) => s.id === this.p.stepId);
+      if (i >= 0) this.p.step = i;
+    }
+    this.p.step = Math.min(this.p.step, STEPS.length - 1);
     ui.set({ loading: { label: 'Summoning DIO', progress: 0.25 } });
     await this.loadPlayer(this.p.step >= STEPS.findIndex((s) => s.id === 'jotaroFinal'));
     this.horse = new Horse(g);
@@ -247,6 +253,7 @@ export class Campaign {
       p.hp = pl.hp;
     }
     if (this.horse) p.horsePos = [this.horse.pos.x, this.horse.pos.y, this.horse.pos.z];
+    p.stepId = STEPS[p.step]?.id;
     p.playtime = (p.playtime || 0) + this.playT;
     this.playT = 0;
     return p;
