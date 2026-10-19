@@ -27,12 +27,40 @@ export function loadFile(fileKey) {
   if (fileCache.has(fileKey)) return fileCache.get(fileKey);
   const url = encodeURI(FILES[fileKey]);
   progress.total += 1; emit();
-  const p = loader.loadAsync(url).then((g) => {
+  const p = loader.loadAsync(url).then(async (g) => {
+    await restoreSpecGloss(g);
     progress.loaded += 1; emit();
     return g;
   });
   fileCache.set(fileKey, p);
   return p;
+}
+
+// three.js dropped KHR_materials_pbrSpecularGlossiness; Slow Dancer uses it, so map its
+// diffuse texture/colour onto the standard material the loader produced.
+async function restoreSpecGloss(gltf) {
+  const json = gltf.parser.json;
+  const jobs = [];
+  gltf.scene.traverse((o) => {
+    if (!o.isMesh) return;
+    const assoc = gltf.parser.associations.get(o.material);
+    const mi = assoc ? assoc.materials : undefined;
+    if (mi === undefined) return;
+    const ext = json.materials[mi]?.extensions?.KHR_materials_pbrSpecularGlossiness;
+    if (!ext) return;
+    const m = o.material;
+    if (ext.diffuseFactor) m.color.setRGB(ext.diffuseFactor[0], ext.diffuseFactor[1], ext.diffuseFactor[2]);
+    m.metalness = 0;
+    m.roughness = 1 - (ext.glossinessFactor ?? 0.5) * 0.55;
+    if (ext.diffuseTexture) {
+      jobs.push(gltf.parser.getDependency('texture', ext.diffuseTexture.index).then((t) => {
+        t.colorSpace = THREE.SRGBColorSpace;
+        m.map = t;
+        m.needsUpdate = true;
+      }));
+    }
+  });
+  await Promise.all(jobs);
 }
 
 function upgradeMaterial(m) {
