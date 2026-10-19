@@ -1,0 +1,42 @@
+{
+  "name": "VersusRoom",
+  "type": "object",
+  "description": "Short-lived online Versus party: a join code plus the WebRTC offer/answer the two players exchange to connect peer-to-peer. Deleted once connected.",
+  "properties": {
+    "code": {
+      "type": "string",
+      "description": "5-letter join code"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "full",
+        "closed"
+      ],
+      "default": "open"
+    },
+    "host_name": {
+      "type": "string"
+    },
+    "guest_name": {
+      "type": "string"
+    },
+    "offer": {
+      "type": "string",
+      "description": "Host WebRTC session description (JSON)"
+    },
+    "answer": {
+      "type": "string",
+      "description": "Guest WebRTC session description (JSON)"
+    },
+    "version": {
+      "type": "string",
+      "description": "Netcode version, both players must match"
+    }
+  },
+  "required": [
+    "code",
+    "status"
+  ]
+}
