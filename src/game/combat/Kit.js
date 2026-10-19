@@ -268,16 +268,16 @@ export class Kit {
           }
           if (Math.random() < dtt * 3) audio.play('whoosh', { power: 0.45 });
           // speed lines converge on the target while a rush the player is part of is running
-          if (tg && kit.onScreen) kit.game.screen?.speedLines(0.6, tg.chestWorld(_capA), 0.12);
+          if (tg && kit.onScreen) kit.game.screen?.speedLines(0.5, tg.chestWorld(_capA), 0.12);
           // the cry, at a steady beat, never two on top of each other
           const cry = kit.rushShout || kit.fx.cry;
           a.data.cryT = (a.data.cryT ?? 0.15) - dtt;
           if (cry && a.data.cryT <= 0) {
-            a.data.cryT = 0.42 + Math.random() * 0.12;
+            a.data.cryT = 0.5 + Math.random() * 0.12;
             const side = (a.data.crySide = -(a.data.crySide || 1));
-            const q = self.chestWorld(new THREE.Vector3()).add(v3(0, 0.6 + Math.random() * 0.5, 0));
-            q.x += Math.cos(self.yaw) * side * 0.7; q.z -= Math.sin(self.yaw) * side * 0.7;
-            kit.vfx.text(q, cry, kit.rushShoutColor || `#${new THREE.Color(kit.fx.hit).getHexString()}`, 0.7, 0.75 + Math.random() * 0.2);
+            const q = self.chestWorld(new THREE.Vector3()).add(v3(0, 0.9 + Math.random() * 0.4, 0));
+            q.x += Math.cos(self.yaw) * side * 0.9; q.z -= Math.sin(self.yaw) * side * 0.9;
+            kit.vfx.text(q, cry, kit.rushShoutColor || `#${new THREE.Color(kit.fx.hit).getHexString()}`, 0.5, 0.62 + Math.random() * 0.12);
           }
         },
       };
