@@ -92,6 +92,7 @@ export class SpringBones {
       // damped spring towards the rest tail position, plus gravity (time-step independent)
       _tmp.copy(_head).addScaledVector(_rest, len).sub(j.cur).multiplyScalar(j.stiff);
       _tmp.addScaledVector(GRAV, j.grav);
+      if (this.wind) _tmp.addScaledVector(this.wind, j.hair ? 1 : 0.6);
       j.vel.multiplyScalar(Math.exp(-j.drag * h)).addScaledVector(_tmp, h);
       _next.copy(j.cur).addScaledVector(j.vel, h);
       _next.sub(_head).normalize().multiplyScalar(len).add(_head);
