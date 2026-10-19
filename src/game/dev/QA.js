@@ -64,8 +64,8 @@ export async function bossQA(secs = 14, { attack = true, timestop = true } = {})
   };
 }
 
-// Start the current step's boss encounter (walk up, skip the intro) and return it.
-export async function startEncounter() {
+// Start the current step's boss encounter (walk up, skip the intro unless asked) and return it.
+export async function startEncounter({ skipIntro = true } = {}) {
   const g = window.__game;
   const c = g.mode;
   if (c?.encounter) return c.encounter;
@@ -76,6 +76,10 @@ export async function startEncounter() {
   p.y = g.world.groundAt(p.x, p.z, p.y + 60);
   g.player.pos.copy(p);
   for (let i = 0; i < 60 && !g.inCinematic; i += 1) await sleep(200);
+  if (!skipIntro) {
+    for (let i = 0; i < 300 && (g.inCinematic || !c.encounter); i += 1) await sleep(200);
+    return c.encounter;
+  }
   await sleep(2500);
   await tap('Space');
   for (let i = 0; i < 40 && (g.inCinematic || !c.encounter); i += 1) await sleep(200);
