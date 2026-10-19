@@ -140,8 +140,11 @@ export class Input {
     this.axes.moveY = my;
     const s = this.sensitivity;
     const inv = this.invertY ? -1 : 1;
-    this.axes.lookX = this.enabled ? this.mouseDX * 0.0022 * s + this.padAxes[2] * 2.6 * s * dt : 0;
-    this.axes.lookY = this.enabled ? (this.mouseDY * 0.0022 * s + this.padAxes[3] * 1.8 * s * dt) * inv : 0;
+    // arrow keys turn the camera too (fallback where pointer lock is refused, e.g. embedded previews)
+    const kx = (this.keys.has('ArrowRight') ? 1 : 0) - (this.keys.has('ArrowLeft') ? 1 : 0);
+    const ky = (this.keys.has('ArrowDown') ? 1 : 0) - (this.keys.has('ArrowUp') ? 1 : 0);
+    this.axes.lookX = this.enabled ? this.mouseDX * 0.0022 * s + (this.padAxes[2] + kx) * 2.6 * s * dt : 0;
+    this.axes.lookY = this.enabled ? (this.mouseDY * 0.0022 * s + (this.padAxes[3] + ky * 0.7) * 1.8 * s * dt) * inv : 0;
     this.mouseDX = 0; this.mouseDY = 0;
   }
 
