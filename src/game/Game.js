@@ -277,6 +277,8 @@ export class Game {
       return;
     }
     this.clock += dt;
+    // a cinematic never plays inside someone's stopped or erased time
+    if (this.inCinematic && this.time.state && !this.time.state.cinematic) this.time.end(true);
     this.time.update(realDt);
     prof.begin('mode');
     if (this.mode?.update) this.mode.update(dt, realDt);
