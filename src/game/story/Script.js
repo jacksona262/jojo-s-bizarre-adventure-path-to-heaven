@@ -90,6 +90,8 @@ export const BOSSES = {
     intro: [
       ['AVDOL', 'Stop there, DIO. The rain does not reach this street, and neither will you.'],
       ['DIO', 'A fortune teller in a dead town. Tell me then: how does tonight end?'],
+      ['AVDOL', "Tonight ends the way every night here ends: at a quarter past midnight, with every clock holding its breath."],
+      ['DIO', "Then let us see how long your clocks can hold it."],
       ['AVDOL', 'The cards show a man who walks north and loses himself. I carry the first Seal. I will not let you have it.'],
       ['AVDOL', "Magician's Red! Burn a line he cannot cross!"],
     ],
@@ -101,6 +103,7 @@ export const BOSSES = {
       ['AVDOL', 'The rain... it has started falling on this street again.'],
       ['AVDOL', 'Listen. The Seals are not locks on a door. My cards said they were stitches. Stitches, DIO.'],
       ['DIO', 'Stitches holding what together?'],
+      ['AVDOL', "I do not know. But each time one is cut, the rain falls a little harder somewhere to the north."],
       ['AVDOL', 'Ask the old man at the telegraph station east of the flats. He has been sending messages to nobody for a hundred nights.'],
     ],
     clue: 'Avdol called the Seals "stitches", not locks.',
@@ -110,6 +113,8 @@ export const BOSSES = {
     intro: [
       ['KAKYOIN', 'You took the telegraph road. Speedwagon must have told you about the trains that never come.'],
       ['DIO', 'And you are the boy who hides behind a coil of green thread.'],
+      ['KAKYOIN', "Better a coil of thread than a coil of lies. Avdol's Seal went dark an hour ago. I felt it through the wires."],
+      ['DIO', "Then you know what happens to those who stand on the tracks."],
       ['KAKYOIN', 'I do not hide. I measure. Every step you take on this platform has already touched my Stand.'],
       ['KAKYOIN', 'Hierophant Green! Emerald Splash!'],
     ],
@@ -122,6 +127,7 @@ export const BOSSES = {
       ['KAKYOIN', 'The Seal I carried has a sundial on it. Same as the mark in Ebon Crossing. Same as the one on your journal.'],
       ['DIO', 'You have seen the journal?'],
       ['KAKYOIN', 'Everyone has seen it, DIO. It appears to each of us before you arrive. The handwriting is always yours.'],
+      ['KAKYOIN', "Go on, then. But count the threads you break, DIO. One day someone will ask you for the total."],
     ],
     clue: 'Every Seal-bearer saw DIO\'s journal before DIO arrived.',
   },
@@ -131,6 +137,7 @@ export const BOSSES = {
       ['POLNAREFF', 'Bonsoir. I have been practising in this courtyard for a hundred nights, waiting for a worthy opponent.'],
       ['DIO', 'Your Stand is nowhere to be seen. Only a blade hanging in the air.'],
       ['POLNAREFF', 'Silver Chariot is here, mon ami. Most men only notice it after the third cut.'],
+      ['DIO', "Three cuts? You flatter yourself. You will be fortunate to land one."],
       ['POLNAREFF', 'En garde!'],
     ],
     phases: {
@@ -139,6 +146,8 @@ export const BOSSES = {
     },
     defeat: [
       ['POLNAREFF', 'Magnifique. I lose... but I keep my honour, oui?'],
+      ['DIO', "Honour. In a valley where the dead keep walking and the clocks refuse to turn."],
+      ['POLNAREFF', "Especially here, mon ami. When nothing else moves, honour is the only thing that still has weight."],
       ['POLNAREFF', 'Before you go. When I first came here, a priest stood on that wall and blessed my Seal. He called it "a key that must be turned by the right hand".'],
       ['DIO', 'A priest. With a scar at his brow?'],
       ['POLNAREFF', 'You know him. Then you know more than I do. Beware the gulch trestle north of here. Someone has been shooting at the rain.'],
@@ -150,6 +159,8 @@ export const BOSSES = {
     intro: [
       ['JOSUKE', 'Hey. You stepped on my hair. Metaphorically. You looked at it funny from all the way down the trail.'],
       ['DIO', 'I did not come for your hair, boy. I came for your Seal.'],
+      ['JOSUKE', "Yeah, I figured. Everybody who comes up this trail wants something. Nobody ever stops to say thanks for the fixed fence."],
+      ['DIO', "Fences. You guard fences while the whole world comes apart around you."],
       ['JOSUKE', 'This hamlet was broken when I got here. I fixed it. Every plank. I\'m not letting you smash it again.'],
       ['JOSUKE', 'Crazy Diamond! Dorarara!'],
     ],
@@ -160,6 +171,7 @@ export const BOSSES = {
     defeat: [
       ['JOSUKE', 'Man... even the house I fixed is leaning again.'],
       ['JOSUKE', 'There\'s an old lady in a cabin in the pines. She says she can make your Stand stronger. She also tried to make my Stand into a puppet, so, y\'know. Careful.'],
+      ['JOSUKE', "And hey... if you ever meet whoever broke this place before I got here, tell him I want a word."],
     ],
     clue: 'Josuke repaired the broken hamlet: things here were broken before anyone came.',
   },
@@ -168,6 +180,7 @@ export const BOSSES = {
     intro: [
       ['KIRA', 'I wanted a quiet life. A mining town with no people seemed ideal.'],
       ['KIRA', 'Then your journal appeared on my desk, and I learned I would be disturbed tonight.'],
+      ['KIRA', "Understand me. I do not want to fight you. I want you to leave, and for no one to remember that you ever came."],
       ['DIO', 'Then let us not waste your evening.'],
       ['KIRA', 'Agreed. Killer Queen has already touched something in this yard. Please, walk anywhere you like.'],
     ],
@@ -178,6 +191,8 @@ export const BOSSES = {
     },
     defeat: [
       ['KIRA', 'My hands... they are shaking. I hate that.'],
+      ['DIO', "Fear suits you far better than that tie."],
+      ['KIRA', "Mock me if you like. I will still sleep eight hours tonight. You will never sleep again."],
       ['KIRA', 'The gambler in the assay hall north of the yard took my coin purse in a card game. He claims he knows what the Seals are for. He will want your soul as the ante.'],
     ],
     clue: 'Kira found the journal on his desk: it predicted the date of the fight.',
@@ -188,6 +203,8 @@ export const BOSSES = {
       ['DIAVOLO', 'Stop at the middle of the bridge. That is where you fall.'],
       ['DIO', 'You speak as if you have already seen it.'],
       ['DIAVOLO', 'Epitaph shows me ten seconds ahead. In every one of them, you swing first and I live.'],
+      ['DIO', "Ten seconds. A coward's horizon."],
+      ['DIAVOLO', "A survivor's. I have lived this long by never letting anyone see the eleventh."],
       ['DIAVOLO', 'King Crimson! The time in which you win will simply be erased!'],
     ],
     phases: {
@@ -199,6 +216,7 @@ export const BOSSES = {
       ['DIAVOLO', 'The Seals aren\'t keeping you from the Arrow. They\'re keeping two timelines from touching. Break all ten and every time becomes one.'],
       ['DIO', 'And in that single time?'],
       ['DIAVOLO', 'In that time, there is only one king. I saw his face. It was not mine.'],
+      ['DIAVOLO', "Do not come looking for me afterwards. In the time I saw, I was never here at all."],
     ],
     clue: 'Diavolo: the Seals keep timelines from touching. Break ten and every time becomes one.',
   },
@@ -208,6 +226,8 @@ export const BOSSES = {
       ['GIORNO', 'I know you. Not from this night. From the blood in my veins.'],
       ['DIO', 'Then you know what I am.'],
       ['GIORNO', 'I know what you were. I came here to find out what you will be.'],
+      ['DIO', "And if what I become displeases you?"],
+      ['GIORNO', "Then I will grow something stronger than you. That is what I do."],
       ['GIORNO', 'Gold Experience. Life will not let you pass.'],
     ],
     phases: {
@@ -217,6 +237,7 @@ export const BOSSES = {
     defeat: [
       ['GIORNO', 'The vines are pointing north. All of them. Even the ones I didn\'t make.'],
       ['GIORNO', 'Something there is pulling every living thing toward it. Something that already finished growing.'],
+      ['DIO', "Spare me the riddles, boy. Who waits at the end of this road?"],
       ['GIORNO', 'Father... are you sure the one waiting at Heaven\'s Reach is a stranger?'],
     ],
     clue: 'Giorno: "Something at Heaven\'s Reach already finished growing."',
@@ -227,6 +248,7 @@ export const BOSSES = {
       ['VALENTINE', 'Do you know what it means to stand at the centre of the world? I do. I have stood there in a hundred worlds.'],
       ['VALENTINE', 'And in every one of them, DIO, you walk up this basin and I tell you no.'],
       ['DIO', 'Then tonight you will learn a new word.'],
+      ['VALENTINE', "I have heard every word you could ever say, DIO. In one world you begged. I preferred that one."],
       ['VALENTINE', 'Dirty Deeds Done Dirt Cheap. Between the flag and the stone... there is always another me.'],
     ],
     phases: {
@@ -236,6 +258,8 @@ export const BOSSES = {
     defeat: [
       ['VALENTINE', 'I looked into the next world, and the next, and the next. They are thinning. The walls between them are almost gone.'],
       ['VALENTINE', 'In the world beyond the last one, there is a man made of light sitting on a throne at the end of this road. He has your face.'],
+      ['DIO', "A throne. Then it seems I am expected."],
+      ['VALENTINE', "Expected? No. Inevitable. That is far worse, my friend."],
     ],
     clue: 'Valentine saw "a man made of light on a throne" with DIO\'s face.',
   },
@@ -245,6 +269,8 @@ export const BOSSES = {
       ['PUCCI', 'DIO. My friend. You finally reached the cloister.'],
       ['DIO', 'You stood on the hotel balcony in Ebon Crossing. You blessed Polnareff\'s Seal.'],
       ['PUCCI', 'I have stood beside you in every step of this road. Now I must stand against you, so that you prove you can stand alone.'],
+      ['DIO', "You speak of friendship with your Stand already drawn."],
+      ['PUCCI', "Gravity is the purest friendship there is, DIO. It never lets go."],
       ['PUCCI', 'C-Moon. Here, gravity answers to me.'],
     ],
     phases: {
@@ -255,6 +281,7 @@ export const BOSSES = {
       ['PUCCI', 'Yes... yes. That was the last test. You are ready.'],
       ['DIO', 'Speak plainly, Pucci.'],
       ['PUCCI', 'Climb the Thousand Steps. The truth waits there, with an old man and a hag who have both been lying to you for your own good.'],
+      ['PUCCI', "And when you reach the top, do not be afraid of what you see. You have seen it every night in your sleep."],
     ],
     clue: 'Pucci called the fight "the last test".',
   },
@@ -264,6 +291,8 @@ export const BOSSES = {
       ['JOTARO', 'Yare yare. So you walked the whole road.'],
       ['DIO', 'Jotaro Kujo. The last Seal.'],
       ['JOTARO', 'I volunteered for it. Somebody had to stay behind and make sure you didn\'t become what you\'re about to become.'],
+      ['DIO', "You could have stopped me at the first Seal. Why wait at the last?"],
+      ['JOTARO', "Because I wanted to see if the road would change you. It did. Just not the way I hoped."],
       ['JOTARO', 'Star Platinum. Let\'s finish this, DIO.'],
     ],
     phases: {
@@ -273,6 +302,7 @@ export const BOSSES = {
     },
     defeat: [
       ['JOTARO', 'Tch. The Arrow\'s... glowing.'],
+      ['DIO', "No road back. Good. I have never cared much for retreating."],
       ['JOTARO', 'Don\'t touch it, DIO. Once you do, there\'s no road back.'],
     ],
     clue: '',
