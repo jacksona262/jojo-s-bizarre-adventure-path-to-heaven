@@ -153,13 +153,14 @@ export class HeavenKit extends TheWorldKit {
     f.play({ name: 'rbCmd', dur: 0.75, upper: true, pose: (t) => Poses.cast('R', t, -0.3) });
     this.stand.strike({ name: 'rb', dur: 0.75, pose: (t) => Poses.heavy(t), events: [{ t: 0.55, fn: () => {
       const fwd = f.forward();
+      const struck = new Set();
       for (let i = 1; i <= 6; i += 1) {
         const p = f.pos.clone().addScaledVector(fwd, i * 1.6);
         p.y = this.game.world.groundAt(p.x, p.z, p.y + 2) + 0.1;
         setTimeout(() => {
           this.vfx.ring(p, 0xfff2c8, 0.2, 1.8, 0.4);
           this.vfx.sparkBurst(p, 0xfff2c8, 10, 8, v3(0, 1, 0));
-          areaDamage(this.combat, f, p, 1.6, { damage: 7, stun: 0.6, knock: 3, launch: 7, kind: 'heavy', color: 0xfff2c8 }, (t) => !t._rb || t._rb < this.clock);
+          areaDamage(this.combat, f, p, 1.6, { damage: 14, stun: 0.7, knock: 3, launch: 7, kind: 'heavy', color: 0xfff2c8 }, (t) => { if (struck.has(t)) return false; struck.add(t); this.mark(t, 2); return true; });
         }, i * 45);
       }
       this.game.engine.fx.uHeaven.value = 0.8;
