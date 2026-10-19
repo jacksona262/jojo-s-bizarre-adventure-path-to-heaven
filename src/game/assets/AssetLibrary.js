@@ -29,6 +29,9 @@ export function loadFile(fileKey) {
   progress.total += 1; emit();
   const p = loader.loadAsync(url).then(async (g) => {
     await restoreSpecGloss(g);
+    // the parser holds the raw .glb buffer, its JSON and dependency caches; nothing needs them once
+    // the scene is built, and keeping them pinned every loaded file in memory for the whole session
+    g.parser = null;
     progress.loaded += 1; emit();
     return g;
   });
