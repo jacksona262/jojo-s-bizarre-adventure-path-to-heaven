@@ -425,6 +425,9 @@ export class Campaign {
     this.player.pos.copy(pp); this.player.pos.y = g.world.groundAt(pp.x, pp.z, pp.y + 3);
     this.player.yaw = this.player.targetYaw = Math.PI;
     this.player.vel.set(0, 0, 0);
+    // every boss duel starts fresh (as a retry does): road damage never carries into a fight
+    const pl = this.player;
+    pl.hp = pl.hpMax; pl.energy = pl.energyMax; pl.stamina = pl.staminaMax; pl.tsCharge = 1;
     g.addActor(boss);
     g.combat.add(boss);
     if (boss.kit.setupArena) boss.kit.setupArena(center, key === 'valentine' && g.world.flagPole ? null : null);
