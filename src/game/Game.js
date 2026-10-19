@@ -84,6 +84,7 @@ export class Game {
     this.engine.add({ onQuality: (s) => { this.world.onQuality(s); this.weather.onQuality(s); } });
     this.world.onRegion = (r) => {
       this.weather.setRegion(r);
+      audio.setRegion(r?.id);
       if (this.mode?.onRegion) this.mode.onRegion(r);
     };
     ui.set({ loading: { label: 'Raising Ebon Crossing', progress: 0.35 } });
