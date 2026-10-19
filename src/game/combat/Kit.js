@@ -42,7 +42,7 @@ export class Kit {
   }
 
   target() {
-    return this.f.lockTarget || this.combat.nearestEnemy(this.f, 40);
+    return this.f.lockTarget || this.combat.nearestEnemy(this.f, 90);
   }
 
   faceTarget(instant = false) {
