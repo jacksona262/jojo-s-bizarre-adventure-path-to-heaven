@@ -186,14 +186,13 @@ export class Gait {
     const bend = 0.25 + 1.1 * runK;
     const angL = -armAmp * cyc; const angR = armAmp * cyc;
     const armW = this.moveW * (1 - this.combatW * 0.75);
-    const swing = (sx, ang, out) => {
-      out[0] = sx; out[1] = -cos(ang); out[2] = sin(ang);
-      return out;
-    };
-    p.uaL = lerp3(upper.uaL, swing(0.2 + 0.05 * lat, angL, [0, 0, 0]), armW);
-    p.faL = lerp3(upper.faL, swing(0.1, angL + bend, [0, 0, 0]), armW);
-    p.uaR = lerp3(upper.uaR, swing(-0.2 - 0.05 * lat, angR, [0, 0, 0]), armW);
-    p.faR = lerp3(upper.faR, swing(-0.1, angR + bend, [0, 0, 0]), armW);
+    // arm swing written into reused arrays (no per-frame garbage)
+    const sw = this._sw || (this._sw = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]);
+    const swing = (sx, ang, out) => { out[0] = sx; out[1] = -cos(ang); out[2] = sin(ang); return out; };
+    p.uaL = lerp3(upper.uaL, swing(0.2 + 0.05 * lat, angL, sw[0]), armW, p.uaL);
+    p.faL = lerp3(upper.faL, swing(0.1, angL + bend, sw[1]), armW, p.faL);
+    p.uaR = lerp3(upper.uaR, swing(-0.2 - 0.05 * lat, angR, sw[2]), armW, p.uaR);
+    p.faR = lerp3(upper.faR, swing(-0.1, angR + bend, sw[3]), armW, p.faR);
     if (upper.handL) p.handL = upper.handL; else delete p.handL;
     if (upper.handR) p.handR = upper.handR; else delete p.handR;
     if (upper.clavL) p.clavL = upper.clavL; else delete p.clavL;
@@ -201,11 +200,11 @@ export class Gait {
 
     const w = this.moveW;
     const us = upper.spine || ZERO; const uc = upper.chest || ZERO; const uh = upper.head || ZERO; const un = upper.neck || ZERO;
-    p.hips = [this.lean * 0.35, hipsYaw, this.roll + walkRoll];
-    p.spine = [lerp(us[0], 0, w) + this.lean * 0.65, lerp(us[1], 0, w) - hipsYaw * 0.55, lerp(us[2], 0, w)];
-    p.chest = [lerp(uc[0], 0.02, w), lerp(uc[1], 0, w) - hipsYaw * 0.75, lerp(uc[2], 0, w) - walkRoll * 0.8];
-    p.neck = [un[0] * (1 - w), un[1] * (1 - w), 0];
-    p.head = [lerp(uh[0], -0.04, w) - this.lean * 0.55, lerp(uh[1], 0, w) + hipsYaw * 0.3 - fy * 0.1, lerp(uh[2], 0, w) - this.roll * 0.5];
+    set3(p, 'hips', this.lean * 0.35, hipsYaw, this.roll + walkRoll);
+    set3(p, 'spine', lerp(us[0], 0, w) + this.lean * 0.65, lerp(us[1], 0, w) - hipsYaw * 0.55, lerp(us[2], 0, w));
+    set3(p, 'chest', lerp(uc[0], 0.02, w), lerp(uc[1], 0, w) - hipsYaw * 0.75, lerp(uc[2], 0, w) - walkRoll * 0.8);
+    set3(p, 'neck', un[0] * (1 - w), un[1] * (1 - w), 0);
+    set3(p, 'head', lerp(uh[0], -0.04, w) - this.lean * 0.55, lerp(uh[1], 0, w) + hipsYaw * 0.3 - fy * 0.1, lerp(uh[2], 0, w) - this.roll * 0.5);
 
     // ---------------------------------------------------------------- legs via IK
     _e.set(p.hips[0], p.hips[1], p.hips[2], 'YXZ');
@@ -247,6 +246,12 @@ export class Gait {
 }
 
 const ZERO = [0, 0, 0];
-function lerp3(a, b, t) {
-  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+function lerp3(a, b, t, out) {
+  const o = out && out !== a && out !== b ? out : [0, 0, 0];
+  o[0] = a[0] + (b[0] - a[0]) * t; o[1] = a[1] + (b[1] - a[1]) * t; o[2] = a[2] + (b[2] - a[2]) * t;
+  return o;
+}
+function set3(p, k, x, y, z) {
+  const o = p[k] || (p[k] = [0, 0, 0]);
+  o[0] = x; o[1] = y; o[2] = z;
 }
