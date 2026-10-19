@@ -519,7 +519,8 @@ export class Campaign {
     if (e?.boss && e.brain?.enabled) {
       const b = e.boss;
       const cur = ui.get().boss;
-      if (!cur || cur.hp !== Math.round(b.hp) || cur.phase !== e.brain.phase) ui.set({ boss: { ...(cur || {}), name: ROSTER[e.key].name, stand: ROSTER[e.key].standName, hp: Math.round(b.hp), hpMax: b.hpMax, phase: e.brain.phase, phases: e.brain.thresholds.length + 1, color: ROSTER[e.key].color, overwritten: !!b.overwritten } });
+      const poise = b.poiseMax ? Math.round((b.poise / b.poiseMax) * 20) * 5 : null;
+      if (!cur || cur.hp !== Math.round(b.hp) || cur.phase !== e.brain.phase || cur.poise !== poise) ui.set({ boss: { ...(cur || {}), name: ROSTER[e.key].name, stand: ROSTER[e.key].standName, hp: Math.round(b.hp), hpMax: b.hpMax, phase: e.brain.phase, phases: e.brain.thresholds.length + 1, color: ROSTER[e.key].color, overwritten: !!b.overwritten, poise } });
     }
     this._pubObjective();
     void g;
