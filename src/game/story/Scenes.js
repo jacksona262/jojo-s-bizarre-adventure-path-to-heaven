@@ -102,7 +102,7 @@ export async function conversation(seq, a, b, lines) {
 // Heaven's Reach, the same night: Jotaro on the last Seal with Speedwagon at his back, looking
 // south down the valley. Then a smash cut to DIO alone on the south road, his aura climbing into
 // the storm. Leaves the screen black, the player hidden at the road and no extra actors behind.
-async function coldOpen(game, seq, { player }) {
+export async function coldOpen(game, seq, { player }) {
   const fx = game.engine.fx;
   const ground = (x, z, h = 0) => V(x, game.world.groundAt(x, z, heightAt(x, z) + 3) + h, z);
   const say = (line, dur = null) => { const sp = SPEAKERS[line[0]]; return seq.say(sp.name, line[1], dur, sp.color); };
@@ -202,8 +202,10 @@ async function coldOpen(game, seq, { player }) {
     while (auraOn && !seq.skipping) {
       const c = player.chestWorld(new THREE.Vector3());
       glow.position.copy(c).add(V(0, 0.4, 0));
-      glow.intensity = 9 + Math.sin(n * 0.9) * 3;
-      game.vfx.aura(c, n % 3 === 2 ? 0xff3a20 : 0xffc23a, 0.55, true);
+      glow.intensity = 14 + Math.sin(n * 0.9) * 4;
+      game.vfx.aura(c, n % 3 === 2 ? 0xff3a20 : 0xffc23a, 0.8, true);
+      // heat shimmer climbing off his shoulders
+      for (let i = 0; i < 6; i += 1) game.vfx.glow.emit(c.clone().add(V((Math.random() - 0.5) * 0.9, 0.2 + Math.random() * 0.6, (Math.random() - 0.5) * 0.5)), V(0, 2.5 + Math.random() * 2, 0), new THREE.Color(n % 2 ? 0xffd34d : 0xff6a20), 0.7, 0.28, 0.04, 0.9, { free: true, drag: 0.6 });
       if (n % 7 === 0) game.vfx.menacing(c.clone().add(V(0, 0.6, 0)), 'ゴ', 2, '#ffd34d');
       n += 1;
       await new Promise((r) => setTimeout(r, 140));
@@ -214,11 +216,12 @@ async function coldOpen(game, seq, { player }) {
     audio.play('thunder', { distance: 0.2 });
     // from behind and below: DIO against the storm and the long road north
     const back = player.pos.clone();
-    seq.cut(back.clone().add(V(0.5, 0.55, 2.4)), back.clone().add(V(0, 2.4, -14)), 40);
+    // shoulder-high from behind, his whole silhouette against the lightning and the road north
+    seq.cut(back.clone().add(V(0.7, 1.15, 3.6)), back.clone().add(V(0, 1.6, -12)), 42);
     fx.uFade.value = 0;
     seq.flash(0xffffff, 0.9, 0.3);
     seq.lightning(back.clone().add(V(-40, 0, -260)), true);
-    seq.shot({ from: back.clone().add(V(0.5, 0.55, 2.4)), to: back.clone().add(V(0.35, 0.75, 1.7)), look: back.clone().add(V(0, 2.4, -14)), dur: 4, fov: 40, fovTo: 37, ease: 'linear' });
+    seq.shot({ from: back.clone().add(V(0.7, 1.15, 3.6)), to: back.clone().add(V(0.5, 1.3, 2.9)), look: back.clone().add(V(0, 1.6, -12)), lookTo: back.clone().add(V(0, 1.75, -12)), dur: 4, fov: 42, fovTo: 38, ease: 'linear' });
     audio.play('heartbeat');
     await seq.wait(2.2);
     await say(COLD_OPEN.dio[0], 3.4);
