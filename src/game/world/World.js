@@ -567,11 +567,16 @@ export class World {
   }
 
   // ---------------------------------------------------------- lights
+  // A fixed number of point lights (the quality preset's maxLights), always in the scene. Unused
+  // ones sit at intensity 0 rather than being hidden: changing the visible light count forces
+  // every lit material to recompile, which caused 100+ ms hitches while travelling (V2 audit).
   _buildLightPool(n) {
+    for (const l of this.pool || []) l.removeFromParent();
     this.pool = [];
-    for (let i = 0; i < 10; i += 1) {
+    for (let i = 0; i < n; i += 1) {
       const l = new THREE.PointLight(0xffa040, 0, 18, 1.6);
       l.castShadow = false;
+      l.position.set(0, -500, 0);
       this.scene.add(l);
       this.pool.push(l);
     }
@@ -596,8 +601,7 @@ export class World {
     for (let i = 0; i < this.pool.length; i += 1) {
       const pl = this.pool[i];
       const l = act[i];
-      if (!l || i >= this.poolSize) { pl.intensity = 0; pl.visible = false; continue; }
-      pl.visible = true;
+      if (!l || i >= this.poolSize) { pl.intensity = 0; continue; }
       pl.position.set(l.x, l.y, l.z);
       pl.color.setHex(l.color);
       const fl = l.flicker ? (0.88 + Math.sin(this.time * 13 + l.x) * 0.06 + Math.sin(this.time * 31 + l.z) * 0.05 * l.flicker) : 1;
@@ -608,7 +612,7 @@ export class World {
 
   onQuality(s) {
     this.quality = s;
-    this.poolSize = s.maxLights;
+    if (s.maxLights !== this.pool?.length) this._buildLightPool(s.maxLights);
     this.grassKey = '';
     this.grassCells.clear();
   }
