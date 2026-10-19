@@ -70,6 +70,57 @@ export class HumanoidRig {
     this._Rupper = new THREE.Quaternion();
     this._Rlower = new THREE.Quaternion();
     this.valid = !!(this.bones.upperArmL || this.bones.thighL);
+    this._computeTorsoCorrection();
+    this.groundY = 0;
+  }
+
+  // Several supplied rigs are bound in action poses (The World, Valentine, D4C, Giorno...).
+  // Build per-joint corrections so an identity torso pose means upright and facing +Z.
+  _computeTorsoCorrection() {
+    this.C = {};
+    const P = (j) => (this.bind[j] ? this.bind[j].pos : null);
+    const sub = (a, b) => (a && b ? a.clone().sub(b) : null);
+    const leftHips = sub(P('thighL'), P('thighR')) || new THREE.Vector3(1, 0, 0);
+    const leftChest = sub(P('upperArmL'), P('upperArmR')) || sub(P('clavL'), P('clavR')) || leftHips.clone();
+    const chain = ['hips', 'spine', 'spine2', 'chest', 'neck', 'head'].filter((j) => this.bind[j]);
+    const basis = (left, up) => {
+      const u = up.clone().normalize();
+      const l = left.clone().addScaledVector(u, -left.dot(u)).normalize();
+      const f = new THREE.Vector3().crossVectors(l, u).normalize();
+      const m = new THREE.Matrix4().makeBasis(l, u, f);
+      return new THREE.Quaternion().setFromRotationMatrix(m);
+    };
+    for (let i = 0; i < chain.length; i += 1) {
+      const j = chain[i];
+      let up;
+      if (i < chain.length - 1) up = sub(P(chain[i + 1]), P(j));
+      else up = sub(P(j), P(chain[i - 1] || j));
+      if (!up || up.lengthSq() < 1e-8) up = new THREE.Vector3(0, 1, 0);
+      const left = (j === 'hips' || j === 'spine') ? leftHips : leftChest;
+      const B = basis(left, up);
+      // correction maps the bind basis onto canonical axes: C = I * B^-1
+      const C = B.clone().invert();
+      // Ignore tiny corrections so upright rigs stay exactly as authored.
+      if (2 * Math.acos(Math.min(1, Math.abs(C.w))) < 0.12) C.identity();
+      this.C[j] = C;
+    }
+  }
+
+  // Measure how far the rest pose puts the soles below/above y=0 and compensate.
+  calibrateGround(pose) {
+    this.groundY = 0;
+    this.apply(pose);
+    this.root.updateMatrixWorld(true);
+    const inv = new THREE.Matrix4().copy(this.root.matrixWorld).invert();
+    let minY = Infinity;
+    this.root.traverse((o) => {
+      if (!o.isSkinnedMesh) return;
+      o.computeBoundingBox();
+      const b = o.boundingBox.clone().applyMatrix4(o.matrixWorld).applyMatrix4(inv);
+      minY = Math.min(minY, b.min.y);
+    });
+    if (Number.isFinite(minY)) this.groundY = -minY;
+    return this.groundY;
   }
 
   // Set a bone so that its model-space orientation equals M.
@@ -123,7 +174,9 @@ export class HumanoidRig {
       if (key && pose[key]) accQ.multiply(qFromArr(pose[key], _q));
       this.D[j].copy(accQ);
       if (this.bones[j]) {
-        _q.copy(accQ).multiply(this.bind[j].model);
+        _q.copy(accQ);
+        if (this.C[j]) _q.multiply(this.C[j]);
+        _q.multiply(this.bind[j].model);
         this._setModel(j, _q);
       }
     }
@@ -132,6 +185,7 @@ export class HumanoidRig {
       const clav = `clav${side}`;
       if (this.bones[clav]) {
         _q.copy(acc);
+        if (this.C.chest) _q.multiply(this.C.chest);
         const sh = pose[`clav${side}`];
         if (sh) _q.multiply(qFromArr(sh, new THREE.Quaternion()));
         _q.multiply(this.bind[clav].model);
@@ -142,7 +196,7 @@ export class HumanoidRig {
     for (const side of ['L', 'R']) {
       this._limb(`thigh${side}`, `shin${side}`, `foot${side}`, pose[`th${side}`], pose[`sh${side}`], this.D.hips, 'level');
     }
-    root.position.y = pose.rootY || 0;
+    root.position.y = this.groundY + (pose.rootY || 0);
   }
 
   // World position of a joint (for hitboxes, VFX anchors).
