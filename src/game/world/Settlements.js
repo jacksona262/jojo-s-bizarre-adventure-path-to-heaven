@@ -177,6 +177,9 @@ function ebon(ctx) {
   streetDressing(ctx, 80, -110);
   for (const [dz, side, ry, br] of [[18, 4.2, 0.2, false], [-22, -5, 2.8, true], [-74, 4.8, 1.2, false], [96, -6, 0.5, true]]) wagon(b, ctx.frame(dz, side, 'north'), 0, 0, ry, br);
   signPost(b, ctx.frame(118, 6, 'south'), 0, 0, 'EBON CROSSING');
+  // the derelict spur line that once served the town
+  trackAlong(ctx, 190, -150, 31);
+  storefront(b, ctx.frame(140, 40, 'road'), { w: 7, d: 8, sign: 'EBON DEPOT', wall: 'woodGrey', rng });
   signPost(b, ctx.frame(-150, 6, 'north'), 0, 0, "HEAVEN'S REACH 7 MI");
   // fences out of town
   for (const s of [-1, 1]) fenceRun(b, ctx.frame(105, s * 9, 'north'), 0, 0, 30, Math.PI / 2, 0.15, rng);
