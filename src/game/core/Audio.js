@@ -60,6 +60,8 @@ class AudioEngine {
     this.brown = this._noiseBuffer('brown');
     this._startAmbience();
     this.applyVolumes();
+    // a region entered before the first user gesture gets its soundscape now
+    if (this.region) { const r = this.region; this.region = null; this.setRegion(r); }
   }
 
   applyVolumes(v) {
