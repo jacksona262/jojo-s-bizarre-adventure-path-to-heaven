@@ -10,7 +10,15 @@ const VERSION = 1;
 // Dev / QA sessions (chapter jumps, ?step=...) keep their journey in a separate namespace so they
 // can never overwrite a player's real saves. Settings are shared.
 let sandbox = false;
-const ns = (k) => (sandbox && k.startsWith('save.') ? `${KEY}.dev.${k}` : `${KEY}.${k}`);
+// Signed-in players keep their saves (and run ledgers) under their own account namespace, so two
+// accounts on one browser never mix and guest saves stay untouched; settings are per device.
+let account = null;
+const perPlayer = (k) => k.startsWith('save.') || k.startsWith('run.') || k.startsWith('versus') || k.startsWith('meta.');
+const ns = (k) => {
+  if (sandbox && perPlayer(k)) return `${KEY}.dev.${k}`;
+  if (account && perPlayer(k)) return `${KEY}.u.${account}.${k}`;
+  return `${KEY}.${k}`;
+};
 
 function read(k) {
   try { const s = localStorage.getItem(ns(k)); return s ? JSON.parse(s) : null; } catch { return null; }
@@ -59,8 +67,23 @@ export function newProgress() {
 
 export const Save = {
   slots: ['auto', 'slot1', 'slot2', 'slot3'],
+  onSaved: null,          // set by the cloud layer: called after every local save
   setSandbox(on) { sandbox = !!on; },
   get sandboxed() { return sandbox; },
+  setAccount(id) { account = id || null; },
+  get account() { return account; },
+  // raw access for the cloud layer (no migration)
+  raw(k) { return read(k); },
+  writeRaw(k, v) { return write(k, v); },
+  removeRaw(k) { remove(k); },
+  // guest (signed-out, non-dev) saves, for importing into an account
+  guestSaves() {
+    const out = [];
+    for (const slot of this.slots) {
+      try { const v = JSON.parse(localStorage.getItem(`${KEY}.save.${slot}`) || 'null'); if (isSave(v)) out.push({ slot, data: migrate(v) }); } catch { /* ignore */ }
+    }
+    return out;
+  },
   load(slot) {
     const d = readSave(slot);
     return d ? migrate(d) : null;
@@ -69,7 +92,9 @@ export const Save = {
     const prev = read(`save.${slot}`);
     if (isSave(prev)) write(`save.${slot}.bak`, prev);
     const d = { ...progress, version: VERSION, savedAt: Date.now() };
-    return write(`save.${slot}`, d);
+    const ok = write(`save.${slot}`, d);
+    if (ok && !sandbox) this.onSaved?.(slot, d);
+    return ok;
   },
   remove(slot) { remove(`save.${slot}`); remove(`save.${slot}.bak`); },
   list() {
