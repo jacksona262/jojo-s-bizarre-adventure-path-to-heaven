@@ -15,6 +15,9 @@ import { Beacon } from '../vfx/Beacon';
 import * as Poses from '../anim/Poses';
 import { Restorable } from '../combat/kits/Diamond';
 import { READ_PACE } from './Sequencer';
+import { LORE } from './Lore';
+import { RunClock, newRun, reconcileRun, registerRun, submitRun, unlockAchievement, statAdd, statUnion, MAIN_BOSSES, SIDE_QUESTS } from '../online/Progress';
+import { Account } from '../online/Account';
 
 export const STEPS = [
   { id: 'prologue', chapter: 'Prologue: The Last Night' },
@@ -72,6 +75,22 @@ export class Campaign {
   // ---------------------------------------------------------------- startup
   async start(fresh) {
     const g = this.game;
+    // ---- the official run (timer starts the moment New Game is confirmed)
+    const dev = Save.sandboxed || !!g.dev || /[?&](qa|step|upgrades|prof)\b/.test(window.location.search);
+    const difficulty = g.settings?.difficulty || 'normal';
+    if (fresh) {
+      this.p.run = newRun({ difficulty, ng: this.p.ng || 0, dev });
+      registerRun(this.p.run, 'story');
+    } else if (!this.p.run) {
+      this.p.run = newRun({ difficulty, ng: this.p.ng || 0, dev });
+      this.p.run.legacy = true;           // began before timed runs existed: tracked but unranked
+    } else {
+      reconcileRun(this.p.run);
+      if (dev) this.p.run.dev = true;
+      if (!this.p.run.serverId && !this.p.run.legacy && !this.p.run.done && (this.p.run.storyMs || 0) < 5000) registerRun(this.p.run, 'story');
+    }
+    this._totalAtStart = this.p.totalMs || 0;
+    this.clock = new RunClock(() => (this.game.mode === this ? this.p : null));
     // a save made before chapters were added or reordered still resumes at the right beat
     if (this.p.stepId && STEPS[this.p.step]?.id !== this.p.stepId) {
       const i = STEPS.findIndex((s) => s.id === this.p.stepId);
@@ -111,7 +130,50 @@ export class Campaign {
     audio.setWeather(1, 0.8);
     if (this.p.hp) this.player.hp = Math.min(this.player.hpMax, this.p.hp);
     this.enterStep(this.p.step, { fresh });
+    this.spawnLore();
     if (STEPS[this.p.step]?.id !== 'prologue') g.fadeIn(1.0);
+  }
+
+  // ---------------------------------------------------------------- lore pages (optional)
+  spawnLore() {
+    const g = this.game;
+    this.loreItems = [];
+    const found = new Set(this.p.lore || []);
+    const mat = new THREE.MeshBasicMaterial({ color: 0xfff0c0, transparent: true, opacity: 0.95, side: THREE.DoubleSide });
+    const glowMat = new THREE.MeshBasicMaterial({ color: 0xffc860, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false });
+    for (const L of LORE) {
+      if (found.has(L.id)) continue;
+      const poi = resolvePOI(L.poi);
+      if (!poi) continue;
+      const x = poi.x + L.off[0]; const z = poi.z + L.off[1];
+      const y = heightAt(x, z);
+      const page = new THREE.Mesh(new THREE.PlaneGeometry(0.32, 0.42), mat);
+      const glow = new THREE.Mesh(new THREE.SphereGeometry(0.45, 10, 8), glowMat);
+      page.add(glow);
+      page.position.set(x, y + 1.1, z);
+      g.engine.scene.add(page);
+      const it = {
+        id: `lore_${L.id}`, x, y, z, radius: 1.4, label: 'Read the torn page', priority: true, busy: false,
+        available: () => !(this.p.lore || []).includes(L.id),
+        onInteract: () => this.readLore(L),
+      };
+      g.world.addInteractable(it);
+      this.loreItems.push({ L, page, it });
+    }
+  }
+
+  readLore(L) {
+    const g = this.game;
+    if ((this.p.lore || []).includes(L.id)) return;
+    this.p.lore = [...(this.p.lore || []), L.id];
+    statUnion('lore', L.id);
+    const item = this.loreItems?.find((o) => o.L.id === L.id);
+    if (item) { item.page.removeFromParent(); g.world.removeInteractable(item.it.id); }
+    audio.play('quest');
+    ui.set({ lorePage: { ...L, n: this.p.lore.length, total: LORE.length } });
+    g.openOverlay('lore');
+    if (this.p.lore.length >= LORE.length) unlockAchievement('lore_all');
+    this.autosave(true);
   }
 
   async loadPlayer(heaven = false) {
@@ -119,6 +181,9 @@ export class Campaign {
     if (this.player) { g.removeActor(this.player); }
     const f = await createFighter(g, heaven ? 'dioHeaven' : 'dio', { team: 0 });
     f.isPlayer = true;
+    if (heaven) unlockAchievement('heaven');
+    // a blow landing during a boss fight spoils the no-damage record for that fight
+    f.onDamaged = (dmg) => { if (this.encounter && dmg > 0) this.encounter.hurt = true; };
     this.player = f;
     g.player = f;
     g.addActor(f);
@@ -188,6 +253,12 @@ export class Campaign {
 
   completeStep(extra = {}) {
     const g = this.game;
+    const done = STEPS[this.p.step];
+    if (done?.quest) {
+      this.p.questsDone = [...new Set([...(this.p.questsDone || []), done.quest])];
+      statUnion('side_quests', done.quest);
+      if (SIDE_QUESTS.every((q) => this.p.questsDone.includes(q))) unlockAchievement('side_all');
+    }
     this.h?.dispose?.();
     this.h = null;
     const next = this.p.step + 1;
@@ -262,7 +333,8 @@ export class Campaign {
 
   autosave(force = false) {
     if (!force && (this.game.inCinematic || this.game.combatActive)) return false;
-    const ok = Save.save('auto', this.snapshot());
+    // New Game+ keeps its own checkpoint so the completed journey's checkpoint is never replaced
+    const ok = Save.save(this.p.ng > 0 ? 'ngplus' : 'auto', this.snapshot());
     if (ok) ui.set({ saving: Date.now() });
     return ok;
   }
@@ -336,6 +408,7 @@ export class Campaign {
             journal.enabled = false;
             await g.seq.run((seq) => journalCinematic(g, seq, { player: this.player, journalPos: lo.desk }));
             sub.stage = 'stand';
+            unlockAchievement('the_world');
             this.addClue('A journal in DIO\'s own handwriting: "You have already won. Walk north."');
             this.autosave(true);
             setup();
@@ -546,6 +619,17 @@ export class Campaign {
     const e = this.encounter;
     if (!e || e.done) return;
     e.done = true;
+    {
+      const key = e.step.final ? 'jotaroFinal' : e.key;
+      const run = this.p.run;
+      if (run && !run.done && run.splits[key] === undefined) run.splits[key] = Math.round(run.storyMs);
+      statUnion('bosses', key);
+      unlockAchievement('first_seal');
+      if (!e.hurt) unlockAchievement('untouched');
+      const beaten = new Set([...(this.p.defeated || []), e.key, ...(Account.profile?.stats?.bosses || [])]);
+      if (MAIN_BOSSES.every((b) => beaten.has(b))) unlockAchievement('ten_seals');
+      if (e.step.final && run && !run.done) { run.done = true; run.finishMs = Math.round(run.storyMs); this.clock?.writeLedger(); }
+    }
     e.brain.enabled = false;
     g.combatActive = false;
     ui.set({ boss: null });
@@ -582,6 +666,8 @@ export class Campaign {
     const g = this.game;
     if (this.dead) return;
     this.dead = true;
+    if (this.p.run && !this.p.run.done) this.p.run.deaths = (this.p.run.deaths || 0) + 1;
+    statAdd('deaths');
     g.slowMo(0.3, 1.5);
     audio.play('stinger');
     setTimeout(() => {
@@ -799,9 +885,64 @@ export class Campaign {
     this.completeStep();
   }
 
+  // Campaign complete: record the official time, update the profile and the Hall of Fame, and
+  // show the results before the credits.
+  async showRunResults() {
+    const g = this.game;
+    const run = this.p.run;
+    if (!run || this._resultsShown) return;
+    this._resultsShown = true;
+    if (!run.done) { run.done = true; run.finishMs = Math.round(run.storyMs); }
+    unlockAchievement('story');
+    const lore = (this.p.lore || []).length;
+    const full = lore >= LORE.length;
+    const finish = run.finishMs;
+    const diff = run.difficulty;
+    const keyAny = `story:any:${diff}`;
+    const prevPb = Account.profile?.bests?.[keyAny]?.ms ?? (Save.raw(`meta.pb.${keyAny}`)?.ms ?? null);
+    const isPb = !run.legacy && !run.dev && (prevPb === null || finish < prevPb);
+    if (isPb) Save.writeRaw(`meta.pb.${keyAny}`, { ms: finish, at: Date.now() });
+    if (!run.legacy && !run.dev) {
+      Account.recordBest(keyAny, finish);
+      if (full) Account.recordBest(`story:100:${diff}`, finish);
+      Account.updateProfile((pr) => {
+        pr.stats.completions = (pr.stats.completions || 0) + 1;
+        pr.stats.runs = (pr.stats.runs || 0) + 1;
+        if (!pr.stats.fastest_ms || finish < pr.stats.fastest_ms) pr.stats.fastest_ms = finish;
+        pr.stats.last_run = { ms: finish, at: Date.now(), difficulty: diff, deaths: run.deaths };
+      });
+    }
+    const res = {
+      storyMs: finish, totalMs: this.p.totalMs || 0, bosses: Object.keys(run.splits || {}).length, sideQuests: (this.p.questsDone || []).length,
+      deaths: run.deaths || 0, difficulty: diff, lore, loreTotal: LORE.length, prevPb, isPb, legacy: run.legacy, dev: run.dev, submit: 'pending', rank: null,
+    };
+    ui.set({ runResults: res, overlay: 'runResults' });
+    g.overlayOpen = true;
+    g.input.setPointerLock(false);
+    // submit (Any%, and 100% when every lore page was found)
+    if (!run.submitted) {
+      const extra = { bosses: res.bosses, lore, playtime_ms: Math.round(res.totalMs) };
+      const r1 = await submitRun(run, { category: 'any', extra });
+      if (r1.ok && full) await submitRun(run, { category: '100', extra });
+      if (r1.ok) { run.submitted = true; this.autosave(true); }
+      ui.set({ runResults: { ...ui.get().runResults, submit: r1.ok ? 'ok' : r1.reason } });
+      if (r1.ok) {
+        try {
+          const { rankOf } = await import('../online/Leaderboard');
+          const rank = await rankOf('any', diff, Account.id);
+          ui.set({ runResults: { ...ui.get().runResults, rank } });
+        } catch { /* rank is optional */ }
+      }
+    }
+    await new Promise((resolve) => { this._resultsDone = resolve; });
+    ui.set({ overlay: null, runResults: null });
+    g.overlayOpen = false;
+  }
+
   async endingStep() {
     const g = this.game;
     this.autosave(true);
+    await this.showRunResults();
     g.engine.fx.uFade.value = 1;
     audio.setMusic('credits');
     ui.set({ screen: 'credits', hud: null, boss: null, objective: null });
@@ -845,6 +986,11 @@ export class Campaign {
 
   dispose() {
     const g = this.game;
+    if (this.clock) { this.clock.stop(); this.clock = null; }
+    statAdd('playtime_ms', Math.max(0, Math.round((this.p?.totalMs || 0) - (this._totalAtStart || 0))));
+    Account.flush();
+    for (const o of this.loreItems || []) { o.page.removeFromParent(); g.world?.removeInteractable(o.it.id); }
+    this.loreItems = [];
     this.h?.dispose?.();
     this.endEncounter();
     this.removeBeacon();
