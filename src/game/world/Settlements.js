@@ -522,7 +522,9 @@ function rift(ctx) {
 function heavenRegion(ctx) {
   const { b, rng } = ctx;
   // The Thousand Steps: stone stairs lining the climb, with lanterns
+  const chasmDz = GULCHES.find((q) => q.id === 'heavenChasm').dz;
   for (let dz = 560; dz > 160; dz -= 3) {
+    if (Math.abs(dz - chasmDz) < 23) continue;     // the bridge spans the chasm here
     const p = ctx.at(dz, 0);
     const f = new Frame(p.x, heightAt(p.x, p.z) - 0.15, p.z, Math.atan2(p.t.x, p.t.z));
     b.box('gothic', f, 0, 0, 0, 9, 0.35, 3.1, 0, 0, 0, 2);

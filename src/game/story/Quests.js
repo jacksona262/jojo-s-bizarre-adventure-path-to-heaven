@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { ui, toast } from '../core/Store';
 import { audio } from '../core/Audio';
-import { resolvePOI, roadX, heightAt, GULCHES } from '../world/Terrain';
+import { resolvePOI, roadX, heightAt, GULCHES, chasmBridge } from '../world/Terrain';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { REGIONS } from '../world/Layout';
 import { QUESTS } from './Script';
 import { conversation, sayLines } from './Scenes';
@@ -655,25 +656,53 @@ async function q9(c) {
   const g = c.game;
   const Q = QUESTS.q9;
   const ch = g.world.chasm || (() => { const gl = GULCHES.find((q) => q.id === 'heavenChasm'); return { x: gl.x, z: gl.z, y: gl.deckY, rot: 0 }; })();
-  const southEdge = V(ch.x, ch.y, ch.z + 38);
-  const northEdge = V(ch.x, ch.y, ch.z - 38);
+  const br = chasmBridge();
+  const S = V(br.S.x, br.S.y, br.S.z); const N = V(br.N.x, br.N.y, br.N.z);
+  const along = N.clone().sub(S).setY(0).normalize();           // south rim -> north rim
+  const side = V(along.z, 0, -along.x);
+  const onRoad = (dz, lateral = 0) => { const z = ch.z + dz; const x = roadX(z); const p = V(x, 0, z).addScaledVector(side, lateral); p.y = g.world.groundAt(p.x, p.z, heightAt(p.x, p.z) + 3); return p; };
+  const southEdge = onRoad(28);        // where Speedwagon and Enya wait, on solid ground
+  const northEdge = onRoad(-25);
   const stairs = poiPos('sanctuaryStair', 140);
   c.objective(Q.title, 'Climb the Thousand Steps toward Heaven\'s Reach.', southEdge);
-  const sw = await g.spawnNPC('speedwagon', southEdge.clone().add(V(-2.5, 0, -1)), Math.PI, { name: 'Speedwagon' });
-  const enya = await g.spawnNPC('enya', southEdge.clone().add(V(2.5, 0, -1.2)), Math.PI, { name: 'Enya', style: 'old' });
+  const sw = await g.spawnNPC('speedwagon', onRoad(30, -2.4), 0, { name: 'Speedwagon' });
+  const enya = await g.spawnNPC('enya', onRoad(30.5, 2.4), 0, { name: 'Enya', style: 'old' });
   enya.idlePose = (t) => Poses.idle(t, 'old');
-  // bridge planks across the chasm (dynamic: they fall once the crossing begins)
+  // The bridge: ten timber segments from rim to rim (deck of three boards on two stringers, a
+  // cross-beam, posts and rope rails). Each segment is one merged mesh per material and falls as a
+  // unit once the crossing begins; each has its own sloped walkable platform.
+  const wood = g.world.bank.get('floor'); const dark = g.world.bank.get('woodDark'); const rope = g.world.bank.get('cloth');
+  const n = br.segments; const L = br.len / n; const W = br.width;
+  const yAt = (t) => br.S.y + (br.N.y - br.S.y) * t + 0.08;
+  const segGeo = (() => {
+    const parts = { wood: [], dark: [], rope: [] };
+    const box = (arr, w, h, d, x, y, z) => { const geo = new THREE.BoxGeometry(w, h, d); geo.translate(x, y, z); arr.push(geo); };
+    for (const x of [-1.3, 0, 1.3]) box(parts.wood, 1.22, 0.12, L - 0.12, x + (Math.random() - 0.5) * 0.02, 0, 0);
+    for (const x of [-1.55, 1.55]) box(parts.dark, 0.26, 0.32, L, x, -0.22, 0);
+    box(parts.dark, W, 0.22, 0.3, 0, -0.42, -L / 2 + 0.2);
+    for (const x of [-W / 2 + 0.1, W / 2 - 0.1]) {
+      box(parts.dark, 0.16, 1.15, 0.16, x, 0.55, -L / 2 + 0.1);
+      const r = new THREE.CylinderGeometry(0.035, 0.035, L, 5); r.rotateX(Math.PI / 2); r.translate(x, 1.02, 0); parts.rope.push(r);
+      const r2 = new THREE.CylinderGeometry(0.03, 0.03, L, 5); r2.rotateX(Math.PI / 2); r2.translate(x, 0.55, 0); parts.rope.push(r2);
+    }
+    return { wood: mergeGeometries(parts.wood), dark: mergeGeometries(parts.dark), rope: mergeGeometries(parts.rope) };
+  })();
   const planks = [];
-  const plankMat = g.world.bank.get('floor');
-  for (let i = 0; i < 17; i += 1) {
-    const z = ch.z + 34 - i * 4.25;
-    const m = new THREE.Mesh(new THREE.BoxGeometry(4, 0.25, 4.1), plankMat);
-    m.position.set(ch.x, ch.y - 0.15, z);
-    m.castShadow = true; m.receiveShadow = true;
+  const place = (p) => {
+    p.m.position.set(...p.home); p.m.rotation.set(-br.pitch, br.yaw, 0, 'YXZ');
+    p.pl = g.world.addPlatform({ x: p.home[0], z: p.home[2], hw: W / 2 - 0.05, hd: L / 2 + 0.02, rot: br.yaw, y: yAt(p.t0), y1: yAt(p.t1) });
+  };
+  for (let i = 0; i < n; i += 1) {
+    const t0 = i / n; const t1 = (i + 1) / n; const tm = (t0 + t1) / 2;
+    const m = new THREE.Group();
+    for (const [geo, mat] of [[segGeo.wood, wood], [segGeo.dark, dark], [segGeo.rope, rope]]) { const mesh = new THREE.Mesh(geo, mat); mesh.castShadow = true; mesh.receiveShadow = true; m.add(mesh); }
+    const home = [S.x + (N.x - S.x) * tm, yAt(tm) - 0.06, S.z + (N.z - S.z) * tm];
+    const p = { m, pl: null, t0, t1, home, fall: -1, vy: 0, spin: (Math.random() - 0.5) * 1.6 };
     g.engine.scene.add(m);
-    const pl = g.world.addPlatform({ x: ch.x, z, hw: 2, hd: 2.1, rot: 0, y: ch.y - 0.02 });
-    planks.push({ m, pl, z, fall: -1, vy: 0 });
+    place(p);
+    planks.push(p);
   }
+  const lowest = Math.min(br.S.y, br.N.y);
   let state = 'climb';
   let collapseT = 0;
   return {
@@ -705,17 +734,18 @@ async function q9(c) {
         const front = Math.floor(collapseT * 1.0);
         planks.forEach((p, i) => {
           if (i < front && p.fall < 0) { p.fall = 0; g.world.removePlatform(p.pl); audio.play('heavyHit', { power: 0.3 }); }
-          if (p.fall >= 0 && !g.time.stopped) { p.vy -= 20 * dt; p.m.position.y += p.vy * dt; p.m.rotation.x += dt * 0.8; p.fall += dt; }
+          if (p.fall >= 0 && !g.time.stopped && p.fall < 6) { p.vy -= 20 * dt; p.m.position.y += p.vy * dt; p.m.rotation.x += dt * 0.8; p.m.rotation.z += dt * p.spin; p.fall += dt; }
         });
-        if (pl.pos.y < ch.y - 6) {
+        if (pl.pos.y < lowest - 6) {
           pl.pos.copy(southEdge); pl.vel.set(0, 0, 0);
           g.combat.applyHit(pl, sw, { damage: 18, stun: 0.3, kind: 'special', unblockable: true, noCounter: true });
           // rebuild the bridge for another attempt
-          planks.forEach((p) => { if (p.fall >= 0) { p.fall = -1; p.vy = 0; p.m.position.y = ch.y - 0.15; p.m.rotation.x = 0; p.pl = g.world.addPlatform({ x: ch.x, z: p.z, hw: 2, hd: 2.1, rot: 0, y: ch.y - 0.02 }); } });
+          planks.forEach((p) => { if (p.fall >= 0) { p.fall = -1; p.vy = 0; place(p); } });
           collapseT = -2.5;
           toast('The bridge knits itself back together. Again.');
         }
-        if (pl.pos.z < northEdge.z + 2) {
+        // across once past the north rim (measured along the bridge)
+        if (pl.pos.clone().sub(N).setY(0).dot(along) > 2) {
           state = 'done';
           c.completeStep();
         }
@@ -724,6 +754,7 @@ async function q9(c) {
     dispose() {
       g.removeActor(sw); g.removeActor(enya);
       for (const p of planks) { p.m.removeFromParent(); if (p.fall < 0) g.world.removePlatform(p.pl); }
+      for (const geo of Object.values(segGeo)) geo.dispose();
       g.horseForbidden = false;
       void stairs;
     },
