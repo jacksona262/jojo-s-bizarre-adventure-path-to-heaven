@@ -72,7 +72,7 @@ export function newProgress() {
 }
 
 export const Save = {
-  slots: ['auto', 'slot1', 'slot2', 'slot3'],
+  slots: ['auto', 'slot1', 'slot2', 'slot3', 'ngplus'],
   onSaved: null,          // set by the cloud layer: called after every local save
   setSandbox(on) { sandbox = !!on; },
   get sandboxed() { return sandbox; },
