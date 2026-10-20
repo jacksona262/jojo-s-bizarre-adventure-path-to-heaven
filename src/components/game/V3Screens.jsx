@@ -398,3 +398,14 @@ export function RunTimerHud() {
   if (!show || !run) return null;
   return <div className={`v3-runtimer ${run.done ? 'done' : ''}`}>{formatRunTime(run.done ? run.finishMs : run.storyMs)}</div>;
 }
+
+export function ChallengeHud() {
+  const c = useUI((s) => s.challenge);
+  if (!c) return null;
+  return (
+    <div className="v3-runtimer v3-chal">
+      <b>{formatRunTime(c.timer)}</b>
+      <span>{c.rush ? `Seal ${c.index + 1} / ${c.count} · ` : ''}Deaths {c.deaths}{c.mods?.nohit ? ' · No-hit' : ''}{c.mods?.limitTs ? ' · 2 time stops' : ''}{c.mods?.aggro ? ' · Aggressive' : ''}</span>
+    </div>
+  );
+}

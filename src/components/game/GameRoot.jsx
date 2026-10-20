@@ -12,7 +12,7 @@ import VersusSelect from './VersusSelect';
 import OnlineLobby from './OnlineLobby';
 import DevPanel from './DevPanel';
 import { PauseMenu, SettingsPanel, Journal, RegionMap, Upgrades, Saves, Death, Results, ChoiceNav } from './Overlays';
-import { UsernameGate, GuestImport, ProfilePanel, HallOfFame, RunResults, LorePage, ChallengeMenu, ChallengeResults, AchievementToast, CloudBadge, RunTimerHud } from './V3Screens';
+import { UsernameGate, GuestImport, ProfilePanel, HallOfFame, RunResults, LorePage, ChallengeMenu, ChallengeResults, AchievementToast, CloudBadge, RunTimerHud, ChallengeHud } from './V3Screens';
 
 function Loading() {
   const l = useUI((s) => s.loading);
@@ -124,6 +124,7 @@ export default function GameRoot() {
       </div>
       {game && dev && (screen === 'game' || screen === 'versus') && <div className="pth-ui"><DevPanel /></div>}
       {game && screen === 'game' && <RunTimerHud />}
+      {game && screen === 'versus' && <ChallengeHud />}
       {game && <AchievementToast />}
       {game && <CloudBadge />}
       {(screen === 'boot' || screen === 'loading') && <Loading />}

@@ -209,6 +209,7 @@ export default function Hud() {
           <div className="pth-bosscard-stand">「{bossCard.stand}」</div>
         </div>
       )}
+      {letterbox && window.__game?.settings?.allowSkip !== false && window.__game?.seq?.skippable && <div className="pth-skip">{keys.skip} · SKIP</div>}
       {region && !letterbox && <div key={region.id} className="pth-region"><div className="pth-region-name">{region.name}</div><div className="pth-region-blurb">{region.blurb}</div></div>}
       <div className="pth-toasts">{toast && <div key={toast.id} className={`pth-toast ${toast.kind}`}>{toast.text}</div>}</div>
       {clash && (
