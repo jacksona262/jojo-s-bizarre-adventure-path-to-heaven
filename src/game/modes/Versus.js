@@ -7,6 +7,8 @@ import { PlayerController } from '../actors/PlayerController';
 import { resolvePOI, roadX, heightAt, GULCHES } from '../world/Terrain';
 import { SANCTUARY } from '../world/Layout';
 import { RemoteInput, encodeFrame } from '../net/Net';
+import { unlockAchievement, statAdd } from '../online/Progress';
+import { Account } from '../online/Account';
 
 // Standalone duels: against the CPU, or online against another player (sel.online).
 // Uses its own throwaway progress profile; campaign saves are untouched.
@@ -236,6 +238,12 @@ export class VersusMode {
       rec = saved;
     }
     Save.saveVersusRecord(saved);
+    if (!this.sel.dev) {
+      statAdd(won ? 'versus_wins' : 'versus_losses');
+      const mine = this.localIndex === 0 ? this.sel.p1 : this.sel.cpu;
+      Account.updateProfile((p) => { p.fighter_usage[mine] = (p.fighter_usage[mine] || 0) + 1; });
+      if (won) unlockAchievement('versus_win');
+    }
     // the results screen is written from the local player's side
     const me = this.localIndex;
     ui.set({

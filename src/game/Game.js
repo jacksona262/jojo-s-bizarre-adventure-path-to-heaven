@@ -326,6 +326,9 @@ export class Game {
     }
     this.settings = { ...this.settings, ...s };
     const st = this.settings;
+    ui.set({ showRunTimer: !!st.showRunTimer });
+    document.documentElement.style.setProperty('--pth-ui-scale', String(st.uiScale || 1));
+    document.documentElement.style.setProperty('--pth-sub-scale', String(st.subtitleSize || 1));
     this.engine.setQuality(st.quality);
     this._applyRenderDistance();
     if (this.screen) this.screen.level = st.screenFx || 'full';
