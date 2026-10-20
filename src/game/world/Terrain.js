@@ -188,3 +188,19 @@ export function lateralLimit(z) {
   const { a, b, t } = regionBlend(z);
   return lerp(a.corridor, b.corridor, t) + 120;
 }
+
+// The rope bridge over the Heaven chasm (quest "The Last Night's Confession"): a straight span
+// along the road from the south rim to the north rim, resting on the ground at both ends and
+// sloping with the climb (the north rim is higher). Shared by the scenery and the quest.
+let _chasmBridge = null;
+export function chasmBridge() {
+  if (_chasmBridge) return _chasmBridge;
+  const g = GULCHES.find((q) => q.id === 'heavenChasm');
+  if (g.z === undefined) return null;          // terrain not initialised yet
+  const end = (dz) => { const z = g.z + dz; const x = roadX(z); return { x, z, y: heightAt(x, z) }; };
+  const S = end(21); const N = end(-21);
+  const dx = N.x - S.x; const dz = N.z - S.z;
+  const len = Math.hypot(dx, dz);
+  _chasmBridge = { S, N, len, yaw: Math.atan2(dx, dz), pitch: Math.atan2(N.y - S.y, len), segments: 10, width: 4.2, g };
+  return _chasmBridge;
+}

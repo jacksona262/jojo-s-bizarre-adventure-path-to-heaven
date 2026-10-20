@@ -3,7 +3,7 @@ import {
   Batch, Frame, storefront, house, barn, church, waterTower, windmill, cabin, warehouse, station, ruinWall, column, arch,
   lampPost, barrel, crate, wagon, trough, hitchRail, fenceRun, telegraphPole, tombstone, campfire, tent, railTrack, trestle, signPost,
 } from './Architecture';
-import { heightAt, roadX, roadY, resolvePOI, GULCHES, ROAD_HALF } from './Terrain';
+import { heightAt, roadX, roadY, resolvePOI, GULCHES, ROAD_HALF, chasmBridge } from './Terrain';
 import { REGIONS, SPACING } from './Layout';
 import { mulberry, hash2 } from './Noise';
 
@@ -528,11 +528,35 @@ function heavenRegion(ctx) {
     b.box('gothic', f, 0, 0, 0, 9, 0.35, 3.1, 0, 0, 0, 2);
     if (dz % 30 === 0) for (const s of [-5.2, 5.2]) lampPost(b, f, s, 0);
   }
-  // the chasm and its bridge supports (bridge planks are dynamic, see the quest)
+  // the chasm crossing (the bridge deck itself is dynamic, see quest q9): stone abutments sunk
+  // into each rim, gate pillars with lanterns, a gothic arch on the Heaven's Reach side, rocks
+  // along the lip and a pale mist far down in the chasm
   const g = GULCHES.find((q) => q.id === 'heavenChasm');
   const t = tangent(g.z);
   const cf = new Frame(g.x, g.deckY, g.z, Math.atan2(t.x, t.z));
-  for (const z of [-34, 34]) { b.box('gothic', cf, 0, -1, z, 10, 3, 4); }
+  const br = chasmBridge();
+  if (br) {
+    for (const [end, out] of [[br.S, -1], [br.N, 1]]) {
+      // local +z points across the chasm toward the north rim; `out` points away from the gap
+      const f = new Frame(end.x, end.y, end.z, br.yaw);
+      b.box('gothic', f, 0, -1.6, out * 1.6, br.width + 1.6, 3.4, 4.2, 0, 0, 0, 2);   // abutment
+      b.box('stoneDark', f, 0, -0.02, out * 0.9, br.width + 0.4, 0.18, 2.4);          // threshold slab
+      for (const s of [-1, 1]) {
+        column(b, f, s * (br.width / 2 + 0.7), out * 1.8, 3.2, 'gothic');
+        lampPost(b, f, s * (br.width / 2 + 2.2), out * 3.4);
+        // rocks breaking the rim beside the abutment
+        for (let k = 0; k < 3; k += 1) b.box('rock', f, s * (br.width / 2 + 4 + k * 2.6), -0.6 + k * 0.2, out * (0.6 + rng() * 2), 2.2 + rng() * 1.6, 1.6 + rng(), 2 + rng(), rng(), rng() * 3, rng() * 0.4);
+      }
+    }
+    // the arch that frames the last stretch of road up to Heaven's Reach
+    arch(b, new Frame(br.N.x, br.N.y, br.N.z, br.yaw), 0, 7, br.width + 3.4, 5.4);
+    // mist pooled at the bottom of the chasm
+    const mist = new THREE.Mesh(new THREE.PlaneGeometry(220, 34), new THREE.MeshBasicMaterial({ color: 0x9aa8c8, transparent: true, opacity: 0.12, depthWrite: false, fog: true }));
+    mist.rotation.x = -Math.PI / 2;
+    mist.rotation.z = -br.yaw;
+    mist.position.set(g.x, g.deckY - g.depth + 8, g.z);
+    b.extra.push(mist);
+  }
   ctx.world.chasm = { x: g.x, z: g.z, y: g.deckY, rot: cf.rotY, frame: cf };
   for (let i = 0; i < 6; i += 1) ruinWall(b, ctx.frame(500 - i * 70, (i % 2 ? -1 : 1) * 14, 'road'), { w: 6, h: 4, mat: 'gothic', rng });
   signPost(b, ctx.frame(640, 6, 'south'), 0, 0, "HEAVEN'S REACH");
