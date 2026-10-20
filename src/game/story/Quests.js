@@ -725,7 +725,7 @@ async function q9(c) {
         c.addClue('The truth: the journal, the symbol and the voice were all DIO, from after.');
         await talk(c, enya, Q.bridge);
         state = 'cross';
-        collapseT = -2.5;
+        collapseT = -3.5;   // 4.5 s of grace before the first segment drops
         c.objective(Q.title, 'Cross the collapsing bridge. Stop time if you must.', northEdge);
       }
       if (state === 'cross') {
@@ -741,7 +741,7 @@ async function q9(c) {
           g.combat.applyHit(pl, sw, { damage: 18, stun: 0.3, kind: 'special', unblockable: true, noCounter: true });
           // rebuild the bridge for another attempt
           planks.forEach((p) => { if (p.fall >= 0) { p.fall = -1; p.vy = 0; place(p); } });
-          collapseT = -2.5;
+          collapseT = -3.5;   // 4.5 s of grace before the first segment drops
           toast('The bridge knits itself back together. Again.');
         }
         // across once past the north rim (measured along the bridge)
