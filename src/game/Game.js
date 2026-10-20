@@ -19,6 +19,8 @@ import { VersusMode } from './modes/Versus';
 import { Character } from './actors/Character';
 import { prof } from './dev/Profiler';
 import { installFoeFX } from './vfx/FoeFX';
+import { Account } from './online/Account';
+import { CloudSaves } from './online/CloudSaves';
 import { DebugDraw } from './dev/DebugDraw';
 
 // Top-level orchestrator. One instance lives for the lifetime of the page.
@@ -93,7 +95,10 @@ export class Game {
       if (this.mode?.onRegion) this.mode.onRegion(r);
     };
     ui.set({ loading: { label: 'Raising Ebon Crossing', progress: 0.35 } });
+    // account + cloud saves load alongside the title assets (never blocks on the network for long)
+    const accountReady = this.initAccount();
     await preload(['dioHome', 'theWorld']);
+    await Promise.race([accountReady, new Promise((r) => setTimeout(r, 6000))]);
     ui.set({ loading: { label: 'DIO awaits', progress: 0.8 } });
     await this.toTitle(true);
     // QA: ?step=<story step id> starts the campaign at that beat with a fresh profile
@@ -260,7 +265,32 @@ export class Game {
     });
   }
 
+  // Signed-in players: switch saves to their account, pull cloud copies, then ask for a username
+  // (mandatory) and offer to bring a signed-out journey along. Signed-out players play as guests.
+  async initAccount() {
+    try {
+      await Account.init();
+      if (!Account.loggedIn || Save.sandboxed) { ui.set({ account: { loggedIn: Account.loggedIn, username: Account.username } }); return; }
+      Save.setAccount(Account.id);
+      CloudSaves.enable(true);
+      await CloudSaves.pull();
+      const pend = { loggedIn: true, username: Account.username, needsUsername: Account.needsUsername };
+      const guest = Save.guestSaves();
+      if (guest.length && !Save.raw('meta.guestOffer')) pend.guestImport = guest.map((x) => ({ slot: x.slot, chapter: x.data.chapterName, savedAt: x.data.savedAt }));
+      ui.set({ account: pend });
+      Account.on(() => ui.set({ account: { ...ui.get().account, loggedIn: Account.loggedIn, username: Account.username, needsUsername: Account.needsUsername } }));
+    } catch (e) {
+      console.warn('[account] init failed', e);
+      ui.set({ account: { loggedIn: false, error: true } });
+    }
+  }
+
   applySettings(s) {
+    // changing difficulty in the middle of a timed run takes it out of the ranked categories
+    if (s.difficulty && this.mode?.name === 'campaign') {
+      const run = this.progress?.run;
+      if (run && !run.done && run.difficulty !== s.difficulty) run.difficulty = 'mixed';
+    }
     this.settings = { ...this.settings, ...s };
     const st = this.settings;
     this.engine.setQuality(st.quality);

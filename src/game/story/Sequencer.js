@@ -24,9 +24,9 @@ export class Sequencer {
     const g = this.game;
     this.running = true;
     this.skipping = false;
-    // every scene and line plays in full: nothing in the story can be skipped
-    void skippable;
-    this.skippable = false;
+    // cutscenes can be skipped when the player allows it in Settings (permitted in speedruns;
+    // every scene leaves the story in a defined state, so no requirement is ever skipped)
+    this.skippable = skippable && g.settings?.allowSkip !== false;
     g.inCinematic = true;
     ui.set({ letterbox, prompt: null });
     try {
