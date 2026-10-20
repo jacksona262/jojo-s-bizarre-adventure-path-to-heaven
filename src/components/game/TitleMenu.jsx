@@ -2,19 +2,26 @@ import React, { useState } from 'react';
 import { useNav } from './useNav';
 import { Save } from '@/game/state/Save';
 import { audio } from '@/game/core/Audio';
-import { ui } from '@/game/core/Store';
+import { ui, useUI } from '@/game/core/Store';
 
-const ITEMS = [
+const BASE_ITEMS = [
   { id: 'continue', label: 'Continue', hover: 'continue' },
   { id: 'new', label: 'New Game', hover: 'new' },
+  { id: 'ngplus', label: 'New Game+', hover: 'new' },
   { id: 'versus', label: 'Versus', hover: 'versus' },
+  { id: 'challenges', label: 'Challenges', hover: 'versus' },
+  { id: 'hof', label: 'Hall of Fame', hover: 'credits' },
   { id: 'load', label: 'Load Game', hover: 'load' },
+  { id: 'profile', label: 'Profile', hover: 'settings' },
   { id: 'settings', label: 'Settings', hover: 'settings' },
   { id: 'credits', label: 'Credits', hover: 'credits' },
 ];
 
 export default function TitleMenu({ game }) {
   const hasSave = !!Save.latest();
+  const account = useUI((s) => s.account);
+  const completed = Save.list().some(({ data }) => data?.flags?.completed);
+  const ITEMS = BASE_ITEMS.filter((it) => it.id !== 'ngplus' || completed);
   const [leaving, setLeaving] = useState(false);
   const [confirmNew, setConfirmNew] = useState(false);
   const act = (i) => {
@@ -28,6 +35,10 @@ export default function TitleMenu({ game }) {
     } else if (it.id === 'versus') game.openVersusSelect();
     else if (it.id === 'load') { if (!hasSave) return; audio.play('uiSelect'); ui.set({ overlay: 'saves', savesMode: 'load', savesFrom: 'title' }); }
     else if (it.id === 'settings') { audio.play('uiSelect'); ui.set({ overlay: 'settings' }); }
+    else if (it.id === 'ngplus') { audio.play('uiSelect'); setLeaving(true); game.newGamePlus(); }
+    else if (it.id === 'challenges') { audio.play('uiSelect'); ui.set({ screen: 'challenges' }); }
+    else if (it.id === 'hof') { audio.play('uiSelect'); ui.set({ screen: 'hallOfFame' }); }
+    else if (it.id === 'profile') { audio.play('uiSelect'); ui.set({ overlay: 'profile' }); }
     else if (it.id === 'credits') { audio.play('uiSelect'); ui.set({ screen: 'credits', creditsFrom: 'title' }); }
   };
   const [index, setIndex] = useNav(ITEMS.length, act, {
@@ -46,7 +57,7 @@ export default function TitleMenu({ game }) {
         <div className="pth-menu">
           {ITEMS.map((it, i) => {
             const disabled = (it.id === 'continue' || it.id === 'load') && !hasSave;
-            const label = it.id === 'new' && confirmNew ? 'New Game · overwrite journey?' : it.label;
+            const label = it.id === 'new' && confirmNew ? 'New Game · overwrite journey?' : it.id === 'profile' ? (account?.loggedIn ? `Profile · ${account.username || '…'}` : 'Sign In / Profile') : it.label;
             return (
               <button
                 key={it.id}

@@ -12,6 +12,7 @@ import VersusSelect from './VersusSelect';
 import OnlineLobby from './OnlineLobby';
 import DevPanel from './DevPanel';
 import { PauseMenu, SettingsPanel, Journal, RegionMap, Upgrades, Saves, Death, Results, ChoiceNav } from './Overlays';
+import { UsernameGate, GuestImport, ProfilePanel, HallOfFame, RunResults, LorePage, ChallengeMenu, ChallengeResults, AchievementToast, CloudBadge, RunTimerHud } from './V3Screens';
 
 function Loading() {
   const l = useUI((s) => s.loading);
@@ -67,6 +68,7 @@ export default function GameRoot() {
   const overlay = useUI((s) => s.overlay);
   const minigame = useUI((s) => s.minigame);
   const dev = useUI((s) => s.dev);
+  const account = useUI((s) => s.account);
 
   useEffect(() => {
     let g;
@@ -99,6 +101,8 @@ export default function GameRoot() {
       {game && screen === 'title' && !overlay && <div className="pth-ui"><TitleMenu game={game} /></div>}
       {game && screen === 'versusSelect' && <div className="pth-ui"><VersusSelect game={game} /></div>}
       {game && screen === 'onlineLobby' && <div className="pth-ui"><OnlineLobby game={game} /></div>}
+      {game && screen === 'hallOfFame' && <div className="pth-ui"><HallOfFame /></div>}
+      {game && screen === 'challenges' && <div className="pth-ui"><ChallengeMenu /></div>}
       {game && screen === 'credits' && <Credits game={game} />}
       <div className="pth-ui">
         {game && overlay === 'pause' && <PauseMenu />}
@@ -109,9 +113,19 @@ export default function GameRoot() {
         {game && overlay === 'saves' && <Saves />}
         {game && overlay === 'death' && <Death />}
         {game && overlay === 'results' && <Results />}
+        {game && overlay === 'profile' && <ProfilePanel />}
+        {game && overlay === 'username' && <UsernameGate />}
+        {game && overlay === 'runResults' && <RunResults />}
+        {game && overlay === 'lore' && <LorePage />}
+        {game && overlay === 'challengeResults' && <ChallengeResults />}
+        {game && screen === 'title' && account?.needsUsername && overlay !== 'username' && <UsernameGate />}
+        {game && screen === 'title' && <GuestImport />}
         {game && minigame && <Minigames />}
       </div>
       {game && dev && (screen === 'game' || screen === 'versus') && <div className="pth-ui"><DevPanel /></div>}
+      {game && screen === 'game' && <RunTimerHud />}
+      {game && <AchievementToast />}
+      {game && <CloudBadge />}
       {(screen === 'boot' || screen === 'loading') && <Loading />}
       {error && (
         <div className="pth-overlay">
