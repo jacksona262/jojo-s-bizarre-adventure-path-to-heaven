@@ -1,0 +1,52 @@
+{
+  "name": "RunStart",
+  "type": "object",
+  "description": "Server-recorded start of a timed run. Its id is the run identifier and its server created_date is the official start event. Players can create but never edit or delete them.",
+  "properties": {
+    "kind": {
+      "type": "string",
+      "description": "story | bossrush | boss"
+    },
+    "difficulty": {
+      "type": "string"
+    },
+    "ng": {
+      "type": "number"
+    },
+    "version": {
+      "type": "string"
+    },
+    "username": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "kind"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

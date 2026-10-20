@@ -1,0 +1,69 @@
+{
+  "name": "PlayerProfile",
+  "type": "object",
+  "description": "Public player identity: unique username plus stats and achievements. Readable by everyone (leaderboards, username availability); writable only by its owner.",
+  "properties": {
+    "username": {
+      "type": "string"
+    },
+    "username_lower": {
+      "type": "string",
+      "description": "Lower-cased username for case-insensitive uniqueness"
+    },
+    "username_changed_at": {
+      "type": "number"
+    },
+    "stats": {
+      "type": "object",
+      "description": "completions, fastest_ms, bosses (array), side_quests (array), playtime_ms, deaths, versus_wins, versus_losses, runs"
+    },
+    "achievements": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "bests": {
+      "type": "object",
+      "description": "Personal bests per category, e.g. any:normal, boss:avdol:normal"
+    },
+    "fighter_usage": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "username",
+    "username_lower"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

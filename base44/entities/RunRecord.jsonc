@@ -1,0 +1,80 @@
+{
+  "name": "RunRecord",
+  "type": "object",
+  "description": "A completed timed run for the Hall of Fame. Created by the runner; only admins can edit or delete. Times are client-measured and checked against the server-recorded RunStart.",
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "description": "id of the RunStart record"
+    },
+    "username": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "description": "any | 100 | bossrush | boss:<key>"
+    },
+    "difficulty": {
+      "type": "string"
+    },
+    "time_ms": {
+      "type": "number"
+    },
+    "playtime_ms": {
+      "type": "number"
+    },
+    "deaths": {
+      "type": "number"
+    },
+    "splits": {
+      "type": "object",
+      "description": "boss key -> ms at defeat"
+    },
+    "bosses": {
+      "type": "number"
+    },
+    "lore": {
+      "type": "number"
+    },
+    "version": {
+      "type": "string"
+    },
+    "ng": {
+      "type": "number"
+    },
+    "completed_at": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "run_id",
+    "category",
+    "time_ms"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

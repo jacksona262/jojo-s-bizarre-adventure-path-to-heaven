@@ -1,0 +1,71 @@
+{
+  "name": "CloudSave",
+  "type": "object",
+  "description": "One campaign save slot of one player (auto checkpoint, slot1-3, ngplus). Only its owner can read or write it.",
+  "properties": {
+    "slot": {
+      "type": "string",
+      "description": "auto | slot1 | slot2 | slot3"
+    },
+    "data": {
+      "type": "string",
+      "description": "Serialized save (JSON)"
+    },
+    "rev": {
+      "type": "number",
+      "description": "Increments on every write; used to detect writes from another device"
+    },
+    "saved_at": {
+      "type": "number",
+      "description": "Client time of the save (ms)"
+    },
+    "chapter": {
+      "type": "string"
+    },
+    "step": {
+      "type": "number"
+    },
+    "playtime_ms": {
+      "type": "number"
+    },
+    "story_ms": {
+      "type": "number"
+    },
+    "device": {
+      "type": "string",
+      "description": "Random id of the device that wrote it"
+    },
+    "version": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "slot",
+    "data"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}
