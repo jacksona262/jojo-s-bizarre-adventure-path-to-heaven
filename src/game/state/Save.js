@@ -31,7 +31,7 @@ function migrate(d) {
   out.upgrades = { ...base.upgrades, ...(d.upgrades || {}) };
   out.sub = d.sub && typeof d.sub === 'object' ? d.sub : {};
   out.flags = d.flags && typeof d.flags === 'object' ? d.flags : {};
-  for (const k of ['clues', 'defeated']) out[k] = Array.isArray(d[k]) ? d[k] : [];
+  for (const k of ['clues', 'defeated', 'lore']) out[k] = Array.isArray(d[k]) ? d[k] : [];
   out.step = Math.max(0, Math.floor(d.step || 0));
   return out;
 }
@@ -62,6 +62,12 @@ export function newProgress() {
     hp: null,
     chapterName: 'Prologue',
     savedAt: 0,
+    // V3: official story run (id, timer, deaths, boss splits), total playtime, lore pages, NG+
+    run: null,
+    totalMs: 0,
+    lore: [],
+    ng: 0,
+    difficulty: null,
   };
 }
 
