@@ -517,6 +517,13 @@ export class Campaign {
     });
     if (s.final) { brain.phase = 3; boss.kit.phase = 3; brain.thresholds = [0.5, 0.25]; }
     addStoryBonus(boss, s.final ? 'jotaroFinal' : key);
+    // New Game+: every cycle the Seal-bearers grow tougher, faster and more dangerous
+    if (this.p.ng > 0) {
+      const ng = this.p.ng;
+      boss.hpMax = Math.round(boss.hpMax * (1 + 0.3 * ng)); boss.hp = boss.hpMax;
+      brain.difficulty *= 1 + 0.2 * ng;
+      boss.damageBonus = (boss.damageBonus || 1) * (1 + 0.15 * ng);
+    }
     this.encounter.phaseHp = [boss.hpMax];
     this.encounter.brain = brain;
     brain.enabled = false;
@@ -922,8 +929,8 @@ export class Campaign {
     // submit (Any%, and 100% when every lore page was found)
     if (!run.submitted) {
       const extra = { bosses: res.bosses, lore, playtime_ms: Math.round(res.totalMs) };
-      const r1 = await submitRun(run, { category: 'any', extra });
-      if (r1.ok && full) await submitRun(run, { category: '100', extra });
+      const r1 = await submitRun(run, { category: run.ng ? 'ngplus' : 'any', extra });
+      if (r1.ok && full && !run.ng) await submitRun(run, { category: '100', extra });
       if (r1.ok) { run.submitted = true; this.autosave(true); }
       ui.set({ runResults: { ...ui.get().runResults, submit: r1.ok ? 'ok' : r1.reason } });
       if (r1.ok) {

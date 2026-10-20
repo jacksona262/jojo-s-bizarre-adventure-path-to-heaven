@@ -216,6 +216,39 @@ export class Game {
     this.prewarm();
   }
 
+  // Boss rematch / time trial / Boss Rush (no campaign save is touched)
+  async startChallenge(cfg) {
+    audio.init();
+    ui.set({ screen: 'loading', loading: { label: 'Preparing the challenge', progress: 0.1 }, overlay: null });
+    await this.fadeOut(0.5);
+    await this._leaveMode();
+    const { ChallengeMode } = await import('./modes/Challenge');
+    const m = new ChallengeMode(this);
+    this.mode = m;
+    await m.start(cfg);
+    this.prewarm();
+  }
+
+  // New Game+: a fresh story carrying the Stand upgrades, fragments and Enya's favour of a
+  // completed journey; bosses scale up each cycle. It keeps its own checkpoint, so the
+  // completed save is never overwritten.
+  async newGamePlus() {
+    audio.init();
+    let src = null;
+    for (const { data } of Save.list()) if (data?.flags?.completed && (!src || (data.ng || 0) > (src.ng || 0) || data.savedAt > src.savedAt)) src = data;
+    if (!src) { toast('Complete the story to unlock New Game+.'); return; }
+    const p = newProgress();
+    p.upgrades = { ...p.upgrades, ...(src.upgrades || {}) };
+    p.fragments = src.fragments || 0;
+    p.flags = { enya: !!src.flags?.enya };
+    p.ng = (src.ng || 0) + 1;
+    p.lore = [...(src.lore || [])];
+    this.progress = p;
+    const { unlockAchievement } = await import('./online/Progress');
+    unlockAchievement('ngplus');
+    await this._startCampaign(true);
+  }
+
   openVersusSelect() {
     audio.init();
     audio.play('uiSelect');
