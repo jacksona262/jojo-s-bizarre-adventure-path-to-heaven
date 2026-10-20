@@ -278,3 +278,25 @@
   .fs-rules { display: none; }
   .fs-fight { font-size: 20px; padding: 8px 28px; }
 }
+
+/* ---------------------------------------------------------------- account pages */
+.pth-auth { color: #efe4cc; background: #050307; font-family: 'Cormorant Garamond', serif; z-index: 50; }
+.pth-auth-bg { position: fixed; inset: 0; pointer-events: none; background:
+  repeating-linear-gradient(-62deg, rgba(255,255,255,0.018) 0 2px, transparent 2px 26px),
+  radial-gradient(ellipse at 50% 0%, rgba(140, 90, 20, 0.35), transparent 60%),
+  radial-gradient(ellipse at 50% 110%, rgba(90, 20, 40, 0.35), transparent 60%); }
+.pth-auth-brand { display: flex; flex-direction: column; align-items: center; text-decoration: none; }
+.pth-auth-top { font-family: 'Cinzel', serif; letter-spacing: 0.35em; font-size: 11px; color: #d8b45a; }
+.pth-auth-main { font-family: 'Cinzel Decorative', 'Cinzel', serif; font-size: 34px; color: #ffd34d; text-shadow: 0 2px 0 #000, 0 0 22px rgba(255, 190, 60, 0.35); letter-spacing: 0.06em; }
+.pth-auth-icon { display: inline-flex; align-items: center; justify-content: center; width: 46px; height: 46px; transform: rotate(45deg); border: 1px solid #d8b45a; color: #ffd34d; margin-bottom: 14px; }
+.pth-auth-icon > svg { transform: rotate(-45deg); }
+.pth-auth-title { font-family: 'Cinzel', serif; font-size: 26px; letter-spacing: 0.12em; text-transform: uppercase; color: #fff1cc; }
+.pth-auth-sub { margin-top: 4px; font-size: 18px; color: rgba(239, 228, 204, 0.7); }
+.pth-auth-card { background: linear-gradient(180deg, rgba(20, 14, 8, 0.86), rgba(8, 6, 4, 0.92)); border: 1px solid rgba(216, 180, 90, 0.35); box-shadow: 0 0 40px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 220, 140, 0.05); padding: 28px; font-family: 'Inter', sans-serif; }
+.pth-auth-card label { font-family: 'Cinzel', serif; letter-spacing: 0.14em; text-transform: uppercase; font-size: 11px; color: #d8b45a; }
+.pth-auth-card input { background: rgba(0, 0, 0, 0.45) !important; border-color: rgba(216, 180, 90, 0.35) !important; color: #f3e6c4 !important; }
+.pth-auth-card button[type="submit"] { font-family: 'Cinzel', serif; letter-spacing: 0.16em; text-transform: uppercase; }
+.pth-auth-foot { color: rgba(239, 228, 204, 0.75); font-size: 16px; }
+.pth-auth-foot a, .pth-auth-card a { color: #ffd34d !important; }
+.pth-auth-back { font-family: 'Cinzel', serif; letter-spacing: 0.18em; font-size: 12px; color: rgba(239, 228, 204, 0.6); text-transform: uppercase; }
+.pth-auth-back:hover { color: #ffd34d; }

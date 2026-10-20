@@ -1,22 +1,27 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
+// Account pages (log in, sign up, password recovery) in the game's own look: the storm-dark
+// night, gold Cinzel lettering and a glass panel. Scrolls on small screens.
 export default function AuthLayout({ icon: Icon, title, subtitle, footer, children }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary mb-4">
-            <Icon className="w-7 h-7 text-primary-foreground" aria-hidden="true" />
+    <div className="pth-auth fixed inset-0 overflow-y-auto">
+      <div className="pth-auth-bg" />
+      <div className="relative min-h-full flex items-center justify-center px-4 py-10">
+        <div className="w-full max-w-md">
+          <Link to="/" className="pth-auth-brand">
+            <span className="pth-auth-top">JOJO&apos;S BIZARRE ADVENTURE</span>
+            <span className="pth-auth-main">PATH TO HEAVEN</span>
+          </Link>
+          <div className="text-center mb-7 mt-6">
+            <div className="pth-auth-icon"><Icon className="w-6 h-6" aria-hidden="true" /></div>
+            <h1 className="pth-auth-title">{title}</h1>
+            {subtitle && <p className="pth-auth-sub">{subtitle}</p>}
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">{title}</h1>
-          {subtitle && <p className="text-muted-foreground mt-2">{subtitle}</p>}
+          <div className="pth-auth-card">{children}</div>
+          {footer && <p className="text-center text-sm mt-6 pth-auth-foot">{footer}</p>}
+          <p className="text-center mt-4"><Link to="/" className="pth-auth-back">‹ Back to the game</Link></p>
         </div>
-        <div className="bg-card rounded-2xl shadow-sm border border-border p-8">
-          {children}
-        </div>
-        {footer && (
-          <p className="text-center text-sm text-muted-foreground mt-6">{footer}</p>
-        )}
       </div>
     </div>
   );
