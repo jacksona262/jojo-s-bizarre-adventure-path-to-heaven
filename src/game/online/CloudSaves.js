@@ -145,7 +145,7 @@ export const CloudSaves = {
   },
 
   // resolve a conflict from the Load screen (the player chose)
-  async useCloud(slot) {
+  async takeCloud(slot) {
     const cf = this.conflicts[slot];
     if (!cf) return;
     const local = Save.raw(`save.${slot}`);

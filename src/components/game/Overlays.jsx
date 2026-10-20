@@ -296,7 +296,7 @@ export function Saves() {
             <div key={`c-${slot}`} className="v3-conflict">
               <div>☁ {slot === 'auto' ? 'Checkpoint' : `Slot ${slot.slice(-1)}`} was also saved on another device: <b>{c.chapter || c.data?.chapterName}</b> · {new Date(c.saved_at).toLocaleString()}</div>
               <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-                <button type="button" className="pth-btn" onClick={async () => { await CloudSaves.useCloud(slot); force((n) => n + 1); }}>Use the other device&apos;s</button>
+                <button type="button" className="pth-btn" onClick={async () => { await CloudSaves.takeCloud(slot); force((n) => n + 1); }}>Use the other device&apos;s</button>
                 <button type="button" className="pth-btn" onClick={async () => { await CloudSaves.keepLocal(slot); force((n) => n + 1); }}>Keep this device&apos;s</button>
               </div>
             </div>
