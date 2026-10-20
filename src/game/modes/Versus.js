@@ -31,7 +31,7 @@ export const DIFFICULTIES = { easy: 0.6, normal: 1, hard: 1.4 };
 // harder hits, sharper reactions, faster meter and their ultimate (signature) far more often.
 const CPU_BOOST = 1.25;
 
-function arenaCenter(a) {
+export function arenaCenter(a) {
   if (a.gulch) { const g = GULCHES.find((q) => q.id === a.gulch); return new THREE.Vector3(g.x, g.deckY, g.z); }
   if (a.sanctum) return new THREE.Vector3(SANCTUARY.x, SANCTUARY.y || heightAt(SANCTUARY.x, SANCTUARY.z), SANCTUARY.z);
   const q = resolvePOI(a.poi);
