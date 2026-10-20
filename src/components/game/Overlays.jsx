@@ -301,9 +301,6 @@ export function Saves() {
               </div>
             </div>
           ))}
-          {false && slots.map((s) => (
-            <span key={s.slot} />
-          ))}
         </div>
         <div style={{ marginTop: 18, textAlign: 'right' }}><button type="button" className="pth-btn" onClick={back}>Back</button></div>
       </div>
