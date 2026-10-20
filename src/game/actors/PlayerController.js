@@ -168,14 +168,20 @@ export class PlayerController {
     const f = this.f;
     const input = this.input;
     this.lockCooldown -= realDt;
+    // In a battle the camera always faces the opponent: lock-on is automatic, and the lock button
+    // switches between opponents instead of releasing the camera. Outside battles it is manual.
+    const battle = !this.remote && !f.mounted && this._inBattle();
     if (input.pressed('lock') && this.lockCooldown <= 0) {
       this.lockCooldown = 0.2;
-      if (f.lockTarget) f.lockTarget = null;
+      if (battle && f.lockTarget) this._switchTarget(1);
+      else if (f.lockTarget) f.lockTarget = null;
       else f.lockTarget = this._bestTarget();
       input.wheel = 0;
     }
     // lost target (defeated / vanished): hand over to the next one nearby instead of dropping
     if (f.lockTarget && (f.lockTarget.dead || f.lockTarget.untargetable)) f.lockTarget = this._bestTarget(20, f.lockTarget);
+    if (battle && !f.lockTarget) { f.lockTarget = this._nearestFoe(); this.autoLocked = !!f.lockTarget; }
+    if (!battle && this.autoLocked) { f.lockTarget = null; this.autoLocked = false; }
     if (f.lockTarget) {
       // switch targets: mouse wheel, right-stick flick, or a fast horizontal mouse flick
       let sw = 0;
@@ -191,6 +197,20 @@ export class PlayerController {
       if (sw) this._switchTarget(sw);
     } else input.wheel = 0;
     if (!this.remote) g.camera.lock = f.lockTarget;
+  }
+
+  _inBattle() {
+    const g = this.game;
+    const m = g.mode?.name;
+    if (m === 'versus' || m === 'challenge') return g.mode.state === 'fight' || g.mode.state === 'ko';
+    return !!g.combatActive && g.combat.enemiesOf(this.f).some((e) => e.distanceTo(this.f) < 60);
+  }
+
+  // nearest living opponent in range, whatever the camera is looking at
+  _nearestFoe(maxDist = 60) {
+    let best = null; let bd = maxDist;
+    for (const e of this.game.combat.enemiesOf(this.f)) { const d = e.distanceTo(this.f); if (d < bd) { bd = d; best = e; } }
+    return best;
   }
 
   // Best target: closest to the centre of the camera view, nearer ones preferred, visible only.
