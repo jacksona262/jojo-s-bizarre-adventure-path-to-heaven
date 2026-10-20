@@ -8,6 +8,9 @@ import { QUESTS } from '@/game/story/Script';
 import { STEPS } from '@/game/story/Campaign';
 import { ASSET_NOTES } from '@/game/assets/manifest';
 import { ROSTER } from '@/game/combat/Roster';
+import { formatRunTime, MAIN_BOSSES } from '@/game/online/Progress';
+import { CloudSaves } from '@/game/online/CloudSaves';
+import { LORE } from '@/game/story/Lore';
 
 const g = () => window.__game;
 
@@ -42,7 +45,9 @@ export function PauseMenu() {
     { label: 'Settings', fn: () => ui.set({ overlay: 'settings', settingsFrom: 'pause' }) },
     { label: camp ? 'Quit to Title' : 'Leave the Duel', fn: async () => { if (camp) game.mode.autosave(); game.setPaused(false); await game.fadeOut(0.6); game.toTitle(); } },
   ];
-  return <div className="pth-overlay"><MenuList title="Paused" sub={camp ? game.progress.chapterName : 'Versus'} items={items} onBack={() => game.setPaused(false)} /></div>;
+  const run = camp ? game.progress.run : null;
+  const sub = camp ? `${game.progress.chapterName}${run ? ` · ${formatRunTime(run.done ? run.finishMs : run.storyMs)}${run.legacy ? ' (untimed save)' : ''}` : ''}` : 'Versus';
+  return <div className="pth-overlay"><MenuList title="Paused" sub={sub} items={items} onBack={() => game.setPaused(false)} /></div>;
 }
 
 export function SettingsPanel() {
@@ -78,6 +83,10 @@ export function SettingsPanel() {
         <Row label="Invert look Y"><Seg k="invertY" opts={[false, true]} /></Row>
         <Row label="Screen effects"><Seg k="screenFx" opts={['full', 'reduced', 'off']} /></Row>
         <Row label="Show FPS"><Seg k="showFps" opts={[false, true]} /></Row>
+        <Row label="Run timer on HUD"><Seg k="showRunTimer" opts={[false, true]} /></Row>
+        <Row label="Skip cutscenes"><Seg k="allowSkip" opts={[true, false]} /></Row>
+        <Row label="Subtitle size"><Seg k="subtitleSize" opts={[0.85, 1, 1.25, 1.5]} /></Row>
+        <Row label="Interface size"><Seg k="uiScale" opts={[0.85, 1, 1.15, 1.3]} /></Row>
         <div className="pth-h2" style={{ marginTop: 18 }}>Controls</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '4px 18px', fontSize: 15, marginTop: 8 }}>
           {Object.entries(BINDINGS).filter(([k]) => !['up', 'down', 'left', 'right', 'confirm', 'back', 'skip'].includes(k)).map(([k, b]) => (
@@ -101,30 +110,65 @@ export function Journal() {
   const game = g();
   const p = game.progress;
   const step = STEPS[p.step];
+  const [tab, setTab] = useState('road');
+  const [page, setPage] = useState(null);
   const back = () => game.setPaused(false);
   useNav(1, () => {}, { onBack: back });
   const quests = STEPS.map((s, i) => ({ s, i })).filter(({ s }) => s.quest || s.boss);
+  const run = p.run;
+  const found = new Set(p.lore || []);
+  const tabs = [['road', 'The Road'], ['events', 'Events'], ['seals', 'Seals'], ['lore', `Lore ${found.size}/${LORE.length}`], ['run', 'Run']];
   return (
     <div className="pth-overlay">
-      <div className="pth-panel" style={{ width: 'min(1000px, 94vw)', height: 'min(80vh, 720px)', padding: 28, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 28 }}>
-        <div className="pth-scroll">
-          <div className="pth-h1">Journal</div>
-          <div style={{ color: '#d8b45a', fontFamily: 'Cinzel', letterSpacing: '0.18em', marginTop: 6 }}>{p.chapterName}</div>
-          {step?.quest && <div style={{ marginTop: 10, fontSize: 18, fontStyle: 'italic' }}>{QUESTS[step.quest].summary}</div>}
-          <div className="pth-h2" style={{ marginTop: 22 }}>The Road North</div>
-          {quests.map(({ s, i }) => (
-            <div key={s.id} style={{ padding: '6px 0', borderBottom: '1px solid rgba(216,180,90,0.1)', opacity: i > p.step ? 0.35 : 1, color: i === p.step ? '#fff1cc' : undefined }}>
-              {i < p.step ? '✦ ' : i === p.step ? '◆ ' : '· '}
-              {s.boss ? `${ROSTER[s.boss].name} · ${ROSTER[s.boss].standName}${s.final ? ' (Final)' : ''}` : QUESTS[s.quest].title}
-            </div>
-          ))}
+      <div className="pth-panel" style={{ width: 'min(1000px, 94vw)', height: 'min(82vh, 740px)', padding: 26, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+          <div><div className="pth-h1">Journal</div><div style={{ color: '#d8b45a', fontFamily: 'Cinzel', letterSpacing: '0.18em', marginTop: 4 }}>{p.chapterName}{p.ng ? ` · New Game+${p.ng > 1 ? ` ${p.ng}` : ''}` : ''}</div></div>
+          <button type="button" className="pth-btn" onClick={back}>Close</button>
         </div>
-        <div className="pth-scroll">
-          <div className="pth-h2">Clues</div>
-          {p.clues.length ? p.clues.map((c) => <div key={c} style={{ marginTop: 10, fontSize: 18, borderLeft: '2px solid #a080e0', paddingLeft: 10 }}>{c}</div>) : <div style={{ marginTop: 10, opacity: 0.6 }}>Nothing yet.</div>}
-          <div className="pth-h2" style={{ marginTop: 22 }}>Stand Fragments: {p.fragments}</div>
-          <div className="pth-h2" style={{ marginTop: 22 }}>Playtime: {Math.floor((p.playtime || 0) / 60)} min</div>
-          <div style={{ marginTop: 26, textAlign: 'right' }}><button type="button" className="pth-btn" onClick={back}>Close</button></div>
+        <div className="v3-tabs" style={{ marginTop: 10 }}>{tabs.map(([k, l]) => <button key={k} type="button" className={`v3-tab ${tab === k ? 'active' : ''}`} onClick={() => { setTab(k); setPage(null); }}>{l}</button>)}</div>
+        <div className="pth-scroll" style={{ flex: 1, marginTop: 12, paddingRight: 6 }}>
+          {tab === 'road' && (
+            <>
+              <div className="pth-h2">Current objective</div>
+              <div style={{ marginTop: 6, fontSize: 19 }}>{game.mode?.objectiveData?.text || '—'}</div>
+              {step?.quest && <div style={{ marginTop: 8, fontSize: 17, fontStyle: 'italic', opacity: 0.85 }}>{QUESTS[step.quest].summary}</div>}
+              <div className="pth-h2" style={{ marginTop: 18 }}>Chapters</div>
+              {quests.map(({ s, i }) => {
+                const seen = i <= p.step;
+                return (
+                  <div key={s.id} style={{ padding: '6px 0', borderBottom: '1px solid rgba(216,180,90,0.1)', opacity: i > p.step ? 0.35 : 1, color: i === p.step ? '#fff1cc' : undefined }}>
+                    {i < p.step ? '✦ ' : i === p.step ? '◆ ' : '· '}
+                    {seen ? (s.boss ? `${ROSTER[s.boss].name} · ${ROSTER[s.boss].standName}${s.final ? ' (Final)' : ''}` : QUESTS[s.quest].title) : 'Further down the road…'}
+                  </div>
+                );
+              })}
+            </>
+          )}
+          {tab === 'events' && (p.clues.length ? p.clues.map((c) => <div key={c} style={{ marginTop: 10, fontSize: 18, borderLeft: '2px solid #a080e0', paddingLeft: 10 }}>{c}</div>) : <div style={{ opacity: 0.6 }}>Nothing yet.</div>)}
+          {tab === 'seals' && MAIN_BOSSES.map((k) => {
+            const beaten = (p.defeated || []).includes(k);
+            return <div key={k} className="v3-line"><span>{beaten ? ROSTER[k].name : '???'}</span><b>{beaten ? `✦ 「${ROSTER[k].standName}」${run?.splits?.[k] != null ? ` · ${formatRunTime(run.splits[k])}` : ''}` : 'Seal intact'}</b></div>;
+          })}
+          {tab === 'lore' && (page ? (
+            <div className="v3-lore" style={{ margin: 0 }}>
+              <div className="v3-lore-title">{page.title}</div>
+              <div className="v3-lore-text">{page.text}</div>
+              <div className="v3-row-end"><button type="button" className="pth-btn" onClick={() => setPage(null)}>Back</button></div>
+            </div>
+          ) : LORE.map((L) => (found.has(L.id)
+            ? <button key={L.id} type="button" className="pth-btn" style={{ display: 'block', width: '100%', textAlign: 'left', marginTop: 6 }} onClick={() => setPage(L)}>✦ {L.title}</button>
+            : <div key={L.id} className="v3-line" style={{ opacity: 0.45 }}><span>Undiscovered page</span><b>· · ·</b></div>)))}
+          {tab === 'run' && (
+            <>
+              <div className="v3-line"><span>Official story time</span><b>{run ? formatRunTime(run.done ? run.finishMs : run.storyMs) : '—'}</b></div>
+              <div className="v3-line"><span>Total playtime</span><b>{formatRunTime(p.totalMs || 0).slice(0, 8)}</b></div>
+              <div className="v3-line"><span>Deaths this run</span><b>{run?.deaths || 0}</b></div>
+              <div className="v3-line"><span>Difficulty</span><b>{run?.difficulty || game.settings.difficulty}</b></div>
+              <div className="v3-line"><span>Stand Fragments</span><b>{p.fragments}</b></div>
+              {run?.legacy && <div className="v3-hint">This journey began before timed runs existed. Start a New Game for an official time.</div>}
+              {run?.dev && <div className="v3-hint">Developer tools were used: this run is not ranked.</div>}
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -229,7 +273,8 @@ export function Saves() {
   const game = g();
   const mode = useUI((s) => s.savesMode) || 'save';
   const [, force] = useState(0);
-  const slots = Save.list().filter((s) => mode === 'load' || s.slot !== 'auto');
+  const slots = Save.list().filter((s) => mode === 'load' ? (s.slot !== 'ngplus' || s.data) : (s.slot !== 'auto' && s.slot !== 'ngplus'));
+  const conflicts = CloudSaves.conflicts;
   const fromTitle = useUI((s) => s.savesFrom) === 'title';
   const back = () => ui.set({ overlay: fromTitle ? null : 'pause', savesFrom: null });
   const act = async (i) => {
@@ -244,8 +289,20 @@ export function Saves() {
         <div style={{ display: 'grid', gap: 8, marginTop: 14 }}>
           {slots.map((s, i) => (
             <button key={s.slot} type="button" className={`pth-btn ${index === i ? 'active' : ''}`} style={{ textAlign: 'left' }} onMouseEnter={() => setIndex(i)} onClick={() => act(i)} disabled={mode === 'load' && !s.data}>
-              {s.slot === 'auto' ? 'Checkpoint' : `Slot ${s.slot.slice(-1)}`} · {s.data ? `${s.data.chapterName} · ${new Date(s.data.savedAt).toLocaleString()}` : 'Empty'}
+              {s.slot === 'auto' ? 'Checkpoint' : s.slot === 'ngplus' ? 'New Game+ checkpoint' : `Slot ${s.slot.slice(-1)}`} · {s.data ? `${s.data.chapterName} · ${new Date(s.data.savedAt).toLocaleString()}${s.data.run && !s.data.run.legacy ? ` · ${formatRunTime(s.data.run.done ? s.data.run.finishMs : s.data.run.storyMs).slice(0, 8)}` : ''}` : 'Empty'}
             </button>
+          ))}
+          {Object.entries(conflicts).map(([slot, c]) => (
+            <div key={`c-${slot}`} className="v3-conflict">
+              <div>☁ {slot === 'auto' ? 'Checkpoint' : `Slot ${slot.slice(-1)}`} was also saved on another device: <b>{c.chapter || c.data?.chapterName}</b> · {new Date(c.saved_at).toLocaleString()}</div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                <button type="button" className="pth-btn" onClick={async () => { await CloudSaves.useCloud(slot); force((n) => n + 1); }}>Use the other device&apos;s</button>
+                <button type="button" className="pth-btn" onClick={async () => { await CloudSaves.keepLocal(slot); force((n) => n + 1); }}>Keep this device&apos;s</button>
+              </div>
+            </div>
+          ))}
+          {false && slots.map((s) => (
+            <span key={s.slot} />
           ))}
         </div>
         <div style={{ marginTop: 18, textAlign: 'right' }}><button type="button" className="pth-btn" onClick={back}>Back</button></div>
