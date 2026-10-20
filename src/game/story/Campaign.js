@@ -732,6 +732,8 @@ export class Campaign {
 
   async loadCheckpoint() {
     const g = this.game;
+    // bank the running clock before the older checkpoint replaces this session's progress
+    if (this.clock) { this.clock.stop(); this.clock = null; }
     ui.set({ overlay: null });
     g.overlayOpen = false;
     this.dead = false;

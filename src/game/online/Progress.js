@@ -58,9 +58,13 @@ export class RunClock {
     if (this.ledgerT >= 5000) { this.ledgerT = 0; this.writeLedger(); }
   }
 
+  // the ledger only ever moves forward: a stale copy of the run can never lower it
   writeLedger() {
     const run = this.getP()?.run;
-    if (run && !run.dev) Save.writeRaw(`run.${run.id}`, { storyMs: run.storyMs, done: run.done, finishMs: run.finishMs, deaths: run.deaths, splits: run.splits });
+    if (!run || run.dev) return;
+    const cur = Save.raw(`run.${run.id}`);
+    if (cur && cur.storyMs > run.storyMs) return;
+    Save.writeRaw(`run.${run.id}`, { storyMs: run.storyMs, done: run.done, finishMs: run.finishMs, deaths: run.deaths, splits: run.splits });
   }
 
   stop() { clearInterval(this.timer); this.tick(); this.writeLedger(); }
