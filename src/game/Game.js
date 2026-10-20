@@ -160,9 +160,13 @@ export class Game {
     ui.set({ prompt: null, subtitle: null, choice: null, boss: null, objective: null, timeStop: null, region: null, letterbox: false, noise: null, combo: null, bossCard: null });
   }
 
+  // stop (and bank) the running campaign clock before its progress object is replaced
+  _bankClock() { if (this.mode?.clock) { this.mode.clock.stop(); this.mode.clock = null; } }
+
   async newGame() {
     audio.init();
     audio.play('uiSelect');
+    this._bankClock();
     this.progress = newProgress();
     await this._startCampaign(true);
   }
@@ -171,6 +175,7 @@ export class Game {
     audio.init();
     const pick = slot ? { slot, data: Save.load(slot) } : Save.latest();
     if (!pick || !pick.data) { toast('No saved journey found.'); return; }
+    this._bankClock();
     this.progress = Save.load(pick.slot);
     await this._startCampaign(false);
   }
@@ -243,6 +248,7 @@ export class Game {
     p.flags = { enya: !!src.flags?.enya };
     p.ng = (src.ng || 0) + 1;
     p.lore = [...(src.lore || [])];
+    this._bankClock();
     this.progress = p;
     const { unlockAchievement } = await import('./online/Progress');
     unlockAchievement('ngplus');
