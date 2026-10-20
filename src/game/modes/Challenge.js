@@ -161,6 +161,7 @@ export class ChallengeMode {
     if (!this.hurt) unlockAchievement('untouched');
     const bestKey = `boss:${key}:${this.difficulty}${this.modded ? ':mod' : ''}`;
     const isPb = Account.recordBest(bestKey, ms) || this._localBest(bestKey, ms);
+    this.lastPb = isPb;
     ui.set({ announce: { text: 'SEAL BROKEN', sub: `${formatRunTime(ms)}${isPb ? ' · personal best' : ''}` } });
     await new Promise((r) => setTimeout(r, 1800));
     ui.set({ announce: null });
@@ -199,7 +200,7 @@ export class ChallengeMode {
     const total = Math.round(this.totalMs);
     const rush = this.cfg.type === 'rush';
     let submit = null;
-    let isPb = false;
+    let isPb = !rush && !!this.lastPb;
     if (cleared) {
       if (rush) {
         unlockAchievement('bossrush');
