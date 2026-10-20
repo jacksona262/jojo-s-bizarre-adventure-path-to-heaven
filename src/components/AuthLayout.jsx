@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import "@/components/game/game.css";
 
 // Account pages (log in, sign up, password recovery) in the game's own look: the storm-dark
 // night, gold Cinzel lettering and a glass panel. Scrolls on small screens.
